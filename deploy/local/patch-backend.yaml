@@ -30,7 +30,7 @@ spec:
             - name: API_URL
               value: https://api.localtest.me
             - name: ALLOWED_EMAILS
-              value: alice@example.com,bob@example.com,admin@example.com,rwendt1337@gmail.com,browserjs06@gmail.com
+              value: "*"
           volumeMounts:
             - name: local-ca
               mountPath: /etc/local-ca

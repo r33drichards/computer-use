@@ -11,7 +11,7 @@ import (
 
 // Pomerium's policy says who may sign in; the backend's ALLOWED_EMAILS says
 // who may use an API token, where Pomerium is not asked. They are the same
-// list, kept in two files of each overlay: this holds them together.
+// access policy, either an email list or open signup, kept in two files.
 func TestAllowedEmailsMirrorPomeriumsPolicy(t *testing.T) {
 	for _, c := range []struct {
 		name, pomerium, backend string
@@ -29,6 +29,12 @@ func TestAllowedEmailsMirrorPomeriumsPolicy(t *testing.T) {
 			for _, route := range routes {
 				if route.Name == "app" {
 					signIn = route.emails()
+					if len(route.Policy) == 1 && len(route.Policy[0].Allow.And) == 1 && route.Policy[0].Allow.And[0].AuthenticatedUser {
+						signIn = []string{"*"}
+					}
+					if route.Public || !route.PassIdentity {
+						t.Error("app must require sign-in and pass identity")
+					}
 				}
 				host, _ := strings.CutPrefix(route.From, "https://api.")
 				if host == route.From {
@@ -57,7 +63,7 @@ func TestAllowedEmailsMirrorPomeriumsPolicy(t *testing.T) {
 				}
 			}
 			if len(signIn) == 0 {
-				t.Fatal("found no email addresses in the app route's policy")
+				t.Fatal("found no sign-in access policy")
 			}
 			if apiFrom == "" {
 				t.Fatal("no routes for the API host")
@@ -108,6 +114,9 @@ type pomeriumRoute struct {
 	Websockets   bool   `json:"allow_websockets"`
 	Policy       []struct {
 		Allow struct {
+			And []struct {
+				AuthenticatedUser bool `json:"authenticated_user"`
+			} `json:"and"`
 			Or []struct {
 				Email struct {
 					Is string `json:"is"`
