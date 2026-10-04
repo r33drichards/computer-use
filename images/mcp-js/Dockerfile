@@ -19,15 +19,22 @@ COPY site/explanation/ /source/site/explanation/
 COPY images/mcp-js/prepare-skills.py images/mcp-js/test_prepare_skills.py /
 RUN python3 /test_prepare_skills.py && python3 /prepare-skills.py /source /skills
 
-FROM wholelottahoopla/mcp-js@sha256:abd34e6c3f347914fbc3be454dd18868d290b8564ae7dd5bf778cb2bd4ad5a84
+FROM debian:trixie-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -m -u 1000 mcpuser \
+    && mkdir -p /data && chown mcpuser:mcpuser /data
 COPY --from=builder --chmod=755 /mcp-v8 /usr/local/bin/mcp-v8
+RUN mcp-v8 --version
 COPY images/mcp-js/mcp_tools.rego images/mcp-js/filesystem.rego images/mcp-js/fetch.rego images/mcp-js/mcp-servers.json images/mcp-js/mcp-servers.no-exec.json images/mcp-js/run_js.md images/mcp-js/instructions.md /etc/mcp/
 COPY --chmod=755 images/mcp-js/start.sh /usr/local/bin/start.sh
 COPY --from=documentation /skills/ /etc/mcp/skills/
 # Native hook deadlines must not be consumed by UDP resolver stalls.
 # Session NetworkPolicies allow TCP DNS to cluster and node-local DNS.
 ENV RES_OPTIONS=use-vc \
+    PORT=8080 \
     MCP_V8_HTTP_PORT=8080 \
+    MCP_V8_ALLOWED_HOSTS=* \
     MCP_V8_HEAP_STORE=none \
     MCP_V8_MCP_CONFIG=/etc/mcp/mcp-servers.json \
     MCP_V8_POLICIES_JSON='{"mcp_tools":{"policies":[{"url":"file:///etc/mcp/mcp_tools.rego"}]},"filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]},"fetch":{"policies":[{"url":"file:///etc/mcp/fetch.rego"}]}}' \
@@ -35,5 +42,7 @@ ENV RES_OPTIONS=use-vc \
     MCP_V8_INSTRUCTIONS=@/etc/mcp/instructions.md \
     MCP_V8_SESSION_DB_PATH=/data/mcp/sessions \
     MCP_V8_SKILLS_DIR=/etc/mcp/skills
+USER mcpuser
 EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/start.sh"]
+CMD []
