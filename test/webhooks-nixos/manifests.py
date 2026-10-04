@@ -64,7 +64,7 @@ blueprint = {'podTemplate': {
     'metadata': {'labels': {'app': 'browserjs-session'}},
     'spec': {'automountServiceAccountToken': False, 'enableServiceLinks': False,
         'containers': [{'name': 'mcp-js', 'image': 'webhooks/mcpjs:test', 'imagePullPolicy': 'Never',
-            'env': [{'name': 'MCP_V8_POLICIES_JSON', 'value': json.dumps(policies)}],
+            'env': [{'name': 'RES_OPTIONS', 'value': 'use-vc'}, {'name': 'MCP_V8_POLICIES_JSON', 'value': json.dumps(policies)}],
             'args': ['--http-port', '8080', '--session-db-path', '/var/lib/mcpjs/sessions', '--mcp-config', '/config/upstream.json'],
             'ports': [{'name': 'mcp', 'containerPort': 8080}],
             'readinessProbe': {'tcpSocket': {'port': 8080}, 'periodSeconds': 1},

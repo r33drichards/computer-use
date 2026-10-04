@@ -213,3 +213,9 @@ scale the operator above one replica. Redis has a 1 GiB memory limit and no
 automatic failover; provision more memory and storage as receipt history grows.
 The guarantee assumes Redis and its PVC honour successful fsync; volume destruction or storage
 corruption requires backup recovery.
+
+The MCPJS image sets `RES_OPTIONS=use-vc` for TCP DNS lookups. This avoids
+UDP resolver stalls consuming the native hook's five-second HTTP deadline
+during pod replacement. TCP port 53 remains allowed only to cluster and
+node-local DNS by the session NetworkPolicy. Recorder/DNS unavailability
+still refuses the tool call; no retry can authorize an unrecorded attempt.

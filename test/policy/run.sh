@@ -462,7 +462,7 @@ is "no call fails while OPA pods are deleted and replaced, $replacements times (
 if [ "$(outcome "$got")" != ran ]; then
   # When, against the deletions, and what the agent's code and mcp-js saw.
   echo "      calls that did not run (at, seconds, seen):"
-  jq -rs '.[] | select(.outcome != "ran") | "      \(.at) \(.seconds)s \(.outcome): \(.seen | .[0:200])"' <<<"$got"
+  jq -rs '.[] | select(.outcome != "ran") | "      \(.at) \(.seconds)s \(.outcome): \(.seen)"' <<<"$got"
   echo "      the prober (a lookup and a new connection every 50 ms): what it logged (at, what):"
   sed 's/^/      /' "$work/probe.log" | head -60
   echo "      timeline:"
