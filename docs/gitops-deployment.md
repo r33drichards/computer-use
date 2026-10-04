@@ -20,7 +20,7 @@ The `production-stable` branch records only releases that passed; subsequent
 image builds compare against this baseline so skipped or failed releases cannot
 leave images behind. An older build never supersedes a newer `main` commit.
 
-The opt-in skills image remains controlled by its own rollout. Cluster-scoped
+The single MCP image includes skills and follows this same release. Cluster-scoped
 bootstrap infrastructure (CRDs, cluster RBAC, namespaces, StorageClasses and
 snapshot storage configuration) remains under the infrastructure/bootstrap
 procedure. Argo CD's project is restricted to `browserjs-sessions`.
