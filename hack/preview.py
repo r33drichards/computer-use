@@ -62,8 +62,17 @@ def allowed_policy():
 
 
 def allowed_emails():
-    # Keep one authoritative allow-list: production Pomerium's app policy.
-    return [rule["email"]["is"] for policy in allowed_policy() for rule in policy["allow"]["or"]]
+    # Mirror production sign-in access, including open signup.
+    policies = allowed_policy()
+    if policies == [{"allow": {"and": [{"authenticated_user": True}]}}]:
+        return ["*"]
+    return [rule["email"]["is"] for policy in policies for rule in policy["allow"]["or"]]
+
+
+def admin_emails():
+    deployment = documents("deploy/gke/patch-backend.yaml")[0]
+    env = deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+    return next(e["value"] for e in env if e["name"] == "ADMIN_EMAILS")
 
 
 def routes_for(pr):
@@ -126,7 +135,7 @@ def render(pr, sha, images, now=None):
                     if name == "backend":
                         keep = {"NAMESPACE", "PUBLIC_URL", "SESSION_URL_TEMPLATE", "POMERIUM_JWKS_URL", "ADMIN_EMAILS", "POLICY_OPERATOR_URL", "OPERATOR_API_TOKEN", "API_URL", "ALLOWED_EMAILS", "API_SIGNING_KEY"}
                         container["env"] = [e for e in container["env"] if e["name"] in keep]
-                        changes = {"PUBLIC_URL": hosts["app"], "SESSION_URL_TEMPLATE": hosts["sessions"] + "/{id}", "POMERIUM_JWKS_URL": "https://app.computeruse.site/.well-known/pomerium/jwks.json", "ADMIN_EMAILS": ",".join(allowed_emails()), "ALLOWED_EMAILS": ",".join(allowed_emails()), "API_URL": hosts["api"], "POLICY_OPERATOR_URL": f"http://policy-operator.{ns}.svc:8080"}
+                        changes = {"PUBLIC_URL": hosts["app"], "SESSION_URL_TEMPLATE": hosts["sessions"] + "/{id}", "POMERIUM_JWKS_URL": "https://app.computeruse.site/.well-known/pomerium/jwks.json", "ADMIN_EMAILS": admin_emails(), "ALLOWED_EMAILS": ",".join(allowed_emails()), "API_URL": hosts["api"], "POLICY_OPERATOR_URL": f"http://policy-operator.{ns}.svc:8080"}
                         for env in container["env"]:
                             if env["name"] in changes:
                                 env["value"] = changes[env["name"]]

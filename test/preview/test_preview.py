@@ -33,6 +33,9 @@ class PreviewTests(unittest.TestCase):
         spec = self.get("Deployment", "backend")["spec"]["template"]["spec"]
         env = {e["name"]: e for e in spec["containers"][0]["env"]}
         self.assertEqual(env["BILLING"]["value"], "off")
+        self.assertEqual(env["ALLOWED_EMAILS"]["value"], "*")
+        self.assertEqual(env["ADMIN_EMAILS"]["value"], preview.admin_emails())
+        self.assertNotEqual(env["ADMIN_EMAILS"]["value"], "*")
         self.assertEqual(env["SNAPSHOTS"]["value"], "false")
         self.assertEqual(env["MAX_SESSIONS_PER_USER"]["value"], "2")
         self.assertNotIn("WARM_POOL", env)
