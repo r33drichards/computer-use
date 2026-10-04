@@ -1,0 +1,50 @@
+# Production installation only; experiments and namespace opt-ins are separate changes.
+enableProfiling: false
+controllerManager:
+  replicaCount: 3
+  enableFilterNamespace: true
+  allowHostNetworkTesting: false
+  nodeSelector:
+    cloud.google.com/gke-nodepool: system
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+chaosDaemon:
+  runtime: containerd
+  socketPath: /run/containerd/containerd.sock
+  nodeSelector:
+    cloud.google.com/gke-nodepool: system
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+dashboard:
+  securityMode: true
+  nodeSelector:
+    cloud.google.com/gke-nodepool: system
+  service:
+    type: ClusterIP
+  persistentVolume:
+    enabled: true
+    storageClassName: standard-rwo
+    size: 8Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+dnsServer:
+  nodeSelector:
+    cloud.google.com/gke-nodepool: system
+  resources:
+    requests:
+      cpu: 100m
+      memory: 70Mi
+    limits:
+      memory: 256Mi
