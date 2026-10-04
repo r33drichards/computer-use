@@ -273,11 +273,12 @@
             {
               nativeBuildInputs = [
                 pkgs.bash pkgs.coreutils pkgs.findutils pkgs.gnugrep
-                pkgs.gnused pkgs.dbus pkgs.glib gnome-keyring pkgs.libsecret
+                pkgs.gnused pkgs.dbus pkgs.glib gnome-keyring pkgs.libsecret pkgs.python3
               ];
             }
             ''
               export KEYRING_SERVER=${./browser/keyring-server.sh}
+              export KEYRING_UNLOCK=${./test/keyring-unlock.py}
               dbus-run-session --config-file=${pkgs.dbus}/share/dbus-1/session.conf \
                 -- bash ${./test/keyring-smoke.sh}
               touch $out

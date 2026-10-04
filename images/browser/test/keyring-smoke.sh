@@ -4,6 +4,7 @@
 # them across a fresh daemon, and start locked without a login/password.
 set -euo pipefail
 : "${KEYRING_SERVER:?path to browser/keyring-server.sh}"
+: "${KEYRING_UNLOCK:?path to test/keyring-unlock.py}"
 export HOME="$TMPDIR/keyring-home"
 export XDG_RUNTIME_DIR="$TMPDIR/keyring-runtime"
 export GNOME_KEYRING_CONTROL="$XDG_RUNTIME_DIR/keyring"
@@ -74,6 +75,11 @@ wait_unlocked() {
     sleep 0.1
   done
   cat "$TMPDIR/keyring-daemon.log" >&2
+  gdbus call --session --dest org.freedesktop.secrets \
+    --object-path /org/freedesktop/secrets \
+    --method org.freedesktop.Secret.Service.ReadAlias default >&2 || true
+  gdbus introspect --session --dest org.freedesktop.secrets \
+    --object-path /org/freedesktop/secrets/collection/login >&2 || true
   echo 'Login collection was not exported and unlocked after explicit unlock' >&2
   exit 1
 }
@@ -97,13 +103,14 @@ printf %s 'keyring-smoke-password' | gnome-keyring-daemon \
   --control-directory="$GNOME_KEYRING_CONTROL" >"$TMPDIR/keyring-daemon.log" 2>&1 &
 pid=$!
 wait_service
+echo "fixture: seeded encrypted login before Secret Service initialization"
 wait_unlocked
 stop
 start
 locked
+echo "runtime: existing collection exported and cold-start locked"
 # Explicitly unlock the existing encrypted collection via the control socket.
-printf %s 'keyring-smoke-password' | gnome-keyring-daemon --unlock \
-  --control-directory="$GNOME_KEYRING_CONTROL" >/dev/null
+printf %s 'keyring-smoke-password' | python3 "$KEYRING_UNLOCK" ok
 wait_unlocked
 printf %s 'keyring-smoke-secret' | timeout 20 secret-tool store \
   --label='Computer Use smoke test' computeruse-smoke keyring
@@ -123,13 +130,10 @@ start
 # The files survived, but memory did not: startup must not unlock them.
 [ -n "$(find "$HOME/.local/share/keyrings" -type f -print -quit)" ]
 locked
-# A wrong nonempty password must leave the existing collection locked. The
-# CLI may return success even if the control request was denied; inspect state.
-printf %s 'keyring-smoke-wrong-password' | gnome-keyring-daemon --unlock \
-  --control-directory="$GNOME_KEYRING_CONTROL" >/dev/null
+# A wrong nonempty password must be denied AND leave the collection locked.
+printf %s 'keyring-smoke-wrong-password' | python3 "$KEYRING_UNLOCK" denied
 locked
-printf %s 'keyring-smoke-password' | gnome-keyring-daemon --unlock \
-  --control-directory="$GNOME_KEYRING_CONTROL" >/dev/null
+printf %s 'keyring-smoke-password' | python3 "$KEYRING_UNLOCK" ok
 wait_unlocked
 [ "$(timeout 20 secret-tool lookup computeruse-smoke keyring)" = keyring-smoke-secret ]
 timeout 20 secret-tool clear computeruse-smoke keyring

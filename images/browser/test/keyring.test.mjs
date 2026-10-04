@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import net from 'node:net';
+import { spawn } from 'node:child_process';
 
 const helper = fileURLToPath(new URL('../browser/keyring-server.sh', import.meta.url));
 function fixture() {
@@ -73,7 +75,8 @@ test('encrypted smoke seeds before export and exercises locked runtime twice', (
  const smoke = readFileSync(new URL('./keyring-smoke.sh', import.meta.url), 'utf8');
  assert.match(smoke, /--foreground --unlock --components=secrets/);
  // The fixture daemon must exit before testing the production helper locked.
- assert.match(smoke, /pid=\$!\nwait_service\nwait_unlocked\nstop\nstart\nlocked/);
+ assert.match(smoke, /wait_unlocked\nstop\nstart\nlocked/);
+ assert.match(smoke, /python3 "\$KEYRING_UNLOCK" ok/);
  assert.equal((smoke.match(/^locked$/gm) || []).length, 3);
  assert.match(smoke, /keyring-smoke-wrong-password/);
  assert.match(smoke, /keyring-runtime-restarted/);
@@ -82,4 +85,50 @@ test('encrypted smoke seeds before export and exercises locked runtime twice', (
  assert.equal((smoke.match(/secret-tool lookup/g) || []).length, 2);
  const runtime = readFileSync(helper, 'utf8');
  assert.doesNotMatch(runtime, /--unlock|--login/);
+});
+
+// Independent packet oracle from GNOME 50's control protocol; not daemon mocks
+// standing in for the real image gate. Validates stdin, framing and denial.
+test('fixture unlock targets existing socket, validates replies and refuses empty passwords', async () => {
+ const dir = mkdtempSync(join(tmpdir(), 'keyring-control-'));
+ const path = join(dir, 'control');
+ const unlock = fileURLToPath(new URL('./keyring-unlock.py', import.meta.url));
+ let result = 0; let packets = [];
+ const server = net.createServer(peer => {
+  let data = Buffer.alloc(0);
+  peer.on('data', chunk => {
+   data = Buffer.concat([data, chunk]);
+   if (data.length >= 5 && data.length === 1 + data.readUInt32BE(1)) {
+    packets.push(data);
+    const reply = Buffer.alloc(8); reply.writeUInt32BE(8); reply.writeUInt32BE(result, 4);
+    peer.write(reply.subarray(0, 3)); peer.end(reply.subarray(3));
+   }
+  });
+ });
+ await new Promise(resolve => server.listen(path, resolve));
+ async function run(password, expected) {
+  const child = spawn('python3', [unlock, expected], { env: { ...process.env, GNOME_KEYRING_CONTROL: dir } });
+  let stderr = ''; child.stderr.on('data', x => stderr += x);
+  child.stdin.end(password);
+  const code = await new Promise((resolve, reject) => { child.on('error', reject); child.on('close', resolve); });
+  return { code, stderr };
+ }
+ try {
+  assert.equal((await run('fixture-password', 'ok')).code, 0);
+  const password = Buffer.from('fixture-password');
+  const expected = Buffer.alloc(13); expected[0] = 0;
+  expected.writeUInt32BE(12 + password.length, 1);
+  expected.writeUInt32BE(1, 5); expected.writeUInt32BE(password.length, 9);
+  assert.deepEqual(packets[0], Buffer.concat([expected, password]));
+  result = 1;
+  assert.equal((await run('wrong-password', 'denied')).code, 0);
+  const failed = await run('wrong-password', 'ok');
+  assert.notEqual(failed.code, 0);
+  assert.doesNotMatch(failed.stderr, /wrong-password/);
+  assert.notEqual((await run('', 'ok')).code, 0);
+  assert.equal(packets.length, 3); // empty password never contacted the daemon
+ } finally {
+  await new Promise(resolve => server.close(resolve));
+  rmSync(dir, { recursive: true, force: true });
+ }
 });
