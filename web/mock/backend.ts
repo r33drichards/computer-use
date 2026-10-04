@@ -77,6 +77,7 @@ interface StoredSession {
   stoppedBy?: string
   stateSaved?: boolean // asleep with a snapshot to wake from
   size?: string // absent with `sizes: false`
+  diskGB?: number
   pendingSize?: string // asked for while awake: from its next start
   draining?: string
   deleteAfter?: string
@@ -103,6 +104,7 @@ export interface MockOptions {
   tokens?: boolean // false: a backend without /tokens (default true)
   seed?: boolean // sessions in every policy state (default true)
   sizes?: boolean // false: a backend from before sizes, with no /sizes and no size on a session (default true)
+  diskMaxGB?: number
   full?: string[] // sizes there is no room for: creating one is a 409 no_capacity
   snapshots?: boolean // false: a cluster without Pod Snapshots, where a sleep saves no state (default true)
   billing?: string // a scenario of mock/billing.ts; absent or "off": a backend with billing off
@@ -232,6 +234,7 @@ export function createMockBackend(options: MockOptions) {
     owner: s.owner,
     state: s.state,
     created: s.created,
+    diskGB: s.diskGB ?? 32,
     mcp_url: `https://sessions.example.com/${s.id}/mcp`,
     ...(s.size ? { size: s.size } : {}),
     ...(s.pendingSize ? { pendingSize: s.pendingSize } : {}),
@@ -315,7 +318,7 @@ export function createMockBackend(options: MockOptions) {
     const route = `${method} /${parts.slice(1).join("/")}`
 
     if (route === "GET /me") return json(200, ME)
-    if (route === "GET /sizes") return sizes ? json(200, { default: "small", sizes: SIZES }) : notRouted()
+    if (route === "GET /sizes") return sizes ? json(200, { default: "small", sizes: SIZES, storage: {defaultGB: 32, minGB: 10, maxGB: options.diskMaxGB ?? 128} }) : notRouted()
 
     if (route === "GET /sessions") {
       void query
@@ -327,6 +330,8 @@ export function createMockBackend(options: MockOptions) {
       const refused = billing.refuse("create")
       if (refused) return refused
       if (sessions.size >= 12) return error(409, "session limit reached")
+      const diskGB = body.diskGB ?? 32
+      if (!Number.isInteger(diskGB) || diskGB < 10 || diskGB > (options.diskMaxGB ?? 128)) return error(400, "invalid disk capacity")
       const size = body.size === undefined ? undefined : String(body.size)
       if (size !== undefined) {
         const bad = badSize(size)
@@ -349,6 +354,7 @@ export function createMockBackend(options: MockOptions) {
       }
       const s = addSession(String(body.name || `session-${counter}`), policy, {
         state: policies ? "starting" : "running",
+        diskGB,
         ...(size ? { size } : {}),
       })
       return json(201, sessionView(s))
@@ -366,6 +372,10 @@ export function createMockBackend(options: MockOptions) {
           return json(200, sessionView(s))
         }
         if (method === "PATCH") {
+          if (body.diskGB !== undefined) {
+            if (!Number.isInteger(body.diskGB) || body.diskGB < (s.diskGB ?? 32) || body.diskGB > (options.diskMaxGB ?? 128)) return error(400, "invalid disk capacity")
+            s.diskGB = body.diskGB
+          }
           if (body.size !== undefined) {
             const size = String(body.size)
             const bad = badSize(size)

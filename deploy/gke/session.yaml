@@ -23,3 +23,16 @@ parameters:
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Delete
 allowVolumeExpansion: true
+
+---
+# Session data uses HDD quota; Pomerium continues using browserjs-zonal.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: browserjs-session-hdd
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-standard
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+allowVolumeExpansion: true

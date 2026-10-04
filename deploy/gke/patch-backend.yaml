@@ -52,5 +52,18 @@ spec:
             - name: READY_TIMEOUT
               value: 5m
             # Claim one of the three shared slots; the DaemonSet replenishes releases.
+            - name: WARM_CAPACITY
+              value: "true"
+            - name: FEATURE_FLAGS_PATH
+              value: /etc/browserjs-flags/flags.json
             - name: WARM_POOL
               value: s
+
+          volumeMounts:
+            - name: feature-flags
+              mountPath: /etc/browserjs-flags
+              readOnly: true
+      volumes:
+        - name: feature-flags
+          configMap:
+            name: feature-flags

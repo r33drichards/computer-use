@@ -40,8 +40,10 @@ type Config struct {
 	// SizesPath is the sizes of session other than small (sizes.yaml,
 	// beside the blueprint unless SIZES_PATH says otherwise). It need not
 	// be there: every session is then small.
-	SizesPath string
-	WebDir    string // built UI to serve
+	SizesPath        string
+	FeatureFlagsPath string
+	WarmCapacity     bool
+	WebDir           string // built UI to serve
 
 	// Passed through to the UI in /config.js.
 	SignOutURL string
@@ -120,16 +122,18 @@ func FromEnv(get func(string) string) (Config, error) {
 		return def
 	}
 	c := Config{
-		Addr:            or("ADDR", ":8080"),
-		MetricsAddr:     or("METRICS_ADDR", ":9090"),
-		ActiveFile:      get("ACTIVE_FILE"),
-		Namespace:       or("NAMESPACE", "browserjs-sessions"),
-		PublicURL:       strings.TrimRight(get("PUBLIC_URL"), "/"),
-		PomeriumJWKSURL: get("POMERIUM_JWKS_URL"),
-		BlueprintPath:   or("BLUEPRINT_PATH", "/etc/browserjs/blueprint.yaml"),
-		WebDir:          or("WEB_DIR", "/srv/web"),
-		SignOutURL:      or("SIGN_OUT_URL", "/.pomerium/sign_out"),
-		WarmPool:        get("WARM_POOL"),
+		Addr:             or("ADDR", ":8080"),
+		MetricsAddr:      or("METRICS_ADDR", ":9090"),
+		ActiveFile:       get("ACTIVE_FILE"),
+		Namespace:        or("NAMESPACE", "browserjs-sessions"),
+		PublicURL:        strings.TrimRight(get("PUBLIC_URL"), "/"),
+		PomeriumJWKSURL:  get("POMERIUM_JWKS_URL"),
+		BlueprintPath:    or("BLUEPRINT_PATH", "/etc/browserjs/blueprint.yaml"),
+		WebDir:           or("WEB_DIR", "/srv/web"),
+		SignOutURL:       or("SIGN_OUT_URL", "/.pomerium/sign_out"),
+		WarmPool:         get("WARM_POOL"),
+		FeatureFlagsPath: get("FEATURE_FLAGS_PATH"),
+		WarmCapacity:     get("WARM_CAPACITY") == "true",
 	}
 	c.SizesPath = or("SIZES_PATH", filepath.Join(filepath.Dir(c.BlueprintPath), "sizes.yaml"))
 

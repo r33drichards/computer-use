@@ -9,6 +9,7 @@ export interface SizeInfo {
 }
 
 export interface Sizes {
+  storage?: { defaultGB: number; minGB: number; maxGB: number }
   default: string
   sizes: SizeInfo[]
 }

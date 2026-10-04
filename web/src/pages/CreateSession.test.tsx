@@ -38,6 +38,22 @@ describe("create session", () => {
     await waitFor(() => expect(screen.getByTestId("landed").textContent).toMatch(new RegExp(`^/sessions/s-\\w+ Session ${placeholder} created`)))
   })
 
+  it("chooses disk capacity independently of compute tier and honors the account limit", async () => {
+    const server = await openForm({ diskMaxGB: 256 })
+    const disk = await screen.findByRole("spinbutton", { name: "HDD storage (GB)" })
+    expect((disk as HTMLInputElement).value).toBe("32")
+    fireEvent.change(disk, { target: { value: "257" } })
+    submit()
+    expect(await screen.findByText("Disk capacity must be between 10 and 256 GB.")).toBeTruthy()
+    expect(server.writes()).toHaveLength(0)
+    fireEvent.change(disk, { target: { value: "64" } })
+    choose(/^Medium/)
+    submit()
+    const body = await created(server)
+    expect(body.diskGB).toBe(64)
+    expect(body.size).toBe("medium")
+  })
+
   it("uses the typed name", async () => {
     const server = await openForm()
     fireEvent.change(screen.getByPlaceholderText(/^[a-z]+-[a-z]+$/), { target: { value: "  my browser " } })

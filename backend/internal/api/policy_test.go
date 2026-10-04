@@ -232,6 +232,7 @@ type (
 		Message string         `json:"message"`
 		Created time.Time      `json:"created"`
 		Size    string         `json:"size"`
+		DiskGB  int            `json:"diskGB"`
 		MCPURL  string         `json:"mcp_url"`
 		Policy  *policySummary `json:"policy"`
 	}

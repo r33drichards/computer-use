@@ -201,3 +201,14 @@ def test_a_warm_pod_is_awake_for_its_owner_from_when_it_was_taken():
     assert observe([sb], 5)[owner_hash()]["s-warm1"]["readySince"] == "2026-10-02T11:00:00Z"
     sb["metadata"]["annotations"]["browserjs.dev/created"] = "not a time"
     assert observe([sb], 5)[owner_hash()]["s-warm1"]["readySince"] == "2026-10-02T11:00:00Z"
+
+
+def test_disk_capacity_is_independent_of_compute_size():
+    small, large = sandbox("s-small"), sandbox("s-large")
+    small["spec"]["volumeClaimTemplates"] = [{"metadata": {"name": "data"}, "spec": {"resources": {"requests": {"storage": "128Gi"}}}}]
+    large["spec"]["volumeClaimTemplates"] = [{"metadata": {"name": "data"}, "spec": {"resources": {"requests": {"storage": "32Gi"}}}}]
+    large["metadata"].setdefault("annotations", {})["browserjs.dev/size"] = "large"
+    seen = observe([small, large], 32, frozenset({"large"}))[owner_hash()]
+    assert seen["s-small"]["diskGB"] == 128
+    assert seen["s-large"]["diskGB"] == 32
+    assert seen["s-large"]["size"] == "large"

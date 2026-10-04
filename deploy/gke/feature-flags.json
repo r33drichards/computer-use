@@ -1,0 +1,3 @@
+{
+  "session-disk-max-gb": {"default": 128, "accounts": {}}
+}

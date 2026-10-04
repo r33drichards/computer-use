@@ -86,6 +86,8 @@ export function CreateSession() {
   const [busy, setBusy] = useState(false)
   // The sizes on offer; null where there is one size only (or none are told).
   const [sizes, setSizes] = useState<Sizes | null>(null)
+  const [storage, setStorage] = useState<Sizes["storage"]>()
+  const [diskGB, setDiskGB] = useState("32")
   const [size, setSize] = useState("") // "" until chosen: the default
   const chosenSize = size || sizes?.default || ""
   const gate = useCreateGate(chosenSize || undefined) // billing: why a session cannot be created, and what one costs
@@ -107,7 +109,11 @@ export function CreateSession() {
     api
       .listSizes()
       .then(answer => {
-        if (!cancelled && answer.sizes.length > 1) setSizes(answer)
+        if (!cancelled) {
+          if (answer.sizes.length > 1) setSizes(answer)
+          setStorage(answer.storage)
+          if (answer.storage) setDiskGB(String(answer.storage.defaultGB))
+        }
       })
       .catch(signedOutHandled)
     // The sessions already there: names the placeholder should avoid, and
@@ -135,7 +141,7 @@ export function CreateSession() {
   const panelBase = custom ?? NEW_DRAFT
   const panelDirty = panelOpen && !same(panelDraft, panelBase)
   const dirty =
-    name.trim() !== "" || (size !== "" && size !== sizes?.default) || choice !== defaultChoice || custom !== null || panelDirty || managedUrl !== "" || copyFrom !== ""
+    name.trim() !== "" || (storage !== undefined && diskGB !== String(storage.defaultGB)) || (size !== "" && size !== sizes?.default) || choice !== defaultChoice || custom !== null || panelDirty || managedUrl !== "" || copyFrom !== ""
   const unsaved = useUnsavedChanges(dirty)
 
   function openPanel() {
@@ -187,6 +193,12 @@ export function CreateSession() {
     // Left empty, the session gets the name shown as the placeholder.
     const sessionName = name.trim() || suggested
     // Sent only when it is not the default: the request is then what it always was.
+    const requestedDisk = Number(diskGB)
+    if (storage && (!Number.isInteger(requestedDisk) || requestedDisk < storage.minGB || requestedDisk > storage.maxGB)) {
+      setFormError(`Disk capacity must be between ${storage.minGB} and ${storage.maxGB} GB.`)
+      return
+    }
+    const disk = storage && requestedDisk !== storage.defaultGB ? { diskGB: requestedDisk } : {}
     const sized = sizes && chosenSize !== sizes.default ? { size: chosenSize } : {}
     setBusy(true)
     try {
@@ -199,10 +211,10 @@ export function CreateSession() {
           copied = { kind: from.kind, source: from.source }
         }
         const policy = policyForChoice({ choice, presets, copied, custom: custom ?? undefined, managedUrl })
-        session = await policyApi.createSession({ name: sessionName, ...sized, policy })
+        session = await policyApi.createSession({ name: sessionName, ...sized, ...disk, policy })
       } else {
         // No policies on this deployment: the request it has always been.
-        session = await api.createSession(sessionName, sized.size)
+        session = await api.createSession(sessionName, sized.size, disk.diskGB)
       }
       unsaved.markSaved()
       const flash: Flash = { type: "success", content: `Session ${session.name} created` }
@@ -258,6 +270,13 @@ export function CreateSession() {
             </FormField>
           </Container>
 
+          {storage && (
+            <Container header={<Header variant="h2">Disk capacity</Header>}>
+              <FormField label="HDD storage (GB)" description={`Independent of session size. Default ${storage.defaultGB} GB; your account can use up to ${storage.maxGB} GB. Disks can be expanded later.`}>
+                <Input type="number" value={diskGB} onChange={({ detail }) => setDiskGB(detail.value)} inputMode="numeric" />
+              </FormField>
+            </Container>
+          )}
           {sizes && (
             <Container
               header={

@@ -28,7 +28,7 @@ func TestSizesAreListed(t *testing.T) {
 	const want = `{"default":"small","sizes":[` +
 		`{"name":"small","cpuMillis":1500,"memoryMiB":2048,"warm":true},` +
 		`{"name":"medium","cpuMillis":2000,"memoryMiB":5120,"warm":false},` +
-		`{"name":"large","cpuMillis":3000,"memoryMiB":10240,"warm":false}]}`
+		`{"name":"large","cpuMillis":3000,"memoryMiB":10240,"warm":false}],"storage":{"defaultGB":32,"maxGB":128,"minGB":10}}`
 	if rec.Code != http.StatusOK || strings.TrimSpace(rec.Body.String()) != want {
 		t.Errorf("%d %s\nwant %s", rec.Code, rec.Body, want)
 	}

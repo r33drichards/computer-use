@@ -67,6 +67,8 @@ paths:
               type: object
               properties:
                 name: {type: string, description: As today. Optional.}
+                size: {type: string, enum: [small, medium, large], default: small}
+                diskGB: {type: integer, minimum: 10, default: 32, description: "Independent HDD capacity. Maximum 128 GiB unless the account has a feature-flag override."}
                 policy: {$ref: "#/components/schemas/PolicyInput"}
       responses:
         "201": {description: Created., content: {application/json: {schema: {$ref: "#/components/schemas/Session"}}}}
@@ -350,6 +352,7 @@ components:
         state: {type: string, description: As today. A new session stays `starting` until its policy is `ready`.}
         mcp_url: {type: string}
         size: {type: string, description: "The size the session runs at: `small`, `medium` or `large` (docs/session-sizes.md)."}
+        diskGB: {type: integer, description: "Persistent HDD capacity, independent of CPU/memory size. Default 32 GiB; standard maximum 128 GiB, with per-account feature-flag overrides."}
         pendingSize: {type: string, description: "Present while a resize waits for the session's next start."}
         stateSaved: {type: boolean, description: "Present, and true, when a session that is asleep (or on its way there) holds a snapshot to wake from."}
         policy: {$ref: "#/components/schemas/PolicySummary"}
