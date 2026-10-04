@@ -1,4 +1,9 @@
-"""Replenish warm sessions from available CPU and memory."""
+"""Keep one node's worth of global warm capacity across all DaemonSet replicas.
+
+Every replica reconciles the same global inputs and uses resourceVersion CAS.
+Do not multiply the warm budget by the node count: spares must not perpetuate
+nodes provisioned for claimed sessions.
+"""
 import json
 from datetime import datetime, timezone
 import os
@@ -16,27 +21,48 @@ def quantity(value, memory=False):
     return float(value) / (1024 * 1024) if memory else float(value) * 1000
 
 
+def requests(containers):
+    cpu, memory = 0, 0
+    for container in containers:
+        resources = container.get('resources', {}).get('requests', {})
+        cpu += quantity(resources.get('cpu', 0))
+        memory += quantity(resources.get('memory', 0), memory=True)
+    return cpu, memory
+
+
 def desired_replicas(sandboxes, reserved=0, reservation=None,
-                     cpu=3213, memory=12097):
-    used_cpu, used_memory = reserved * 1000, reserved * 2560
+                     cpu=3213, memory=12097, pods=()):
+    # Do not place a replacement beside a terminating pod on a surplus node.
+    # Its affinity match must disappear before warm scheduling resumes.
+    if any(pod['metadata'].get('deletionTimestamp') for pod in pods):
+        return 0
     excluded = (reservation or {}).get("exclude", "")
+    warm, held = set(), {}
     for item in sandboxes:
         name = item['metadata']['name']
         pooled = any(ref.get('kind') == 'SandboxWarmPool' and ref.get('name') == 's'
                      for ref in item['metadata'].get('ownerReferences', []))
         if pooled and not item['metadata'].get('deletionTimestamp'):
+            warm.add(name)
+        elif name != excluded and item.get('spec', {}).get('operatingMode') != 'Suspended':
+            held[name] = requests(item.get('spec', {}).get('podTemplate', {}).get('spec', {}).get('containers', []))
+    # A suspended or removed Sandbox can still have a live pod while its
+    # controller drains it. Keep that compute occupied until the pod is gone.
+    for pod in pods:
+        name = next((ref['name'] for ref in pod['metadata'].get('ownerReferences', [])
+                     if ref.get('kind') == 'Sandbox'), pod['metadata']['name'])
+        if name in warm or name == excluded:
             continue
-        if name != excluded and item.get('spec', {}).get('operatingMode') != 'Suspended':
-            for container in item.get('spec', {}).get('podTemplate', {}).get('spec', {}).get('containers', []):
-                requests = container.get('resources', {}).get('requests', {})
-                used_cpu += quantity(requests.get('cpu', 0))
-                used_memory += quantity(requests.get('memory', 0), memory=True)
+        actual = requests(pod.get('spec', {}).get('containers', []))
+        desired = held.get(name, (0, 0))
+        held[name] = tuple(max(a, b) for a, b in zip(actual, desired))
+    used_cpu = reserved * 1000 + sum(value[0] for value in held.values())
+    used_memory = reserved * 2560 + sum(value[1] for value in held.values())
     if reservation:
         used_cpu += reservation['cpu']
         used_memory += reservation['memory']
-    available = min(int((cpu - used_cpu) // 1000),
-                    int((memory - used_memory) // 2560))
-    return max(0, available)
+    return max(0, min(int((cpu - used_cpu) // 1000),
+                      int((memory - used_memory) // 2560)))
 
 
 def active_reservation(lease, now=None):
@@ -78,9 +104,10 @@ def main():
     while True:
         try:
             sandboxes = api(f'/apis/agents.x-k8s.io/v1beta1/namespaces/{namespace}/sandboxes')['items']
+            pods = api(f'/api/v1/namespaces/{namespace}/pods?labelSelector=app%3Dbrowserjs-session')['items']
             lease = api(f'/apis/coordination.k8s.io/v1/namespaces/{namespace}/leases/session-capacity')
             wanted = desired_replicas(sandboxes, reserved=int(os.getenv('RESERVED_SLOTS', '0')),
-                                      reservation=active_reservation(lease))
+                                      reservation=active_reservation(lease), pods=pods)
             pool = api(pool_path)
             if pool['spec'].get('replicas') != wanted:
                 api(pool_path, {'metadata': {'resourceVersion': pool['metadata']['resourceVersion']},

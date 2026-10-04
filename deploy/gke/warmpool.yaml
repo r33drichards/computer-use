@@ -21,7 +21,7 @@ metadata:
   name: s
 spec:
   # Bootstrap at zero; session-slot-controller owns replicas dynamically.
-  # Three slots total: two claimed sessions leave one warm spare.
+  # One node of global warm capacity; additional nodes serve claimed sessions.
   replicas: 0
   sandboxTemplateRef:
     name: session
@@ -41,11 +41,23 @@ spec:
   networkPolicyManagement: Unmanaged
   podTemplate:
     metadata:
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+        browserjs.dev/warm-packing: "true"
       labels:
         app: browserjs-session
     spec:
       # The managed add-on's sandbox-core-policy requires gVisor; the label and
       # taint are what GKE puts on the sessions node pool.
+      # Warm pods join a node already hosting session pods. Self-affinity
+      # permits the first warm pod when the cluster has no session pods.
+      # Cold starts have no such restriction and can trigger autoscaling.
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels: {app: browserjs-session}
+              topologyKey: kubernetes.io/hostname
       runtimeClassName: gvisor
       nodeSelector:
         sandbox.gke.io/runtime: gvisor

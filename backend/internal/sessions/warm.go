@@ -28,6 +28,23 @@ var ClaimGVR = schema.GroupVersionResource{Group: "extensions.agents.x-k8s.io", 
 // time is when the pool started it, which may be days earlier.
 const AnnCreated = "browserjs.dev/created"
 
+// WarmPacking marks placement used only while a Sandbox is a spare.
+const WarmPacking = "browserjs.dev/warm-packing"
+
+func removeWarmPacking(obj *unstructured.Unstructured) {
+	annotations, _, _ := unstructured.NestedStringMap(obj.Object, "spec", "podTemplate", "metadata", "annotations")
+	if annotations[WarmPacking] != "true" {
+		return
+	}
+	delete(annotations, WarmPacking)
+	_ = unstructured.SetNestedStringMap(obj.Object, annotations, "spec", "podTemplate", "metadata", "annotations")
+	unstructured.RemoveNestedField(obj.Object, "spec", "podTemplate", "spec", "affinity", "podAffinity")
+	affinity, _, _ := unstructured.NestedMap(obj.Object, "spec", "podTemplate", "spec", "affinity")
+	if len(affinity) == 0 {
+		unstructured.RemoveNestedField(obj.Object, "spec", "podTemplate", "spec", "affinity")
+	}
+}
+
 // How often a new claim is read while waiting for its Sandbox.
 const claimPoll = 50 * time.Millisecond
 
@@ -136,6 +153,7 @@ func (s *Store) adopt(ctx context.Context, claimName string, wait time.Duration)
 		if labels == nil {
 			labels = map[string]string{}
 		}
+		removeWarmPacking(obj) // future wakes can provision a node
 		labels[LabelOwner] = OwnerLabel(owner)
 		obj.SetLabels(labels)
 		setAnnotation(obj, AnnOwner, owner)

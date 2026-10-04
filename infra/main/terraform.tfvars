@@ -44,10 +44,11 @@ kubernetes_version = "1.36"
 #   home = "203.0.113.7/32"
 # }
 
-# Three small sessions share one 4-vCPU/16-GB session node.
+# Each 4-vCPU/16-GB session node fits three small sessions.
+# N2D quota is 8 vCPUs: keep one node warm and permit a second on demand.
 # session_max_nodes is the ceiling on what sessions can cost.
 session_machine_type = "n2-standard-4"
-session_max_nodes    = 1
+session_max_nodes    = 2
 # Spot: cheaper, but Compute Engine can take a node back with 30 seconds'
 # notice; sessions on it restart from their disks (tabs reopen, pages reload).
 session_spot = true
@@ -71,11 +72,7 @@ sessions_namespace      = "browserjs-sessions"
 session_service_account = "session"
 snapshot_token_source   = "podKSA"
 
-# Boot disk of a session node. The project's SSD quota in us-west1 is 250 GB
-# and not adjustable; pd-balanced counts against it, together with the system
-# node's 50 GB and 5 GB per session. At the default 100 GB a second session
-# node did not fit ("GCE quota exceeded"). With 50 GB two session nodes fit;
-# the 12-CPU quota allows no more than two anyway.
+# Session nodes use 50 GB HDD boot disks; data disks have their own quota.
 session_disk_size_gb = 50
 
 # The GitHub repository whose workflows on main may push images and deploy,

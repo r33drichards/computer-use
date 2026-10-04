@@ -11,6 +11,8 @@
 # and the owner label.
 podTemplate:
   metadata:
+    annotations:
+      cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
     labels:
       app: browserjs-session
   spec:
