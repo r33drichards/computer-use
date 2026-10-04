@@ -80,6 +80,14 @@
           xfce4-terminal = pkgs.xfce4-terminal.override {
             vte = pkgs.vte.override { systemdSupport = false; };
           };
+          # Scratch containers have no privileged /run/wrappers daemon.
+          # Use the unprivileged binary, including in D-Bus activation files.
+          gnome-keyring = (pkgs.gnome-keyring.override { useWrappedDaemon = false; }).overrideAttrs (old: {
+            # Keep libcap-ng and fail-closed privilege dropping. Containers may
+            # have partial caps but no IPC_LOCK; never try to add an ungranted cap.
+            patches = (old.patches or [ ]) ++ [ ./patches/gnome-keyring-partial-capabilities.patch ];
+          });
+
           xfce4-settings = pkgs.xfce4-settings.override {
             withColord = false;
             xapp = null;
@@ -109,6 +117,12 @@
               xfce4-terminal
               pkgs.mousepad
               pkgs.ristretto
+              gnome-keyring
+              pkgs.seahorse
+              # The keyring's system prompter must be discoverable on D-Bus,
+              # not just present as a transitive store dependency.
+              pkgs.gcr_3
+              pkgs.libsecret
               pkgs.xfce4-appfinder
               pkgs.xfce4-exo
               pkgs.garcon
@@ -220,6 +234,9 @@
               browser-mcp
               pkgs.caddy
               pkgs.dbus
+              # gdbus inspects the desktop Secret Service; native smoke inputs
+              # alone do not make this command available in the real image.
+              pkgs.glib.bin
               desktop
               # exec-server.sh: mcp-exec, and find to prune its old logs.
               mcp-exec-pkg
@@ -251,11 +268,28 @@
               export SHELL=${pkgs.bashInteractive}/bin/bash
               export TZDIR=${pkgs.tzdata}/share/zoneinfo
               export EXEC_SERVER=${./browser/exec-server.sh}
+              export KEYRING_SERVER=${./browser/keyring-server.sh}
               export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
               export FONTCONFIG_FILE=${fonts-conf}
               exec ${pkgs.bash}/bin/bash ${./browser/entrypoint.sh} "$@"
             '';
           };
+
+          # Test the real Secret Service without a display or a PAM login.
+          keyring-smoke = pkgs.runCommand "keyring-smoke"
+            {
+              nativeBuildInputs = [
+                pkgs.bash pkgs.coreutils pkgs.findutils pkgs.gnugrep
+                pkgs.gnused pkgs.dbus pkgs.glib gnome-keyring pkgs.libsecret pkgs.python3
+              ];
+            }
+            ''
+              export KEYRING_SERVER=${./browser/keyring-server.sh}
+              export KEYRING_UNLOCK=${./test/keyring-unlock.py}
+              dbus-run-session --config-file=${pkgs.dbus}/share/dbus-1/session.conf \
+                -- bash ${./test/keyring-smoke.sh}
+              touch $out
+            '';
 
           # The build-time smoke tests' window manager maximises their
           # terminals; it is not in the image.
@@ -349,6 +383,7 @@
             browser-mcp
             desktop
             exec-smoke
+            keyring-smoke
             runtime
             xvnc
             ;

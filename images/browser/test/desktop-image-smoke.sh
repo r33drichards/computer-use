@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The built image, started the way a session pod starts it (uid 1000, no
-# capabilities, SESSION_MODE=1, a volume at /data/chrome), with its XFCE
+# The built image under the intended unprivileged desktop contract (uid1000,
+# no capabilities, SESSION_MODE=1, volume at /data/chrome), with its XFCE
 # desktop checked on the real display: the image build of CI runs this
 # (.github/workflows/images.yml). Under Docker's runc, not gVisor.
 #
@@ -179,6 +179,11 @@ check "the MCP server answers /healthz" wait_for 120 curl -fsS --max-time 2 http
 check "Xvnc: the display answers" xdpyinfo
 check "the session bus answers" dbus-send --session --print-reply --dest=org.freedesktop.DBus \
   /org/freedesktop/DBus org.freedesktop.DBus.ListNames
+check "Secret Service owns its session-bus name" bash -c \
+  'dbus-send --session --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.NameHasOwner string:org.freedesktop.secrets | grep -q "boolean true"'
+check "the persistent keyring directory is private" test "$(stat -c %a "$HOME/.local/share/keyrings")" = 700
+check "the keyring control directory is private" test "$(stat -c %a "$GNOME_KEYRING_CONTROL")" = 700
+check "the keyring daemon runs" running gnome-keyring-daemon
 check "xfconfd starts through the bus and has the image's defaults (no compositor)" \
   test "$(xfconf-query -c xfwm4 -p /general/use_compositing 2>&1)" = false
 for program in xfwm4 xfce4-panel xfdesktop xfsettingsd xfconfd; do
@@ -313,7 +318,8 @@ fi
 # The terminal's tools.
 missing=""
 for tool in bash ls cp find grep sed awk diff less which file tree ps top clear tar gzip bzip2 xz zip unzip \
-  curl wget git ssh nano jq rg python3 node xclip xdotool wmctrl; do
+  curl wget git ssh nano jq rg python3 node xclip xdotool wmctrl \
+  gnome-keyring-daemon secret-tool seahorse; do
   command -v "$tool" >/dev/null 2>&1 || missing="$missing $tool"
 done
 [ -z "$missing" ] && ok "the terminal's tools are on PATH" || bad "not on PATH:$missing"

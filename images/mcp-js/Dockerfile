@@ -26,9 +26,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && mkdir -p /data && chown mcpuser:mcpuser /data
 COPY --from=builder --chmod=755 /mcp-v8 /usr/local/bin/mcp-v8
 RUN mcp-v8 --version
-COPY images/mcp-js/mcp_tools.rego images/mcp-js/filesystem.rego images/mcp-js/fetch.rego images/mcp-js/mcp-servers.json images/mcp-js/mcp-servers.no-exec.json images/mcp-js/run_js.md images/mcp-js/instructions.md /etc/mcp/
+COPY images/mcp-js/modules.rego images/mcp-js/mcp_tools.rego images/mcp-js/filesystem.rego images/mcp-js/fetch.rego images/mcp-js/mcp-servers.json images/mcp-js/mcp-servers.no-exec.json images/mcp-js/run_js.md images/mcp-js/instructions.md /etc/mcp/
 # Warm-session templates require this policy file; verify the packaged image.
-RUN test -r /etc/mcp/fetch.rego
+RUN test -r /etc/mcp/fetch.rego && test -r /etc/mcp/modules.rego
 COPY --chmod=755 images/mcp-js/start.sh /usr/local/bin/start.sh
 COPY --from=documentation /skills/ /etc/mcp/skills/
 # Native hook deadlines must not be consumed by UDP resolver stalls.
@@ -39,7 +39,7 @@ ENV RES_OPTIONS=use-vc \
     MCP_V8_ALLOWED_HOSTS=* \
     MCP_V8_HEAP_STORE=none \
     MCP_V8_MCP_CONFIG=/etc/mcp/mcp-servers.json \
-    MCP_V8_POLICIES_JSON='{"mcp_tools":{"policies":[{"url":"file:///etc/mcp/mcp_tools.rego"}]},"filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]},"fetch":{"policies":[{"url":"file:///etc/mcp/fetch.rego"}]}}' \
+    MCP_V8_POLICIES_JSON='{"mcp_tools":{"policies":[{"url":"file:///etc/mcp/mcp_tools.rego"}]},"filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]},"fetch":{"policies":[{"url":"file:///etc/mcp/fetch.rego"}]},"modules":{"mode":"all","policies":[{"url":"file:///etc/mcp/modules.rego"}]}}' \
     MCP_V8_RUN_JS_DESCRIPTION=@/etc/mcp/run_js.md \
     MCP_V8_INSTRUCTIONS=@/etc/mcp/instructions.md \
     MCP_V8_SESSION_DB_PATH=/data/mcp/sessions \

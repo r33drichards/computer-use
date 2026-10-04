@@ -43,6 +43,9 @@ The environment:
   START_TIMEOUT        seconds to wait for a session to run (420)
   SUMMARY              a file the results are appended to, as Markdown
 """
+from bounded_process import run_bounded, OutputLimitExceeded
+from private_diagnostic_file import write_private_json
+
 import base64
 import hashlib
 import json
@@ -450,6 +453,35 @@ def main():
         def running():
             return "running after %.0fs" % wait_state(sid, "running", START_TIMEOUT)
         if not check("it runs", running):
+            # Capture only this owned canary pod before finally deletes it.
+            # Diagnostic errors cannot turn a failed check into success or
+            # prevent cleanup. The hook is opt-in for kind CI, never runtime.
+            hook = os.environ.get("SESSION_FAILURE_HOOK")
+            directory = os.environ.get("CANARY_DIAGNOSTICS_DIR")
+            if hook and directory:
+                try:
+                    env = {k: v for k, v in os.environ.items()
+                           if k in ("PATH", "HOME", "KUBECONFIG")}
+                    try:
+                        done = run_bounded(hook, shell=True, env=dict(env, SESSION_ID=sid),
+                                           timeout=65, max_bytes=1048576)
+                    except OutputLimitExceeded:
+                        done = subprocess.CompletedProcess(hook, 0, json.dumps({'pod': sid, 'status': 'truncated', 'reason': 'byte-limit'}))
+                    if done.returncode == 0:
+                        payload = json.loads(done.stdout)
+                        os.makedirs(directory, mode=0o700, exist_ok=True)
+                        path = os.path.join(directory, sid + ".json")
+                        def scrub_values(value):
+                            if isinstance(value, str): return scrub(value)
+                            if isinstance(value, list): return [scrub_values(x) for x in value]
+                            if isinstance(value, dict): return {k: scrub_values(v) for k, v in value.items()}
+                            return value
+                        write_private_json(path, json.dumps(scrub_values(payload)))
+                        print("      saved sanitized owned-pod diagnostics", flush=True)
+                    else:
+                        print("      owned-pod diagnostics failed", flush=True)
+                except (OSError, subprocess.TimeoutExpired, OutputLimitExceeded, ValueError, RecursionError):
+                    print("      owned-pod diagnostics unavailable", flush=True)
             return
 
         hook = os.environ.get("SESSION_HOOK")

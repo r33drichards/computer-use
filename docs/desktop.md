@@ -14,6 +14,8 @@ has only been checked under Docker.
 | Desktop | `xfdesktop`: wallpaper and icons | entrypoint, restarted |
 | Settings | `xfsettingsd` (theme, fonts, shortcuts), `xfconfd` (the settings store) | entrypoint; `xfconfd` through D-Bus |
 | Session bus | `dbus-daemon --session` on `$XDG_RUNTIME_DIR/bus` | entrypoint, a core process |
+| Secret Service | `gnome-keyring-daemon --foreground --components=secrets` | entrypoint, a core process; after the session bus |
+| Passwords and Keys | Seahorse (`seahorse`) | on demand; create, unlock and lock keyrings |
 | Browser | Chromium | on demand: the first `browser_execute` call, or its launcher |
 | Terminal | `xfce4-terminal` | on demand |
 | File manager | Thunar | on demand |
@@ -137,6 +139,38 @@ alternative, a second `subPath` for the home, needs the same change in
 
 Not kept: `/tmp` (the session bus socket, the X socket, `XDG_RUNTIME_DIR`),
 and anything written elsewhere on the root filesystem.
+
+## The default keyring
+
+Every desktop image includes GNOME Keyring, `secret-tool` (libsecret), and
+Passwords and Keys (`seahorse`). `browser/keyring-server.sh` starts only the
+Secret Service component on the existing desktop D-Bus session before clients
+start. The daemon is supervised; it is not an SSH agent or a privileged
+NixOS wrapper. Gcr’s system prompter is included in `XDG_DATA_DIRS` so
+creating and unlocking a collection can prompt on the visible display.
+
+Encrypted keyrings live under `~/.local/share/keyrings` on the session disk,
+with a mode-700 directory. The control socket is in
+`$XDG_RUNTIME_DIR/keyring` (also mode 700), never on the persistent disk. A
+new desktop has a running service but no pre-created, empty-password keyring.
+Create a password-protected keyring in Passwords and Keys and make it the
+default before saving a CLI credential. A cold start does not unlock it:
+there is no PAM login or supplied startup password. A restored sleep snapshot
+may retain its unlocked state; a stop or cold wake requires explicit unlock.
+
+The keyring protects stored files, not secrets from another program in the
+same unlocked desktop. A tool with shell/desktop access can use unlocked
+secrets. Do not store the unlock password in environment variables, startup
+scripts, or agent memory. This does not provide a WebAuthn/passkey platform
+authenticator, migrate plaintext CLI credentials, or change Chromium’s
+existing `--password-store=basic` setting.
+
+`nix build .#keyring-smoke` in `images/browser` tests the real daemon on an
+isolated bus: no initial keyring, encrypted store/lookup, restart persistence,
+locked cold startup, then explicit unlock and lookup. The Dockerfile runs it
+before building the runtime. The built-image desktop smoke test checks the
+service, private paths, and CLI/UI tools as uid 1000 with all capabilities
+dropped. Production gVisor behavior still needs verification after deployment.
 
 ## The terminal
 
@@ -356,3 +390,76 @@ Docker on a GitHub runner is runc, not gVisor, and not GKE:
 5. An existing session's disk (a profile made under openbox) starting on
    this image: its saved windows are maximised by the entrypoint, but that
    was run on a new profile only.
+
+
+### GNOME Keyring 50 capability compatibility
+
+The unprivileged daemon package keeps libcap-ng privilege dropping enabled.
+GNOME 50's PARTIAL branch otherwise requests IPC_LOCK even when it was never
+permitted, causing capset to fail (-5) in an ordinary root container's partial
+capability set. The package patch snapshots the original permitted IPC_LOCK bit
+before clearing capabilities and retains it only if granted. With no IPC_LOCK,
+it keeps upstream memlock-limit checking/warnings and drops all process caps;
+apply/update errors still abort. FULL/setuid and NONE paths are unchanged.
+No Pod capability is granted and no health/supervision check is bypassed.
+
+The intended unprivileged managed-desktop contract is UID/GID1000, no process
+capabilities, no privilege escalation, persistent encrypted keyrings and private
+ephemeral sockets. The existing base/local browser Pod templates do not yet set
+runAsUser or drop browser capabilities: they inherit the image's legacy root
+UID with the container runtime's partial set. fsGroup1000 does not change that
+UID. This compatibility fix does **not** silently migrate volume ownership or
+change the Pod UID; a managed-session UID migration needs separate review.
+The image regression covers both explicit UID1000/dropALL and the observed
+legacy-root/default-partial configuration without adding IPC_LOCK. Both must
+pass encrypted store/lookup, restart locked, wrong-password denial and explicit
+unlock; the runtime never supplies a password. Chromium's basic password-store
+backend is unchanged; Secret Service is not a passkey authenticator.
+
+Readiness evidence: canary37177953626 browser log reported capability-drop -5
+before its8081 health server started. mcp-js start.sh waits for that browser
+TCP endpoint before starting mcp-v8 (which cannot initialize an unreachable
+upstream), consistent with the simultaneous8080 probe refusal without establishing a separate MCP failure. New canary validation is
+required; if MCP remains unready after browser recovery, inspect it separately.
+
+### CI source binding
+
+The earlier green image run37188741680 and kind canary37188741744
+checked out GitHub's synthetic PR merge a6e596e (including head e5619a1
+and base e60790e), as captured by the parent/reviewer. They are integration
+evidence for that merge tree, **not** independently proven bare-head tests
+merely because the run metadata names e5619a1.
+
+The PR image-build job and kind canary now explicitly checkout the immutable
+PR head SHA; non-PR invocations use github.sha. Before building they assert
+that actual git HEAD equals the expected SHA and the tracked tree is clean,
+and record commit, tree and parents in logs/summary. The image build labels
+org.opencontainers.image.revision with the asserted actual checkout SHA.
+The image-selection filter retains its existing merge checkout/full-history
+comparison; main publishing/deployment conditions and checkouts are unchanged.
+These receipts identify tested source, not approval, production parity or
+registry digest verification. Fresh real image/canary gates remain required.
+
+### Observed root-context/source divergence
+
+The associated mcp-js receipt11313198215 from run37229386833 bound
+head1567068/tree4421fae, jobbuild and successful self-tests, but actual
+context was repository root with images/mcp-js/Dockerfile. That head still
+used legacy COPY start.sh. Its committed script existed in images/mcp-js,
+not at root: this was definition/source layout mismatch, not absent Git data.
+Public run metadata named base57b14ed; current synthetic mergebe018d0
+(parenta7c0c07 plus1567068) showed the newer root unified-MCP definition.
+It is corroborating source evidence, not a claim that be018 was the exact
+historical workflow commit. Main had advanced; this branch integrates the
+actually fetched/pinned ce1b2d071bd8f56ca5758e20ddb5838e407dab53 normally.
+Its unified image, root-prefixed COPY and Dockerfile-specific ignore policy
+are retained, not replaced with the old context to hide the failure.
+
+Image matrix data now lives in .github/image-build-matrix.json and is read
+from the same immutable source checkout as the build; the changes job also
+checks out that source, rather than combining merge-defined inline matrix
+data with an old head Dockerfile. The receipt binds definition hash/source
+and checks declared COPY input against both supported root/subdirectory
+layouts, rejecting mixed layouts even if the committed script exists.
+Fresh actual image/canary results and independent integration review remain
+required; no production/GKE/gVisor/digest acceptance is implied.

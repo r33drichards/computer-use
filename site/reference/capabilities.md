@@ -147,3 +147,19 @@ How it behaves:
   is no `sudo` and no way to install system packages.
 - **Limits.** Commands run as an unprivileged user inside the session's
   sandbox and reach the network the browser reaches.
+
+## Desktop keyring
+
+The default desktop runtime includes GNOME Keyring, `secret-tool`, and
+Passwords and Keys (`seahorse`). Secret Service runs on the desktop’s session
+D-Bus. Create a password-protected default keyring in Passwords and Keys
+before storing CLI credentials. Its encrypted files are kept on the session
+disk under `~/.local/share/keyrings`.
+
+After a cold start, unlock it yourself; there is no automatic login or
+empty-password keyring. A restored sleep snapshot may retain the unlocked
+state. Agents with access to the same unlocked desktop can access its secrets.
+Never put the unlock password in agent memory or startup environment variables.
+This is secret storage, not a passkey/WebAuthn authenticator. Chromium’s
+existing password-store setting and existing plaintext CLI credentials are
+unchanged.

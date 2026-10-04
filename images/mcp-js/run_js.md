@@ -443,3 +443,9 @@ with no quoting to get wrong, and it is what a session's policy reads: a
 policy may allow only certain programs, subcommands, hosts or directories,
 and may deny shells outright. When a call is denied by policy, do not look
 for another way to run the same thing; say what was refused.
+
+Enforcing sessions require an explicit context-free `allow_unrestricted_modules`
+grant for external imports. Restricted or legacy policies without it deny all
+HTTP(S)/npm/jsr module retrieval before the first GET; node/native builtins are
+unchanged. Full-grant/standalone imports retain upstream redirect behavior, not
+per-host/per-hop fetch authorization. See the policy contract.
