@@ -417,7 +417,7 @@ jobs:
             echo "\`$CANARY_DIGESTS\`, before anything is applied."
             echo
           } >> "$GITHUB_STEP_SUMMARY"
-          if ! SUMMARY="$GITHUB_STEP_SUMMARY" test/canary.py; then
+          if ! EXPECT_MCP_CAPABILITIES=0 SUMMARY="$GITHUB_STEP_SUMMARY" test/canary.py; then
             echo "::error::The new session images failed on a canary session. Nothing was applied: the warm pool, the running sessions and the backend are untouched."
             echo "**Stopped here. Nothing was applied.**" >> "$GITHUB_STEP_SUMMARY"
             kubectl -n "$NS" get pods -l app=browserjs-session -o wide || true
@@ -633,7 +633,7 @@ jobs:
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"
           printf '\nThe canary, on what was rolled back to (session images as that release pinned them):\n\n' >> "$GITHUB_STEP_SUMMARY"
-          if SUMMARY="$GITHUB_STEP_SUMMARY" test/canary.py; then
+          if EXPECT_MCP_CAPABILITIES=0 SUMMARY="$GITHUB_STEP_SUMMARY" test/canary.py; then
             echo "**Rolled back to \`$PREVIOUS\`, and the canary passes on it.** This run still fails: the release did not happen." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::error::Rolled back to $PREVIOUS and the canary STILL FAILS: the product is broken and needs a person now."

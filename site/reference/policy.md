@@ -5,7 +5,7 @@ report `unsupported` and remain unrestricted, even after sleep and wake.
 Create a replacement session to use a policy on that work.
 
 A session has one policy. It is asked about every `mcp.callTool` that code
-in `run_js` makes. A call it does not allow is refused, and the code gets an
+in `run_js` makes, and every JavaScript `fetch()` request. A call it does not allow is refused, and the code gets an
 error. If the policy cannot be asked, the call is refused.
 
 A policy is written in Rego. A new session can start from a ready-made one
@@ -33,7 +33,7 @@ A call to a server or tool not listed here is refused whatever the policy
 says.
 
 A call no rule allows is refused, so a policy that only speaks of
-`browser_execute` refuses desktop control and the shell.
+`browser_execute` refuses desktop control, the shell, and fetch.
 
 Nothing in the input says which user or client is calling.
 
@@ -51,6 +51,47 @@ are different), check `args` one by one, bound `timeout`, and refuse `env`
 and `cwd` unless a rule checks them: `env` can set `PATH`, which changes
 what a program name runs. A list of programs is a list of entry points, not
 a sandbox. An allowed program can start others.
+
+## Fetch requests
+
+Fetch requests use the same `allow_tool_call` rule with a separate input:
+
+| Field | Value |
+| --- | --- |
+| `input.operation` | `"fetch"` |
+| `input.url` | The requested URL |
+| `input.method` | HTTP method such as `"GET"` or `"POST"` |
+| `input.headers` | Request headers, including any headers supplied by the server |
+| `input.url_parsed` | `{ scheme, host, port, path, query }`; port is null when not explicit |
+
+Fetch inputs have no `server`, `tool`, or `arguments`. For example, add this
+rule to a browser policy to allow only HTTPS GET requests to one API path:
+
+```rego
+allow_tool_call if {
+    input.operation == "fetch"
+    input.url_parsed.scheme == "https"
+    input.url_parsed.host == "api.example.com"
+    startswith(input.url_parsed.path, "/v1/")
+    input.method == "GET"
+}
+```
+
+Use **Test** in the policy editor to try the GET, POST, and other-host
+samples, then save and wait for the policy to be in force. Subsequent
+requests use the new rules without a session restart.
+
+All requests are denied unless an allow rule matches. Unrestricted
+(`allow_tool_call := true`) permits all HTTP(S) fetch requests. Every other
+preset denies fetch until a rule is added. To allow any HTTP(S) request,
+add `allow_tool_call if input.operation == "fetch"`. To deny fetch, remove
+all rules that can allow it, including an unrestricted rule; a false rule
+does not override an allow rule because Rego combines allow rules with OR.
+`allow_fetch` is not an entry rule.
+
+Pod network restrictions still apply. These rules govern `fetch()` in
+`run_js`; browser navigation, page scripts, module downloads, and shell
+programs have their own controls and can also contact hosts.
 
 ## Ready-made policies
 

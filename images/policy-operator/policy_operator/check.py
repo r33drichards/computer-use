@@ -338,6 +338,9 @@ KNOWN_TOOLS = {
 def _known(input_doc) -> bool:
     if not isinstance(input_doc, dict):
         return False
+    if input_doc.get("operation") == "fetch":
+        parsed = input_doc.get("url_parsed")
+        return isinstance(parsed, dict) and parsed.get("scheme") in ("http", "https")
     server, tool = input_doc.get("server"), input_doc.get("tool")
     return isinstance(server, str) and isinstance(tool, str) and tool in KNOWN_TOOLS.get(server, ())
 
@@ -345,7 +348,7 @@ def _known(input_doc) -> bool:
 def evaluate(cfg: Config, kind: str, source: str, input_doc) -> dict:
     """POST /v1/evaluate: {ok, allow?, errors}. What a session would be
     answered: the policy's allow_tool_call, behind the decision module's
-    refusal of servers and tools it does not know."""
+    refusal of unknown servers/tools and non-HTTP(S) fetch requests."""
     v = check(cfg, kind, source, warn=False)
     if not v.ok:
         return {"ok": False, "errors": v.errors}

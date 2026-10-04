@@ -37,9 +37,9 @@ def test_every_case_of_every_example_through_real_opa(cfg, tmp_path, name):
     assert wrong == []
 
 
-def test_all_264_cases_are_run():
+def test_all_285_cases_are_run():
     assert EXAMPLES == ["browser-only", "form-filling", "no-scripting", "observe-only", "one-site", "read-only-shell", "unrestricted"]
-    assert sum(len(cases(n)) for n in EXAMPLES) == 264
+    assert sum(len(cases(n)) for n in EXAMPLES) == 285
 
 
 def test_examples_begin_with_what_they_are(cfg):
@@ -331,3 +331,36 @@ def test_evaluate_timeout(cfg):
 def test_a_name_that_is_not_a_session_id_is_refused(cfg, name):
     v = check(cfg, "rego", H + "allow_tool_call := true\n", name)
     assert not v.ok and v.errors == [{"code": "policy_guard_error", "message": "the policy is not named after a session"}]
+
+
+@pytest.mark.parametrize("scheme,host,method,allowed", [
+    ("https", "api.example.com", "GET", True),
+    ("https", "other.example.org", "GET", False),
+    ("https", "api.example.com", "POST", False),
+    ("http", "api.example.com", "GET", False),
+    ("file", "api.example.com", "GET", False),
+])
+def test_fetch_policy_matches_session_and_editor(cfg, tmp_path, scheme, host, method, allowed):
+    source = H + '''allow_tool_call if {
+        input.operation == "fetch"
+        input.url_parsed.scheme == "https"
+        input.url_parsed.host == "api.example.com"
+        input.method == "GET"
+    }
+'''
+    call = {"operation": "fetch", "url": f"{scheme}://{host}/v1/data", "method": method,
+            "headers": {}, "url_parsed": {"scheme": scheme, "host": host, "port": None,
+                                           "path": "/v1/data", "query": ""}}
+    v = check(cfg, "rego", source, "s-ab2cd")
+    assert v.ok, v.errors
+    assert decide(cfg, tmp_path, v, "s-ab2cd", call) is allowed
+    assert evaluate(cfg, "rego", source, call) == {"ok": True, "allow": allowed, "errors": []}
+
+
+def test_unrestricted_fetch_still_requires_http_scheme(cfg, tmp_path):
+    source = H + "allow_tool_call := true\n"
+    v = check(cfg, "rego", source, "s-ab2cd")
+    for call in [{"operation": "fetch"}, {"operation": "fetch", "url_parsed": None},
+                 {"operation": "fetch", "url_parsed": {"scheme": "file"}}]:
+        assert decide(cfg, tmp_path, v, "s-ab2cd", call) is False
+        assert evaluate(cfg, "rego", source, call)["allow"] is False

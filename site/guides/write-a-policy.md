@@ -26,6 +26,11 @@ session, or write your own. The ready-made ones:
 
 Each is a short Rego module with comments. Pick the closest and edit it.
 
+Fetch uses the same policy. The default Unrestricted preset allows HTTP(S)
+requests; all other presets deny them until a rule is added. See
+[Fetch requests](/reference/policy#fetch-requests) for host/path/method rules
+and how to test permission edits.
+
 ## Write one
 
 1. Open the session's **Policy** tab and choose **Edit**.

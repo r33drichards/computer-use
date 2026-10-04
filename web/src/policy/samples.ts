@@ -27,6 +27,14 @@ const desktop = (id: string, label: string, operations: Operation[]) =>
 // The id exec answers with, which the two log tools take.
 const COMMAND_ID = "3f0e8a52-5d2b-4a57-9f3b-0c1d2e3f4a5b"
 
+const fetchSample = (id: string, label: string, host: string, method: string): Sample => ({
+  id, label, server: "fetch", tool: "fetch",
+  input: {
+    operation: "fetch", url: `https://${host}/v1/data`, method, headers: {},
+    url_parsed: { scheme: "https", host, port: null, path: "/v1/data", query: "" },
+  },
+})
+
 export const SAMPLES: Sample[] = [
   browser("sign-in", "Sign in on a page", [
     { type: "navigate", params: { url: "https://example.com/login" } },
@@ -51,6 +59,10 @@ export const SAMPLES: Sample[] = [
     { type: "keyboard.pressKey", params: { keys: ["LeftControl", "LeftShift", "J"] } },
   ]),
   desktop("desktop-clipboard", "Read the clipboard", [{ type: "clipboard.getContent" }]),
+
+  fetchSample("fetch-get", "Fetch API data (GET)", "api.example.com", "GET"),
+  fetchSample("fetch-post", "Send API data (POST)", "api.example.com", "POST"),
+  fetchSample("fetch-other-host", "Fetch from another host", "other.example.org", "GET"),
 
   sample("shell-git-status", "Run git status", "exec", "exec", { bin: "git", args: ["status"], timeout: 30 }),
   sample("shell-debug-port", "Run a program that talks to the browser's debugging port", "exec", "exec", {
