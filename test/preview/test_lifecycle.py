@@ -50,7 +50,7 @@ class LifecycleTests(unittest.TestCase):
         run = {"path": ".github/workflows/preview-build.yml", "event": "pull_request", "conclusion": "success",
                "head_repository": {"full_name": REPO}, "head_sha": SHA, "pull_requests": [{"number": 154}]}
         with patch.object(lifecycle, "github", side_effect=[run, request()]):
-            self.assertEqual(lifecycle.resolve_run(123), {"pr": "154", "sha": SHA})
+            self.assertEqual(lifecycle.resolve_run(123456789012), {"pr": "154", "sha": SHA})
         for changes in ({"path": ".github/workflows/other.yml"}, {"event": "workflow_dispatch"},
                         {"conclusion": "failure"}, {"head_repository": {"full_name": "someone/fork"}}, {"pull_requests": []}):
             changed = {**run, **changes}

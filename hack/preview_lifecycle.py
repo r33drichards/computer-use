@@ -43,7 +43,10 @@ def eligible(pr, sha=None):
 
 
 def resolve_run(run_id):
-    run = github(f"repos/{repo()}/actions/runs/{preview.pr_number(run_id)}")
+    run_id = str(run_id)
+    if not re.fullmatch(r"[1-9][0-9]{0,19}", run_id):
+        raise ValueError("Expected a numeric GitHub workflow run ID")
+    run = github(f"repos/{repo()}/actions/runs/{run_id}")
     if (run["path"] != ".github/workflows/preview-build.yml" or run["event"] != "pull_request"
             or run["conclusion"] != "success" or run["head_repository"]["full_name"] != repo()):
         return None
