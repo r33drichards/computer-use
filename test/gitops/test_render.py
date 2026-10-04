@@ -25,7 +25,8 @@ class ReleaseTests(unittest.TestCase):
             ('ConfigMap', 'opa-config-newhash'), ('Secret', 'policy-tokens'),
             ('ServiceAccount', 'policy-operator'), ('Service', 'opa'),
             ('Deployment', 'policy-operator'), ('Deployment', 'opa'),
-            ('Deployment', 'backend'), ('CustomResourceDefinition', 'sessionpolicies.browserjs.dev')]
+            ('Deployment', 'backend'), ('CustomResourceDefinition', 'sessionpolicies.browserjs.dev'),
+            ('Lease', 'session-capacity')]
         docs = [{'apiVersion':'v1', 'kind':kind, 'metadata':{'name':name}} for kind, name in resources]
         with tempfile.TemporaryDirectory() as work:
             path = Path(work)
@@ -41,6 +42,7 @@ class ReleaseTests(unittest.TestCase):
                 self.assertLess(waves[resource], waves[('StatefulSet', 'webhook-redis')])
             self.assertLess(operator, waves[('Deployment', 'backend')])
             self.assertNotIn(('CustomResourceDefinition', 'sessionpolicies.browserjs.dev'), waves)
+            self.assertNotIn(('Lease', 'session-capacity'), waves)
 
     def test_foreign_commit_cannot_deploy(self):
         with tempfile.TemporaryDirectory() as work:

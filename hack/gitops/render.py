@@ -38,7 +38,7 @@ def render(source, previous, artifacts, output):
     docs = list(yaml.safe_load_all(subprocess.check_output(['kubectl', 'kustomize', 'deploy/gke'], text=True)))
     # Mutable controller-owned resources and bootstrap infrastructure are not
     # release payloads. The existing manual workflow installs their CRDs.
-    excluded = {'CustomResourceDefinition', 'Namespace', 'StorageClass', 'ClusterRole', 'ClusterRoleBinding', 'PodSnapshotStorageConfig'}
+    excluded = {'CustomResourceDefinition', 'Namespace', 'StorageClass', 'ClusterRole', 'ClusterRoleBinding', 'PodSnapshotStorageConfig', 'Lease'}
     docs = [d for d in docs if d and d['kind'] not in excluded]
     for d in docs:
         meta = d.setdefault('metadata', {})

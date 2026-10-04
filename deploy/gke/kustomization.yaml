@@ -16,6 +16,7 @@ resources:
   - snapshots.yaml
   - warmpool.yaml
   - session-slots.yaml
+  - session-capacity.yaml
   - certificate.yaml
   - site.yaml
   # The Accounts' daily backup; suspended until billing is enforced.
