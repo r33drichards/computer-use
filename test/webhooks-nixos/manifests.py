@@ -29,7 +29,8 @@ for d in docs:
                 for e in c['env']:
                     if e['name'] == 'API_URL': e['value'] = 'https://api.example.test'
                     if e['name'] == 'ALLOWED_EMAILS': e['value'] = 'test@example.com'
-            if c['name'] == 'policy-operator':
+                    if e['name'] == 'POMERIUM_JWKS_URL': e['value'] = 'https://webhook.example.test/jwks'
+            if c['name'] in ['policy-operator', 'backend']:
                 c['env'].append({'name': 'SSL_CERT_FILE', 'value': '/tls/cert.pem'})
                 c['volumeMounts'].append({'name': 'tls', 'mountPath': '/tls', 'readOnly': True})
                 d['spec']['template']['spec']['volumes'].append({'name': 'tls', 'configMap': {'name': 'webhook-tls'}})

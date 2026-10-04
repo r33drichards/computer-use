@@ -43,6 +43,9 @@ async def control(request):
 async def main():
     app = web.Application()
     app.router.add_post('/events', receive)
+    # Backend startup loads a JWKS even when clients use APITokens. This
+    # fixture has no assertion signing keys: JWT authentication is not used.
+    app.router.add_get('/jwks', lambda request: web.json_response({'keys': []}))
     runner = web.AppRunner(app)
     await runner.setup()
     tls = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)

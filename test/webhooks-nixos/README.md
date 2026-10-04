@@ -4,6 +4,7 @@ Run on an x86_64 Linux host:
 
 ```sh
 sudo modprobe dummy overlay br_netfilter ip_tables iptable_nat nf_conntrack
+sudo sysctl -w vm.overcommit_memory=1 kernel.panic=10 kernel.panic_on_oops=1
 nix build .#webhooks-k3s-driver --out-link result-webhooks-driver -L
 mkdir -p result-webhooks
 sudo systemd-run --wait --pipe --collect -p Delegate=yes -p TasksMax=infinity \
@@ -35,7 +36,7 @@ The HTTPS receiver verifies HMAC, retains raw deliveries, and transactionally
 deduplicates event effects. Its test-only public-looking address is local to
 the container; CoreDNS resolves it and the collector trusts the generated TLS
 certificate. Production destination validation and HTTP delivery are exercised.
-Identity is provided by a seeded, hashed APIToken; Pomerium/Dex, Chromium/VNC,
+Identity is provided by a seeded, hashed APIToken and an empty JWKS startup fixture; Pomerium/Dex, Chromium/VNC,
 billing, and GKE infrastructure are outside this webhook integration test.
 
 Assertions cover subscription API persistence and secret redaction, real CRD

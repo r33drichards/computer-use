@@ -31,7 +31,7 @@ in pkgs.testers.runNixOSTest {
       images = [ pkgs.k3s_1_34.airgap-images ] ++ builtins.attrValues images;
       extraFlags = [ "--snapshotter=native" "--flannel-backend=host-gw"
         "--node-ip=10.20.0.1" "--advertise-address=10.20.0.1" "--flannel-iface=eth0"
-        "--kubelet-arg=fail-swap-on=false" ];
+        "--kubelet-arg=protect-kernel-defaults=true" "--kubelet-arg=fail-swap-on=false" ];
     };
     systemd.services.test-network = {
       wantedBy = [ "multi-user.target" ];

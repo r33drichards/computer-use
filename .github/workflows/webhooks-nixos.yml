@@ -49,6 +49,8 @@ jobs:
             extra-experimental-features = nix-command flakes
       - name: Load kernel modules for nested k3s networking
         run: sudo modprobe dummy overlay br_netfilter ip_tables iptable_nat nf_conntrack
+      - name: Configure the host kernel defaults checked by kubelet
+        run: sudo sysctl -w vm.overcommit_memory=1 kernel.panic=10 kernel.panic_on_oops=1
       - name: Build the NixOS container test driver and offline images
         run: |
           set -euo pipefail
