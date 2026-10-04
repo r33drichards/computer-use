@@ -1,0 +1,13 @@
+backend/internal/diskfork/barrier.go
+backend/internal/diskfork/barrier_missing_test.go
+backend/internal/proxy/fork_fences_recovery_test.go
+backend/internal/sessions/fork_fences_cold_test.go
+backend/internal/sessions/snapshots.go
+backend/internal/sessions/store.go
+docs/contracts/disk-fork-coordination.md
+spec/disk-fork/delivery/P2-CHECKS.json
+spec/disk-fork/delivery/P2-FILES.txt
+spec/disk-fork/delivery/P2-HANDOFF.md
+spec/disk-fork/delivery/P2-VALIDATION.json
+spec/disk-fork/delivery/validate_p2.py
+spec/disk-fork/delivery/validate_p2_checks.py

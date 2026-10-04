@@ -122,3 +122,175 @@ coordination/audit data, not authenticated execution certificates or accepted
 lifecycle requests. No broad ConfigMap/RBAC grant or host secret in a guest.
 
 Admission consumers add fresh Sandbox reads to ordinary dispatch even though fork remains disabled; performance and cluster-unavailable behavior need review. No latency/throughput production claim is made.
+
+
+## P2 corrections and remaining boundary (2026-10-04)
+
+ColdStart now refuses an installed, malformed or copied-UID fence before any
+snapshot cleanup. It rechecks source UID/fence before each selected deletion,
+and binds suspend, wait and final wake to the original source UID. PodSnapshot
+deletes carry the **listed snapshot UID and resourceVersion**; a replacement
+at that name conflicts rather than being deleted. A contradictory nonempty
+origin-pod is not overridden by a matching name-hash label. These existing GKE
+fields provide legacy name provenance, NOT source-incarnation/PVC ownership.
+The source check and snapshot delete are still separate resources: a fence can
+land after the last check, and earlier cleanup can precede a later CAS refusal.
+No transaction, physical barrier or complete fork-cleanup claim follows.
+
+Protocol CAS reads/retries (including completion and deadline abort) now require
+an existing initialized ledger. Inspect also refuses missing protocol state;
+legacy Fence/Intent inspection intentionally remains tolerant without writing
+an initializer. Erasing an annotation destroys evidence, never certifies that
+its executions ended. It must not synthesize empty receipts/tombstones or allow
+a dispatch that had already observed tracked state. A first legacy lookup after
+external erasure still cannot distinguish never-tracked from lost state: future
+protected durable operation authority must solve that; this slice cannot enable
+forking. Refused-intent audit is NOT latest ACCEPTED user/billing intent. The256
+unresolved receipt cap has no safe GC. Forwarding discards permit identity and
+is not PodUID-bound; upgraded streams and other post-check effects remain tails.
+
+## Proposed protected authority: independent design review required
+
+This is an approved DIRECTION for refinement, not approved provider code,
+implemented attestation, live permissions, or replacement of the full fork goal.
+No provider/controller implementation until fresh independent contract approval.
+Runtime Begin remains ErrQuiescenceUnsupported and public APIs remain disabled.
+
+### Authority placement and bootstrap
+
+* Keep hostile guest UID1000, dropALL and allowPrivilegeEscalation=false unchanged.
+  A guest-managed subreaper is useful telemetry only. Same-UID guest code can
+  SIGKILL/spoof a service, inspect its environment/files/FDs, ptrace/inject where
+  allowed, or change loader/module inputs. PR_SET_DUMPABLE=0 alone is rejected.
+* Put the trusted admission broker and operation controller in a SEPARATE
+  control-plane workload, never in a user V8 realm/module authority or guest
+  container PID/mount namespace. Private V8/module authority and typed tool
+  dispatch must be trusted service code outside the arbitrary guest execution
+  environment; do not expose signer/control globals or guest-writable modules.
+  Current guest services do not satisfy this redesign merely by adding an ACK.
+* Bootstrap broker/node-attestor identities before untrusted code using a
+  separately authenticated control-plane workload identity and operator-managed
+  trust anchor. No key in guest PVC, environment, inherited FD, endpoint URL,
+  shared filesystem, core dump or guest-accessible metadata identity. The broker
+  must not fork an untrusted child containing key memory; an audited runtime
+  launches clean guest processes with public opaque permit IDs only. The private
+  control transport is network/namespace isolated and mutually authenticated,
+  outside guest mounts/FD inheritance; public tool requests cannot impersonate it.
+* Bind authenticated messages to operation/request hash, owner, sourceUID,
+  PodUID, current container ID/incarnation, node/runtime identity, admission epoch,
+  nonce/challenge and all issued permit IDs. Reject wrong UID/CID, replay, old
+  epoch and unrequested assertions. Persist identity/epoch before dispatch and
+  compare responses with the durable operation, not client-supplied fields.
+  Abnormal service death/restart or unaccounted/orphan work yields UNKNOWN;
+  restart does not issue a fresh empty successful drain certificate.
+
+### Actual mechanisms required, and what remains unavailable
+
+1. Broker CLOSE must linearize with every JS/browser/exec/file/network/VNC
+   admission and every already-issued service-lifetime permit. Existing streams,
+   Chrome timers, V8 callbacks, queued work and detached descendants are included.
+   Graceful cancel/drain and positive actual service completion must be observable
+   by trusted supervision, not a guest-origin log event. A deadline can abort the
+   fork before shutdown; it cannot erase receipts. Forced termination is not an
+   execution-success ACK and must retain aborted/unknown outcomes.
+2. Audit OCI deployment/runtime configuration: distinct container PID namespaces,
+   no hostPID/shared process namespace, no privileged guest, host-runtime socket,
+   writable host cgroup or namespace-escape capability. Account for descendant
+   PID namespaces and all containers/services that may write the PVC. Linux PID
+   namespace-init death kills its remaining namespace descendants only under
+   these containment assumptions; original exec-parent exit does not do so.
+3. A trusted node/runtime observer must obtain fresh kubelet/CRI container state
+   for the EXACT recorded PodUID/container incarnation, challenge-bound to this
+   stop epoch, and corroborate actual runtime task/PID-namespace teardown under
+   the audited containment. ContainerStatus.EXITED alone is insufficient where
+   deployment could leave another writer or namespace. API404, PodNotReady,
+   deletion/forceDelete, stale status, process groups/proc scans, HTTP/log done
+   and lease expiry are rejected certificates. Node partition gives UNKNOWN.
+   Current GKE/backend APIs have not been shown to expose this fresh trusted
+   evidence; do not invent an attestation endpoint or treat a fake as proof.
+4. Fence the Sandbox/controller's restart/new-Pod paths, adoption and ALL other
+   read-write mount paths before stop. RWO permits multiple same-node Pods: it is
+   NOT a single-writer lock. Admission/reconciliation must reject new writer Pods
+   and source PVC reuse while an operation owns the epoch; privileged external
+   writers are an explicit excluded trust assumption, not silently safe.
+5. Trusted kubelet/CSI node lifecycle must establish flush and NodeUnpublishVolume
+   /NodeUnstageVolume completion and absence of writer mounts in the actual node
+   mount namespace, correlated with operation epoch and PVCUID/PVUID/volumeHandle.
+   If detach is required, reconcile VolumeAttachment identity/generation and
+   controller/PD fencing of the old attachment before admitting any new writer.
+   A deleted VolumeAttachment or idempotent RPC response alone is not fresh
+   unmount/fencing evidence. A node observer with mount/CRI access is strong node
+   authority; a read-only socket bind does NOT reduce a CRI Unix socket's power.
+   Prefer an audited platform-provided observer; deploying a bespoke privileged
+   node agent requires separate security review, not this document's approval.
+6. Only after these evidence obligations may the vetted CSI class snapshot the
+   consistent whole PVC and restore a newly-owned independent PVC/cold child.
+   Ambiguous create/restore responses must be reconciled by operation ownership,
+   UID and immutable spec, never create a fresh fallback/shared PVC. If the
+   actual managed platform cannot prove any required observation/fencing, remain
+   UNSUPPORTED; forceDelete/finalizers cannot convert UNKNOWN into quiescence.
+
+### Minimal proposed privileges (no manifests/grants in this increment)
+
+* Backend: retain current role; authenticated owner-scoped submit/read of a new
+  namespaced DiskForkOperation CRD only after API approval. No CM journal or
+  guest service-account credential. Admission validates immutable owner/source
+  UID/request hash and protected status; guest traffic cannot mutate the ledger.
+* Dedicated namespace controller: get/list/watch operations; patch their status
+  and its own finalizers; get/list/watch relevant Sandboxes and UID/RV-conditional
+  lifecycle updates; get/list/watch/create/delete UID-owned child Pods/PVCs and
+  VolumeSnapshots, plus narrowly scoped restore policy resources if needed.
+  No generic Secrets/ConfigMaps/exec/log privileges. Any future broker identity
+  delivery is separate control namespace, not a source guest secret grant.
+* A separately scoped cluster observer may get/watch the relevant PVs,
+  VolumeAttachments, vetted VolumeSnapshotClass and node identities. It does not
+  gain writes to unrelated volumes/classes/nodes. Kubernetes RBAC alone cannot
+  constrain every ownership predicate: immutable CRD admission and controller
+  checks must enforce those predicates. No blanket node/proxy permission as a
+  substitute for a typed trusted attestation interface.
+* Preventing arbitrary same-node writer Pods requires an independently reviewed
+  admission/controller integration for PVC ownership/restart fencing. This and
+  strong CRI/mount observer privileges remain unavailable/unauthorized here.
+  Current backendRole has NO CM/Secret/PVC/pod/snapshot rights and is unchanged.
+
+### Durable invariants and smallest next slices
+
+The operation CRD must hold owner-scoped idempotency tombstones, immutable
+sourceUID/epoch/request digest and reservations shared with create/fork caps,
+billing/quota. Reserve before pause; retry/lost response cannot double-charge or
+allocate two children. User stop/delete and current ACCEPTED billing/user desired
+intent need their own authoritative version, not the refused-intent audit above.
+Controller recovery must compare the latest accepted intent at effect time; never
+resume a source superseded by delete, stop, account loss or newer accepted action.
+
+Record source/Pod/container and PVC/PV/attachment identities and owned snapshot,
+restore PVC and child UIDs. Child remains inaccessible until durable commit;
+identity, URLs, policies and capabilities are fresh and host OAuth/control secrets
+never cloned into guest data. Cleanup deletes only resources still owned by this
+operation at observed UIDs/generations, distinguishes pre/post-commit, and must
+not delete a committed accessible child on lost response/restart. Child writes
+and deletes must not affect source PVC, and source deletion must not invalidate
+child data. Parent/source intent and reservations reconcile after every restart.
+
+Next smallest slices, each gated by independent approval: (a) schema/invariants
+and deterministic durable-operation reconciliation without physical effects;
+(b) protected broker/typed provider contracts and falsifiable containment/epoch
+refinement tests, still disabled; (c) separately approved controller/node/storage
+observation on an isolated test platform; (d) end-to-end owned CSI independent
+restore/access/cleanup after actual proof. No step removes the full fork goal.
+
+Falsification matrix: guest SIGKILL/ptrace/ENV/FD/LD/module spoofing; broker crash
+before/after admission and ACK, detached/setsid/double-fork and orphan/restart;
+replayed nonce/epoch or stale PodUID/CID; node offline plus forceDelete and stale
+CRI/status; unknown mount/orphan attachment or concurrent same-node RW Pod;
+old/new source/snapshot/PVC UID name reuse; ambiguous snapshot/create/restore/
+commit/cleanup responses; accepted stop/delete/billing changes racing resume;
+controller death at every durable transition; independent child write/delete.
+Each uncertain case must refuse snapshot/access/resume or reconcile safely, not
+substitute parent-done, lease expiry or a manufactured signing certificate.
+
+Inventory assumption only: browserjs-zonal pd.csi.storage.gke.io/pd-balanced,
+WaitForFirstConsumer/Delete, RWO5Gi. No vetted snapshot class or live CSI restore,
+node/runtime/storage certificate or isolation/fencing test has been established.
+Formal28 historical outcomes are separate bounded abstractions, not refinement
+or production proof of this proposed authority or current P2 code.

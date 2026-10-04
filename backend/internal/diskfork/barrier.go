@@ -91,6 +91,15 @@ func read(obj *unstructured.Unstructured) (State, error) {
 	}
 	return s, nil
 }
+
+// readInitialized never fabricates protocol state after deletion/loss. Only
+// legacy Fence/Intent inspection may tolerate an untracked object.
+func readInitialized(obj *unstructured.Unstructured) (State, error) {
+	if obj.GetAnnotations()[Annotation] == "" {
+		return State{}, ErrQuiescenceUnsupported
+	}
+	return read(obj)
+}
 func validSource(obj *unstructured.Unstructured, src Source) bool {
 	size := obj.GetAnnotations()["browserjs.dev/size"]
 	if size == "" {
@@ -108,7 +117,7 @@ func (b *Barrier) change(ctx context.Context, src Source, f func(*State) (bool, 
 		if !validSource(obj, src) {
 			return ErrIdentity
 		}
-		s, err := read(obj)
+		s, err := readInitialized(obj)
 		if err != nil {
 			return err
 		}
@@ -236,7 +245,7 @@ func (b *Barrier) Inspect(ctx context.Context, src Source) (State, error) {
 	if !validSource(obj, src) {
 		return State{}, ErrIdentity
 	}
-	return read(obj)
+	return readInitialized(obj)
 }
 
 // Drained is a ledger predicate, NOT proof of physical quiescence/unmount.

@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/yaml"
 )
@@ -428,9 +429,10 @@ func (s *Store) Resume(ctx context.Context, id string) error {
 // It is safe from any number of replicas at once: the write is conditional
 // on what was read, so one of them resumes the session and the others, on
 // reading again, find it awake and do nothing.
-func (s *Store) Wake(ctx context.Context, id string) error {
+func (s *Store) Wake(ctx context.Context, id string) error { return s.wakeUID(ctx, id, nil) }
+func (s *Store) wakeUID(ctx context.Context, id string, expectedUID *types.UID) error {
 	resized := false
-	err := s.modify(ctx, id, func(obj *unstructured.Unstructured) (bool, error) {
+	err := s.modifyIntentUID(ctx, id, "", expectedUID, func(obj *unstructured.Unstructured) (bool, error) {
 		resized = false
 		if operatingMode(obj) != "Suspended" {
 			return false, nil
@@ -490,11 +492,17 @@ func (s *Store) modify(ctx context.Context, id string, change func(obj *unstruct
 	return s.modifyIntent(ctx, id, "", change)
 }
 func (s *Store) modifyIntent(ctx context.Context, id, intent string, change func(*unstructured.Unstructured) (bool, error)) error {
+	return s.modifyIntentUID(ctx, id, intent, nil, change)
+}
+func (s *Store) modifyIntentUID(ctx context.Context, id, intent string, expectedUID *types.UID, change func(*unstructured.Unstructured) (bool, error)) error {
 	var err error
 	for range modifyAttempts {
 		var obj *unstructured.Unstructured
 		if obj, err = s.client.Get(ctx, id, metav1.GetOptions{}); err != nil {
 			break
+		}
+		if expectedUID != nil && obj.GetUID() != *expectedUID {
+			return diskfork.ErrIdentity
 		}
 		changed, fenceErr := diskfork.IntentOnFence(obj, intent)
 		if fenceErr != nil {

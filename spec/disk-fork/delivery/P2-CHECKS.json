@@ -1,0 +1,75 @@
+{
+  "commands": [
+    {
+      "command": [
+        "/data/chrome/home/computer-use-fork-work/.tools/go/bin/go",
+        "vet",
+        "-p=1",
+        "./internal/diskfork",
+        "./internal/sessions",
+        "./internal/proxy",
+        "./internal/api",
+        "./internal/auth"
+      ],
+      "returncode": 0,
+      "seconds": 7.71
+    },
+    {
+      "command": [
+        "/data/chrome/home/computer-use-fork-work/.tools/go/bin/go",
+        "test",
+        "-race",
+        "-timeout=30s",
+        "-p=1",
+        "./internal/diskfork",
+        "./internal/sessions",
+        "./internal/proxy",
+        "-run",
+        "ForkFence|LedgerRemoval"
+      ],
+      "returncode": 0,
+      "seconds": 52.85
+    },
+    {
+      "command": [
+        "/data/chrome/home/computer-use-fork-work/.tools/go/bin/go",
+        "mod",
+        "tidy"
+      ],
+      "returncode": 0,
+      "seconds": 0.93
+    }
+  ],
+  "complete": true,
+  "mode": "targeted serial; full/race suite deferred to public CI; no quiescence proof",
+  "source_sha256": {
+    "backend/internal/diskfork/barrier.go": "fbaef9d0614b90e91b7efbdcb29c5812144bb1d9379cd6cec872325eebf5eb42",
+    "backend/internal/diskfork/barrier_missing_test.go": "e8e771e2eebef50b242fdfda970333e2ca66b4e157eb62e07cdb66d2f90764af",
+    "backend/internal/diskfork/barrier_test.go": "04fdbc94579a91130a4c63249d2d011a60358221e69d1ca31829e33fc2a38dcc",
+    "backend/internal/sessions/fork_fences.go": "28e93172f5b41552ff1b2c2a678ce47e2ef720d8f0d5ddfc70aadd6afca8e53f",
+    "backend/internal/sessions/fork_fences_test.go": "ea7c2a3577190c3029a7c381fcedb0f12e9adc6e27870886667c5db4b3ce7c99",
+    "backend/internal/sessions/fork_fences_cold_test.go": "7ffcad8e16a150145f6eea71bdf29c528b55d4895ff95d4a98dbee00f8b38dc6",
+    "backend/internal/proxy/fork_fences.go": "bb1249b40a18de40763708b5157f6f4352d876b57803e24235c8c70c5617dfaf",
+    "backend/internal/proxy/fork_fences_test.go": "4fa6ccff6f3f69df7ea2313398c82f123bb643eec9549a2712f1d063f3aef8db",
+    "backend/internal/proxy/fork_fences_recovery_test.go": "e69453956ba5d605253587b87f602986700844ff8aff638a8aedd5ba87c33204",
+    "backend/internal/api/disk_fork_test.go": "3773c2667f84d3be4695e0a56d43ee37c117669ffe9e53ce13e76a6f6b1bcbcd",
+    "backend/internal/api/disk_fork.go": "3a838645e1fe7a23ea894a12a4de8ba3f3dda5179592f41149407ebf6ca7efb5",
+    "docs/contracts/disk-fork-coordination.md": "23f8fd691501bb64e223e18e14345e9e892510871e00b7d6824421782e3699f5",
+    "spec/disk-fork/delivery/validate_p2.py": "8c8946d1059bbcc6b5c9271f6c7debe7d30900008a07727773461c3816ed5aa2",
+    "spec/disk-fork/delivery/validate_p2_checks.py": "2b43cb93c267e327dc1101d92efd1e76514ce258905ecbad1cb4b64fc95c157f",
+    "backend/go.mod": "86f0f4be6a838f71a62b520879d60551c79cdf276c8fed9c438210bcbdd573bd",
+    "backend/internal/sessions/store.go": "07231afe653c387981b20988f44985b1577896892d724caac4a37dd396766be9",
+    "backend/internal/sessions/snapshots.go": "8b7ed76d33a5d75048c33f7f4f346ac4a9843bf9fd57e5b99bdff0aee546a6b3",
+    "backend/internal/sessions/policy.go": "c7076ab13f271aeeb4e82cb78a5def76607d88016f188d0b865556d2ae8d92ac",
+    "backend/internal/proxy/proxy.go": "268f8a1ed34cfedccc8966ad2dee803f5c306e92e934c0bb58fce7ddba1d3254",
+    "backend/internal/proxy/billing.go": "adc9252bf6c96573ffdc98265bb19402d8985489867a61091eabe66b0bcbd5eb",
+    "backend/internal/proxy/files.go": "2d5015edae749291927d1af88d99634013dc0807a9a554333a7b80f4e206d03a",
+    "backend/internal/proxy/browser.go": "f2543b4cd2608f1374b8678dd292d7e662c8d290dc8ea1c52917d9f3acdd6247",
+    "backend/internal/api/api.go": "20262cac9719360332dce15e92daa87ff7becd10bfe21b1f3fe12f46ecb26d45",
+    "backend/internal/auth/apihost.go": "2c5e184cb5fb649ff7e0ccc463a3c88806aba60b529b09411c851c1892cd1ce7",
+    "backend/internal/auth/apihost_test.go": "16e57817179172ed6001b8539ff7518574f4fb6257bb64061270cb6e00f26f5b",
+    "backend/cmd/server/main.go": "4a893bb3fb0f34839c27ce720bf73efb4b2baf651bb849d4586a675681478221",
+    "backend/cmd/server/disk_fork_test.go": "9106945abdace493fc508bb72dccd8e54abb08f351e300e1d5cefbdfd3aa9086"
+  },
+  "source_unchanged": true
+}
