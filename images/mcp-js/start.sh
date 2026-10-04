@@ -38,7 +38,8 @@ fi
 # signal it does not handle: exec'd, it sat out every pod shutdown until the
 # kill 30 s later. So it runs as a child, where TERM ends it, and this script
 # stays PID 1 to pass the signal on.
-mcp-v8 "$@" &
+# Enable runtime imports in both the standard and skills images.
+mcp-v8 --allow-external-modules "$@" &
 child=$!
 trap 'kill -TERM "$child" 2>/dev/null' TERM INT
 status=0
