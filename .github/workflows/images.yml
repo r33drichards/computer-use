@@ -9,8 +9,9 @@ name: images
 #   by hand on main           and :main, digests in the run summary
 #
 # Only the images whose files changed are built. Started by hand, it builds
-# the ones chosen in the form (default: all). A published site is then
-# deployed automatically; other images still follow the manual release flow.
+# the ones chosen in the form (default: all). Published digests feed the
+# Argo CD production branch when GitOps is enabled.
+# The standalone site deployment remains available until cutover.
 #
 # Pushing is keyless: GitHub's OIDC token is exchanged through Workload
 # Identity Federation for the images-push service account, which can write to
@@ -33,6 +34,12 @@ on:
       - "README.md"
       - ".github/workflows/images.yml"
       - "hack/site-release.sh"
+      - "deploy/argocd/**"
+      - "deploy/gke/**"
+      - "deploy/base/**"
+      - "test/canary.py"
+      - "hack/gitops/**"
+      - ".github/workflows/gitops-release.yml"
   push:
     branches:
       - main
@@ -50,6 +57,12 @@ on:
       - "README.md"
       - ".github/workflows/images.yml"
       - "hack/site-release.sh"
+      - "deploy/argocd/**"
+      - "deploy/gke/**"
+      - "deploy/base/**"
+      - "test/canary.py"
+      - "hack/gitops/**"
+      - ".github/workflows/gitops-release.yml"
   workflow_dispatch:
     inputs:
       images:
@@ -104,6 +117,7 @@ jobs:
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           PUSH_BEFORE: ${{ github.event.before }}
           PUSH_AFTER: ${{ github.sha }}
+          ARGOCD_ENABLED: ${{ vars.ARGOCD_ENABLED }}
         run: |
           set -euo pipefail
 
@@ -133,6 +147,11 @@ jobs:
                 git diff --name-only "${PR_BASE}...${PR_HEAD}"
                 ;;
               push)
+                if [ "$ARGOCD_ENABLED" = true ]; then
+                  git fetch --quiet origin production-stable
+                  PUSH_BEFORE="$(git show FETCH_HEAD:production/release.json | jq -er .source_sha)"
+                  git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null || git fetch --quiet origin "$PUSH_BEFORE"
+                fi
                 if [ -z "$PUSH_BEFORE" ] || [ "$PUSH_BEFORE" = "0000000000000000000000000000000000000000" ] ||
                   ! git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null; then
                   # New branch or rewritten history: no base to compare with.
@@ -374,6 +393,21 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "${IMAGE}@${DIGEST}"
 
+      - name: Immutable image artifact for GitOps
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+          NAME: ${{ matrix.name }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/release-image"
+          jq -n --arg sha "$GITHUB_SHA" --arg name "$NAME" --arg image "$IMAGE@$DIGEST" \
+            '{source_sha: $sha, name: $name, image: $image}' > "$RUNNER_TEMP/release-image/image.json"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-image-${{ matrix.name }}
+          path: ${{ runner.temp }}/release-image/image.json
+          retention-days: 14
+
       - name: Site image for deployment
         if: matrix.name == 'site'
         env:
@@ -390,7 +424,7 @@ jobs:
   deploy-site:
     name: deploy site
     needs: [changes, publish]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && contains(fromJSON(needs.changes.outputs.matrix).include.*.name, 'site')
+    if: vars.ARGOCD_ENABLED != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && contains(fromJSON(needs.changes.outputs.matrix).include.*.name, 'site')
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     environment: production

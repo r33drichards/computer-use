@@ -98,7 +98,12 @@ jobs:
         env:
           CONFIRM: ${{ inputs.confirm }}
           REF: ${{ github.ref }}
+          ARGOCD_ENABLED: ${{ vars.ARGOCD_ENABLED }}
         run: |
+          if [ "$ARGOCD_ENABLED" = true ]; then
+            echo "::error::Argo CD owns production; change the production Git branch instead."
+            exit 1
+          fi
           if [ "$REF" != "refs/heads/main" ]; then
             echo "::error::deploy runs only on refs/heads/main, not $REF"
             exit 1
