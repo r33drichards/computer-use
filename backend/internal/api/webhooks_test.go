@@ -8,6 +8,7 @@ import (
 	dynfake "k8s.io/client-go/dynamic/fake"
 	ktesting "k8s.io/client-go/testing"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/r33drichards/computer-use/backend/internal/sessions"
@@ -89,13 +90,14 @@ func TestWebhookSettingsOwnershipScopesAndSecret(t *testing.T) {
 
 func TestWebhookUpdateRetriesConflictWithoutRestoringOldSecret(t *testing.T) {
 	f := newPolicyFixture(t, false)
-	id := f.newSession(`{"name":"export"}`)
-	path := "/api/sessions/" + id + "/webhook"
-	if rec := f.do(alice, "PUT", path, `{"url":"https://example.com","signing_secret":"original-secret-value"}`); rec.Code != 204 {
-		t.Fatal(rec.Code, rec.Body)
-	}
+	// Install the reactor before session creation starts the background watcher.
+	var id string
+	var armed atomic.Bool
 	attempts := 0
 	f.client.(*dynfake.FakeDynamicClient).PrependReactor("patch", "sessionpolicies", func(action ktesting.Action) (bool, runtime.Object, error) {
+		if !armed.Load() {
+			return false, nil, nil
+		}
 		attempts++
 		if attempts != 1 {
 			return false, nil, nil
@@ -114,6 +116,12 @@ func TestWebhookUpdateRetriesConflictWithoutRestoringOldSecret(t *testing.T) {
 		}
 		return true, nil, apierrors.NewConflict(sessions.PolicyGVR.GroupResource(), id, errors.New("concurrent update"))
 	})
+	id = f.newSession(`{"name":"export"}`)
+	path := "/api/sessions/" + id + "/webhook"
+	if rec := f.do(alice, "PUT", path, `{"url":"https://example.com","signing_secret":"original-secret-value"}`); rec.Code != 204 {
+		t.Fatal(rec.Code, rec.Body)
+	}
+	armed.Store(true)
 	if rec := f.do(alice, "PUT", path, `{"url":"https://new.example.com"}`); rec.Code != 204 {
 		t.Fatal(rec.Code, rec.Body)
 	}
