@@ -71,11 +71,19 @@ their source with an async `eval` wrapper.
 Modules are fetched again in each fresh execution, so allow time for downloads
 and import what you need in each call.
 
-This V8 runtime is not a full Node.js installation. Choose packages compatible
-with the runtime; enabling imports does not enable native addons, DOM APIs,
-or arbitrary Node.js APIs. A package such as `pngjs` may need compatibility
-features beyond the import flag. If a package needs Node.js or native code,
-run it on the desktop through the exec MCP server.
+The runtime provides a partial Node.js compatibility layer. `pngjs@7.0.0`
+supports synchronous and asynchronous PNG encoding and decoding:
+
+```js
+const { PNG } = await import("npm:pngjs@7.0.0");
+const png = new PNG({ width: 1, height: 1 });
+png.data.set([255, 0, 0, 255]);
+artifact("red-pixel", "image/png", PNG.sync.write(png));
+```
+
+Supported Node builtins can be imported with `node:` specifiers. Package
+compatibility varies; native addons and DOM APIs require an appropriate host.
+Use the exec MCP server for packages that need a full Node.js installation.
 
 Module loading is separate from the JavaScript `fetch` API. An operator can
 restrict imports with a `modules` policy in `MCP_V8_POLICIES_JSON`; a policy

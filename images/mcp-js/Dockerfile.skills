@@ -2,7 +2,7 @@
 # Opt-in skills image. The normal Dockerfile and production pins stay unchanged.
 # The feature branch is codex/user-supplied-skills; build its reviewed commit.
 FROM rust:trixie AS builder
-ARG MCP_JS_COMMIT=df7ff14823861941bfe1d9f245a39c045a243e86
+ARG MCP_JS_COMMIT=723fe32d4cc31c18f8255af2639059f7d8450324
 RUN apt-get update && apt-get install -y --no-install-recommends git python3 pkg-config libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
