@@ -2476,20 +2476,6 @@ spec:
     postCheckpoint: resume
     type: manual
 ---
-apiVersion: podsnapshot.gke.io/v1
-kind: PodSnapshotStorageConfig
-metadata:
-  name: browserjs-sessions
-  namespace: browserjs-sessions
-  annotations:
-    argocd.argoproj.io/sync-wave: '0'
-spec:
-  snapshotStorageConfig:
-    gcs:
-      bucket: browserjs-sessions-pod-snapshots
-      path: sessions
-      tokenSource: podKSA
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
