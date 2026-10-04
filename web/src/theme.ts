@@ -43,6 +43,9 @@ export function applyWireframeTheme() {
   const dark = isDarkTheme()
   const ink = dark ? "#eeeeee" : "#111111"
   const paper = dark ? "#181818" : "#ffffff"
+  const surface = dark ? "#242424" : paper
+  const border = dark ? "#737373" : ink
+  const divider = dark ? "#404040" : ink
   const pencil = dark ? "#aaaaaa" : "#6b6b6b"
   const hover = dark ? "#303030" : "#eeeeee"
   const active = dark ? "#404040" : "#dddddd"
@@ -51,31 +54,33 @@ export function applyWireframeTheme() {
   applyTheme({
     theme: {
       tokens: {
-        fontFamilyBase: '"Comic Neue", "Chalkboard SE", "Comic Sans MS", "Segoe Print", cursive',
+        fontFamilyBase: dark ? 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' : '"Comic Neue", "Chalkboard SE", "Comic Sans MS", "Segoe Print", cursive',
         colorBackgroundLayoutMain: paper,
-        colorBackgroundContainerContent: paper,
-        colorBackgroundContainerHeader: paper,
+        colorBackgroundContainerContent: surface,
+        colorBackgroundContainerHeader: surface,
         colorTextBodyDefault: ink,
         colorTextBodySecondary: pencil,
         colorTextHeadingDefault: ink,
         colorTextLinkDefault: ink,
         colorTextLinkHover: ink,
-        colorBorderDividerDefault: ink,
-        colorBorderDividerSecondary: pencil,
-        colorBackgroundButtonPrimaryDefault: paper,
+        colorBorderDividerDefault: divider,
+        colorBorderDividerSecondary: dark ? divider : pencil,
+        colorBackgroundButtonPrimaryDefault: surface,
         colorBackgroundButtonPrimaryHover: hover,
         colorBackgroundButtonPrimaryActive: active,
         colorTextButtonPrimaryDefault: ink,
         colorTextButtonPrimaryHover: ink,
         colorTextButtonPrimaryActive: ink,
-        colorBorderButtonPrimaryDefault: ink,
-        colorBorderButtonPrimaryHover: ink,
-        colorBorderButtonPrimaryActive: ink,
+        colorBorderButtonPrimaryDefault: border,
+        colorBorderButtonPrimaryHover: border,
+        colorBorderButtonPrimaryActive: border,
+        colorBackgroundButtonNormalDefault: surface,
+        colorBackgroundInputDefault: surface,
         colorBackgroundButtonNormalHover: hover,
         colorBackgroundButtonNormalActive: active,
-        colorBorderButtonNormalDefault: ink,
-        colorBorderButtonNormalHover: ink,
-        colorBorderButtonNormalActive: ink,
+        colorBorderButtonNormalDefault: border,
+        colorBorderButtonNormalHover: border,
+        colorBorderButtonNormalActive: border,
         colorTextButtonNormalDefault: ink,
         colorTextButtonNormalHover: ink,
         colorTextButtonNormalActive: ink,
@@ -104,11 +109,11 @@ export function applyWireframeTheme() {
         colorTextNotificationYellow: ink,
         colorBackgroundSegmentActive: ink,
         colorBorderSegmentActive: ink,
-        colorBorderSegmentDefault: ink,
+        colorBorderSegmentDefault: border,
         colorBorderSegmentHover: ink,
         colorTextSegmentDefault: ink,
         colorTextSegmentHover: ink,
-        colorBorderInputDefault: ink,
+        colorBorderInputDefault: border,
         colorBorderInputFocused: ink,
         colorBorderItemFocused: ink,
         borderRadiusButton: "2px",

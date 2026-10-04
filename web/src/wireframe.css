@@ -1,6 +1,8 @@
 :root {
   --paper: #fff;
   --shade: #f1f1f1;
+  --surface: var(--paper);
+  --outline: var(--ink);
   color-scheme: light;
   --ink: #111;
   --pencil: #6b6b6b;
@@ -20,10 +22,10 @@ body {
 .wf-box,
 [class*="awsui_root_14iqq_"],
 [class*="awsui_container_1d2i7_"] {
-  border: 2px solid var(--ink) !important;
+  border: 2px solid var(--outline) !important;
   border-radius: var(--wobble) !important;
   box-shadow: none !important;
-  background: var(--paper) !important;
+  background: var(--surface) !important;
   /* Inner headers and footers are square and opaque; clip them to the outline. */
   overflow: hidden !important;
 }
@@ -52,7 +54,7 @@ a {
   align-items: baseline;
   justify-content: space-between;
   padding: 12px 20px;
-  border-bottom: 2px dashed var(--ink);
+  border-bottom: 2px dashed var(--outline);
 }
 .wf-header h1 {
   margin: 0;
@@ -75,7 +77,7 @@ a {
 .wf-state {
   display: inline-block;
   padding: 0 8px;
-  border: 1.5px solid var(--ink);
+  border: 1.5px solid var(--outline);
   border-radius: var(--wobble);
   font-size: 13px;
 }
@@ -95,14 +97,14 @@ a {
   display: grid;
   place-items: center;
   min-height: 420px;
-  border: 2px dashed var(--ink);
+  border: 2px dashed var(--outline);
   border-radius: var(--wobble);
   background: repeating-linear-gradient(45deg, var(--paper), var(--paper) 10px, var(--shade) 10px, var(--shade) 11px);
   text-align: center;
 }
 
 .wf-screen {
-  border: 2px solid var(--ink);
+  border: 2px solid var(--outline);
   border-radius: 4px;
   background: var(--paper);
   aspect-ratio: 1280 / 800;
@@ -164,7 +166,7 @@ a {
   display: inline-block;
   width: 28px;
   height: 28px;
-  border: 3px solid var(--ink);
+  border: 3px solid var(--outline);
   border-right-color: transparent;
   border-radius: 50% 46% 52% 48% / 48% 52% 46% 50%;
   animation: wf-spin 0.9s steps(8) infinite;
@@ -197,7 +199,7 @@ a {
   max-width: 480px;
   margin: 80px auto;
   padding: 24px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--outline);
   border-radius: var(--wobble);
 }
 
@@ -242,7 +244,7 @@ a {
 /* 1q84n is Flashbar's item, mx3cw is Alert: outlined like every other box. */
 [class*="awsui_flash_1q84n_"],
 [class*="awsui_alert_mx3cw_"] {
-  border: 2px solid var(--ink) !important;
+  border: 2px solid var(--outline) !important;
   border-radius: var(--wobble) !important;
   box-shadow: none !important;
   background: var(--paper) !important;
@@ -258,7 +260,7 @@ a {
 .wf-tag {
   display: inline-block;
   padding: 0 6px;
-  border: 1.5px dashed var(--ink);
+  border: 1.5px dashed var(--outline);
   border-radius: var(--wobble);
   font-size: 12px;
   white-space: nowrap;
@@ -283,7 +285,7 @@ a {
 .wf-code {
   box-sizing: border-box;
   width: 100%;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--outline);
   border-radius: 4px;
   background: var(--paper);
   overflow: hidden;
@@ -316,7 +318,7 @@ a {
   flex-wrap: wrap;
   gap: 4px 20px;
   padding: 4px 12px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--outline);
   border-radius: 4px;
   font-size: 13px;
 }
@@ -383,7 +385,7 @@ a {
 }
 /* The buttons of a banner are drawn for a coloured background: outline them. */
 .wf-flash [class*="awsui_button_vjswe_"] {
-  border-color: var(--ink) !important;
+  border-color: var(--outline) !important;
   background: var(--paper) !important;
 }
 /* Charges by day: solid ink is awake, hatching is disk. */
@@ -402,7 +404,7 @@ a {
   width: 14px;
   height: 14px;
   vertical-align: -2px;
-  border: 1.5px solid var(--ink);
+  border: 1.5px solid var(--outline);
 }
 .wf-chart-plot {
   display: flex;
@@ -421,7 +423,7 @@ a {
   gap: 2px;
 }
 .wf-chart-day > div {
-  border: 1.5px solid var(--ink);
+  border: 1.5px solid var(--outline);
   border-bottom: 0;
   box-sizing: border-box;
 }
@@ -456,7 +458,10 @@ a {
   --paper: #181818;
   --ink: #eee;
   --pencil: #aaa;
-  --shade: #303030;
+  --shade: #242424;
+  --surface: #242424;
+  --outline: #737373;
+  --wobble: 6px;
 }
 .wf-theme select {
   background: var(--paper);
@@ -466,3 +471,18 @@ a {
   font: inherit;
 }
 .wf-header { flex-wrap: wrap; gap: 12px; }
+
+/* Dark mode follows the docs typography and quieter surface hierarchy. */
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .wf-problems b {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+:root[data-theme="dark"] .wf-header { border-bottom: 1px solid #404040; }
+:root[data-theme="dark"] .wf-box,
+:root[data-theme="dark"] [class*="awsui_root_14iqq_"],
+:root[data-theme="dark"] [class*="awsui_container_1d2i7_"] { border-width: 1px !important; border-color: #404040 !important; }
+:root[data-theme="dark"] [class*="awsui_button_vjswe_"] { border-width: 1px !important; }
+:root[data-theme="dark"] .wf-state { border-radius: 4px; }
+:root[data-theme="dark"] .wf-state:not([data-state="failed"]):not([data-blocked]) { border-width: 1px; }
+:root[data-theme="dark"] .wf-balance-zero,
+:root[data-theme="dark"] .wf-figure[data-zero] { color: #ff9b9b; }
