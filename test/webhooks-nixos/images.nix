@@ -4,7 +4,7 @@ let
   backend = pkgs.buildGoModule {
     pname = "webhooks-backend"; version = "test";
     src = source + "/backend";
-    vendorHash = "sha256-UpHJFOn3LU+hv86FLKBLMhtEPNb9TCWdoB8TcOPYHbQ=";
+    vendorHash = "sha256-doDN8dnAOko9bgGrr79X4oOYPxGbF+kR1mUpaKlONdU=";
     subPackages = [ "cmd/server" ];
     env.CGO_ENABLED = "0";
     doCheck = false;
