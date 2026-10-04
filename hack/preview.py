@@ -154,7 +154,9 @@ def render(pr, sha, images, now=None):
         {"apiVersion": "v1", "kind": "ResourceQuota", "metadata": {"name": "preview", "namespace": ns}, "spec": {"hard": {"pods": "10", "persistentvolumeclaims": "2", "requests.storage": "10Gi", "requests.cpu": "3", "requests.memory": "6Gi", "count/sandboxes.agents.x-k8s.io": "2", "services.loadbalancers": "0", "services.nodeports": "0"}}},
         {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": "default-deny", "namespace": ns}, "spec": {"podSelector": {}, "policyTypes": ["Ingress"], "ingress": []}},
     ]
-    return result
+    # Quotas and ingress isolation must exist before any PR image starts.
+    priority = {"Namespace": 0, "ResourceQuota": 1, "NetworkPolicy": 2, "ConfigMap": 3, "ServiceAccount": 4, "Role": 4, "RoleBinding": 5, "Deployment": 7}
+    return sorted(result, key=lambda obj: priority.get(obj["kind"], 6))
 
 
 def live_previews():
