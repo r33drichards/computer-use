@@ -9,10 +9,17 @@ existing split from OpenTofu's GCP infrastructure. Helm manages this release;
 the workflow applies the chart's CRDs explicitly because Helm does not
 upgrade CRDs. No experiments, schedules or namespace opt-ins are included.
 
-The controller, dashboard, DNS server and privileged daemon run only on the
-`system` node pool. Daemons require host access and the containerd socket.
-gVisor session pools are excluded; this configuration does not provide
-daemon-based fault injection for those sessions. Namespace filtering requires
+The controller, dashboard and DNS server run only on the `system` node pool.
+The privileged daemon runs on system nodes and all nodes labeled
+`sandbox.gke.io/runtime=gvisor`, tolerating the session pool's NoSchedule taint.
+It uses the default host container runtime, not the gVisor RuntimeClass, and
+requires host access and the containerd socket. This includes existing and
+future session pools carrying that label. It adds a 100m CPU / 256Mi memory
+reservation per node; account for that overhead when sizing session capacity.
+Daemon placement does not establish gVisor fault compatibility: process,
+filesystem, time and network injection require separate validation against
+the sandbox runtime. No fault support is claimed until tested.
+Namespace filtering requires
 `chaos-mesh.org/inject=enabled` before a namespace can receive experiments.
 Do not treat that annotation as an authorization boundary: cluster RBAC still
 controls who can create experiments and change namespace annotations.

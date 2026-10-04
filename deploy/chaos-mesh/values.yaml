@@ -15,8 +15,25 @@ controllerManager:
 chaosDaemon:
   runtime: containerd
   socketPath: /run/containerd/containerd.sock
-  nodeSelector:
-    cloud.google.com/gke-nodepool: system
+  # Host daemon uses the default runtime, including on gVisor session nodes.
+  # Controllers and dashboard remain on the system pool.
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: cloud.google.com/gke-nodepool
+                operator: In
+                values: [system]
+          - matchExpressions:
+              - key: sandbox.gke.io/runtime
+                operator: In
+                values: [gvisor]
+  tolerations:
+    - key: sandbox.gke.io/runtime
+      operator: Equal
+      value: gvisor
+      effect: NoSchedule
   resources:
     requests:
       cpu: 100m
