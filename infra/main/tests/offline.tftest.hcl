@@ -449,7 +449,12 @@ run "preview_environments" {
   }
 
   assert {
-    condition     = one(google_artifact_registry_repository.previews[0].cleanup_policies).condition[0].older_than == "1209600s"
-    error_message = "Preview images must expire after 14 days."
+    condition     = toset(google_project_iam_custom_role.preview_tag_cleanup[0].permissions) == toset(["artifactregistry.tags.get", "artifactregistry.tags.list", "artifactregistry.tags.delete"])
+    error_message = "Cleanup may inspect/delete tags, never publish or delete image versions."
+  }
+
+  assert {
+    condition     = one(google_artifact_registry_repository.previews[0].cleanup_policies).condition[0].older_than == "1209600s" && one(google_artifact_registry_repository.previews[0].cleanup_policies).condition[0].tag_state == "UNTAGGED"
+    error_message = "Only untagged preview images may expire after 14 days."
   }
 }

@@ -11,7 +11,7 @@ permissions:
 
 # One Git revision and its verdict at a time; never cancel a live release.
 concurrency:
-  group: gitops-production-release
+  group: deploy
   cancel-in-progress: false
 
 jobs:
@@ -30,6 +30,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
       NS: browserjs-sessions
+      PREVIEWS_ENABLED: ${{ vars.PREVIEWS_ENABLED }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

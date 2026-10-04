@@ -7,6 +7,8 @@ import argparse
 import copy
 import datetime as dt
 import json
+import os
+import tempfile
 import re
 import subprocess
 from pathlib import Path
@@ -159,14 +161,14 @@ def render(pr, sha, images, now=None):
     return sorted(result, key=lambda obj: priority.get(obj["kind"], 6))
 
 
-def live_previews():
+def live_previews(include_terminating=False):
     items = json.loads(kubectl("get", "namespaces", "-l", f"{MANAGED}={MANAGER}", "-o", "json"))["items"]
     previews = []
     for obj in items:
         pr = pr_number(obj["metadata"]["labels"][LABEL])
         if obj["metadata"]["name"] != namespace(pr):
             raise ValueError("Preview label on an unexpected namespace")
-        if "deletionTimestamp" not in obj["metadata"]:
+        if include_terminating or "deletionTimestamp" not in obj["metadata"]:
             previews.append(pr)
     return sorted(previews, key=int)
 
@@ -179,9 +181,56 @@ def merge_routes(config, previews):
     return config
 
 
+def merge_manifest_routes(docs, prs):
+    """Change only the desired mounted Pomerium config; keep its hash and refs."""
+    changed = copy.deepcopy(docs)
+    sts = next(d for d in changed if d["kind"] == "StatefulSet" and d["metadata"]["name"] == "pomerium" and d["metadata"].get("namespace") == PRODUCTION)
+    cm_name = next(v["configMap"]["name"] for v in sts["spec"]["template"]["spec"]["volumes"] if v["name"] == "config")
+    cm = next(d for d in changed if d["kind"] == "ConfigMap" and d["metadata"]["name"] == cm_name and d["metadata"].get("namespace") == PRODUCTION)
+    config = yaml.safe_load(cm["data"]["config.yaml"])
+    merged = merge_routes(config, prs)
+    if merged != config:
+        cm["data"]["config.yaml"] = dump(merged)
+    return changed
+
+
+def reconcile_manifest_file(path):
+    docs = list(yaml.safe_load_all(path.read_text()))
+    changed = merge_manifest_routes(docs, live_previews())
+    if changed != docs:
+        path.write_text(yaml.safe_dump_all(changed, sort_keys=False))
+        return True
+    return False
+
+
+def sync_gitops_edge():
+    # The normal push is a compare-and-swap: refuse to overwrite another writer.
+    # Trusted lifecycle and production releases also share a workflow lock.
+    def git(*args):
+        return subprocess.check_output(["git", *args], text=True).strip()
+    git("fetch", "--quiet", "origin", "production")
+    with tempfile.TemporaryDirectory(prefix="preview-edge-") as directory:
+        tree = str(Path(directory) / "tree")
+        git("worktree", "add", "--quiet", "--detach", tree, "FETCH_HEAD")
+        try:
+            if not reconcile_manifest_file(Path(tree) / "production/manifests.yaml"):
+                return
+            git("-C", tree, "config", "user.name", "github-actions[bot]")
+            git("-C", tree, "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com")
+            git("-C", tree, "add", "production/manifests.yaml")
+            git("-C", tree, "commit", "-m", "Reconcile live PR preview routes")
+            git("-C", tree, "push", "origin", "HEAD:refs/heads/production")
+            revision = git("-C", tree, "rev-parse", "HEAD")
+        finally:
+            git("worktree", "remove", "--force", tree)
+    kubectl("-n", "argocd", "annotate", "application", "computer-use-production", "argocd.argoproj.io/refresh=hard", "--overwrite")
+    subprocess.run(["python3", str(ROOT / "hack/gitops/wait.py"), revision, "600"], check=True)
+
+
 def sync_edge():
-    # Read the actual mounted ConfigMap; its kustomize hash can change with
-    # every production release. Never patch Pomerium's StatefulSet or secrets.
+    if os.environ.get("ARGOCD_ENABLED") == "true":
+        return sync_gitops_edge()
+    # Legacy manual deployments use the actual mounted ConfigMap.
     sts = json.loads(kubectl("-n", PRODUCTION, "get", "statefulset", "pomerium", "-o", "json"))
     cm_name = next(v["configMap"]["name"] for v in sts["spec"]["template"]["spec"]["volumes"] if v["name"] == "config")
     cm = json.loads(kubectl("-n", PRODUCTION, "get", "configmap", cm_name, "-o", "json"))
@@ -189,8 +238,6 @@ def sync_edge():
     changed = merge_routes(config, live_previews())
     if config == changed:
         return
-    # resourceVersion makes conflicting edits fail rather than overwriting a
-    # concurrent release. All writer workflows additionally share deploy's lock.
     cm["data"]["config.yaml"] = dump(changed)
     kubectl("replace", "-f", "-", input=json.dumps(cm))
 
@@ -203,6 +250,8 @@ def main():
     renderer.add_argument("--sha", required=True)
     renderer.add_argument("--images", type=Path, required=True)
     sub.add_parser("sync-edge")
+    manifests = sub.add_parser("reconcile-manifests")
+    manifests.add_argument("--file", type=Path, required=True)
     prepare = sub.add_parser("prepare-edge")
     prepare.add_argument("--file", type=Path, default=ROOT / "deploy/gke/pomerium-config.yaml")
     args = parser.parse_args()
@@ -210,6 +259,8 @@ def main():
         print(yaml.safe_dump_all(render(args.pr, args.sha, json.loads(args.images.read_text())), sort_keys=False))
     elif args.command == "sync-edge":
         sync_edge()
+    elif args.command == "reconcile-manifests":
+        reconcile_manifest_file(args.file)
     else:
         args.file.write_text(dump(merge_routes(yaml.safe_load(args.file.read_text()), live_previews())))
 
