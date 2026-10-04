@@ -14,11 +14,30 @@ const server = http.createServer((req, res) => recorder.handle(req, res));
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const url = `http://127.0.0.1:${server.address().port}/history`;
 
+// Node's fetch sends Sec-Fetch-Mode, which this private endpoint correctly
+// refuses as a browser request. Match the backend's plain HTTP client.
+function call(target, { method = 'GET', headers = {}, body } = {}) {
+  return new Promise((resolve, reject) => {
+    const req = http.request(target, { method, headers }, res => {
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () => {
+        const data = Buffer.concat(chunks);
+        resolve({ status: res.statusCode, json: () => JSON.parse(data.toString()), arrayBuffer: () => data });
+      });
+    });
+    req.on('error', reject);
+    req.end(body);
+  });
+}
+
 try {
   let status;
   const deadline = Date.now() + 25000;
   do {
-    status = await (await fetch(url)).json();
+    const response = await call(url);
+    status = response.json();
+    assert.equal(response.status, 200, `history endpoint: ${JSON.stringify(status)}`);
     if (status.clips.length) break;
     await new Promise(resolve => setTimeout(resolve, 250));
   } while (Date.now() < deadline);
@@ -33,10 +52,10 @@ try {
   assert.equal(probe.streams[0].width, 1280);
   assert.equal(probe.streams[0].height, 800);
   execFileSync('ffmpeg', ['-v', 'error', '-i', file, '-f', 'null', '-']);
-  const range = await fetch(`${url}/${clip.name}`, { headers: { Range: 'bytes=0-99' } });
+  const range = await call(`${url}/${clip.name}`, { headers: { Range: 'bytes=0-99' } });
   assert.equal(range.status, 206);
   assert.equal((await range.arrayBuffer()).byteLength, 100);
-  const off = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{"seconds":0}' });
+  const off = await call(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{"seconds":0}' });
   assert.equal(off.status, 200);
   assert.deepEqual((await off.json()).clips, []);
   console.log('ok desktop history: real X11 capture, H.264 decode, ranges, and disabling');
