@@ -1,11 +1,11 @@
 {
-  "source_sha": "02da2e885bdbe702c3c64c7148ba8c84a93e7ba9",
+  "source_sha": "ad398b640ee20515c3744201493d1a33026246de",
   "images": {
-    "backend": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:92c9dec7dcf036891e35b7f5975afc1df91c2a954621bce65091875f93e1da0a",
-    "site": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/site@sha256:d1414a2d9e8891c9ef885f7c8ac04e0b854f1a22c4dbcea47f582f80a4646322",
-    "policy-operator": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/policy-operator@sha256:bfb5a22d757a0606b8d5f6a6d4ddbab820cc6a3ec80ae1d9851119df733d6850",
-    "browser": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/browser@sha256:210529351dbad1860387dbbe7756488d44fdfb0b67112fdbb9a755a9f89cd43c",
-    "mcp-js": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/mcp-js@sha256:a78519b7324715acd57b895d2851aa728ab828a7ac2e17b9d0b5fa109a3125b5",
-    "billing-operator": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/billing-operator@sha256:99181ed41692cb35e0fb8b982ac7048e7887b900252518471042c03d736776b5"
+    "backend": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:e27a22de2177081fe2369203039864ffed74830077cd66c6950882db82d4f9c7",
+    "site": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/site@sha256:33833b87efd621d938d4cedd64a8885a6451a83c28a7454c4081c4cea5e261ac",
+    "policy-operator": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/policy-operator@sha256:647b37935c87b8abbf66da341ea0596d2f3951882cf5b1728af2cd99568be425",
+    "browser": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/browser@sha256:873e3e15d249b6f171805549c5969bf169bb0a22545cb03f799b5d2ee2bd286e",
+    "mcp-js": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/mcp-js@sha256:b13f2800bcd00370a9f7e1976faf87c13d72c3cc998d02ce7b5ca4a9f71950b4",
+    "billing-operator": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/billing-operator@sha256:67a2b405a4e883fdfe6c47ff8803c35788c475198391ba07d105ecc03a0e0239"
   }
 }
