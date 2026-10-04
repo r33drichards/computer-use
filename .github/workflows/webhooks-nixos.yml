@@ -54,7 +54,9 @@ jobs:
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Delegate cgroup controllers to the Nix daemon
         run: |
-          sudo systemctl set-property nix-daemon.service Delegate=yes
+          sudo mkdir -p /etc/systemd/system/nix-daemon.service.d
+          printf '[Service]\nDelegate=yes\n' | sudo tee /etc/systemd/system/nix-daemon.service.d/delegate.conf
+          sudo systemctl daemon-reload
           sudo systemctl restart nix-daemon.service
           systemctl show nix-daemon.service -p Delegate -p ControlGroup
           cat /sys/fs/cgroup/cgroup.controllers
