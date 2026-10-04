@@ -26,13 +26,14 @@ try:
 
 
     def api(method, path, body=None):
-        command = 'curl -fsS -X ' + method + ' -H "Host: api.example.test" -H '
+        command = 'curl --fail-with-body -sS -X ' + method + ' -H "Host: api.example.test" -H '
         command += shlex.quote('Authorization: Bearer ' + token) + ' -H "Content-Type: application/json" '
         if body is not None:
             command += '-d ' + shlex.quote(json.dumps(body)) + ' '
         return cluster.succeed(command + shlex.quote('http://' + backend + path))
 
 
+    print(api('POST', '/v1/policies/validate', {'kind': 'rego', 'source': 'package browserjs.policy\nimport rego.v1\nallow_tool_call := true\n'}))
     created = json.loads(api('POST', '/v1/sessions', {'name': 'webhook-integration', 'policy': {
         'kind': 'rego', 'source': 'package browserjs.policy\nimport rego.v1\nallow_tool_call := true\n'}}))
     sid = created['id']
@@ -219,6 +220,10 @@ finally:
     cluster.copy_from_machine('/tmp/k3s.log')
     cluster.succeed(k + 'get pods,pvc,sessionpolicies -o yaml > /tmp/resources.yaml 2>&1 || true')
     cluster.copy_from_machine('/tmp/resources.yaml')
+    cluster.succeed(k + 'describe pods > /tmp/pods.txt 2>&1 || true')
+    cluster.copy_from_machine('/tmp/pods.txt')
+    cluster.succeed(k + 'logs deployment/backend --all-containers > /tmp/backend.log 2>&1 || true')
+    cluster.copy_from_machine('/tmp/backend.log')
     cluster.succeed(k + 'logs deployment/policy-operator --all-containers > /tmp/operator.log 2>&1 || true')
     cluster.copy_from_machine('/tmp/operator.log')
     cluster.succeed('curl -fsS http://localhost:9000/state > /tmp/receiver-state.json')
