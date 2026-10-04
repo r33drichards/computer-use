@@ -1,5 +1,6 @@
 import json
 import shlex
+import time
 
 k = 'kubectl -n browserjs-sessions '
 
@@ -100,8 +101,21 @@ try:
 
     def call(bin_name, expected):
         address = cluster.succeed(k + 'get pods -l app=browserjs-session -o jsonpath={.items[0].status.podIP}').strip()
-        result = json.loads(cluster.succeed('SERVER=exec MCP_HEADERS=' + shlex.quote(json.dumps({'Host': 'localhost'})) + ' python /etc/webhook-call.py http://' + address + ':8080 ' + shlex.quote(bin_name)))
-        assert result['outcome'] == expected, result
+        command = 'SERVER=exec MCP_HEADERS=' + shlex.quote(json.dumps({'Host': 'localhost'})) + ' python /etc/webhook-call.py http://' + address + ':8080 ' + shlex.quote(bin_name)
+        before = executions()
+        for attempt in range(5):
+            result = json.loads(cluster.succeed(command))
+            if result['outcome'] == expected:
+                return
+            # Forced operator replacement can invalidate MCPJS's pooled
+            # connection. Retry only its transport failure, and prove the
+            # fail-closed attempt did not run the upstream tool.
+            transient = 'error sending request for url' in result.get('seen', '')
+            if expected != 'ran' or not transient or attempt == 4:
+                raise AssertionError(result)
+            assert executions() == before, result
+            time.sleep(1)
+
 
 
     def pod():
