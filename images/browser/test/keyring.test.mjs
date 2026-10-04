@@ -148,5 +148,27 @@ test('partial-capability patch retains only originally permitted IPC_LOCK and pr
  const workflow = readFileSync(new URL('../../../.github/workflows/canary-kind.yml', import.meta.url), 'utf8');
  assert.ok(!/[\x00-\x08]/.test(workflow));
  assert.ok(image.includes('int(s[\'CapPrm\'], 16) == 0'));
- assert.ok(image.includes('dbus-run-session -- bash /tmp/keyring-smoke.sh'));
+ assert.ok(image.includes('dbus-run-session --config-file='));
+});
+
+test('image encrypted fixture requires and forwards the packaged Nix session bus configuration', () => {
+ const image = readFileSync(new URL('./keyring-capability-image-smoke.sh', import.meta.url), 'utf8');
+ const command = image.split('\n').find(line => line.startsWith('dbus-run-session '));
+ const flake = readFileSync(new URL('../flake.nix', import.meta.url), 'utf8');
+ assert.match(flake, /export DBUS_SESSION_CONF=.*pkgs.dbus/);
+ const f = fixture();
+ try {
+  const bin = join(f.dir, 'bin');
+  writeFileSync(join(bin, 'dbus-run-session'), '#!/usr/bin/env bash\nprintf "%s\\n" "$@" > "$CAPTURE"\n');
+  chmodSync(join(bin, 'dbus-run-session'), 0o700);
+  const config = '/nix/store/fixture dbus/share/dbus-1/session.conf';
+  const run = spawnSync('bash', ['-c', command], { env: { ...f.env, DBUS_SESSION_CONF: config }, encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(readFileSync(f.capture, 'utf8').trim().split('\n'), ['--config-file=' + config, '--', 'bash', '/tmp/keyring-smoke.sh']);
+  rmSync(f.capture);
+  const missing = spawnSync('bash', ['-c', command], { env: { ...f.env, DBUS_SESSION_CONF: '' }, encoding: 'utf8' });
+  assert.notEqual(missing.status, 0);
+  assert.match(missing.stderr, /packaged session bus config required/);
+  assert.throws(() => readFileSync(f.capture));
+ } finally { rmSync(f.dir, { recursive: true, force: true }); }
 });

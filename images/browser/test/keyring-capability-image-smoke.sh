@@ -63,7 +63,9 @@ export TMPDIR="$(mktemp -d)"
 export KEYRING_UNLOCK=/tmp/keyring-unlock.py
 # Isolated test HOME/bus; encrypted persistence, wrong-password rejection,
 # locked cold starts and manual unlock are still required in both modes.
-dbus-run-session -- bash /tmp/keyring-smoke.sh
+# Scratch images have no /etc/dbus-1/session.conf. Use the same packaged
+# session config as the desktop and the Nix encrypted smoke, not host defaults.
+dbus-run-session --config-file="${DBUS_SESSION_CONF:?packaged session bus config required}" -- bash /tmp/keyring-smoke.sh
 rm -rf "$TMPDIR"
 INSIDE
   echo "ok: $mode capability and encrypted-keyring image regression"
