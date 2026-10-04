@@ -241,7 +241,7 @@ A token with `policies:write` is the owner's authority over their sessions'
 policies. One pasted into a web page, into `/data/memory`, or into the
 prompt of the agent the policy bounds hands that agent the policy. Keep
 tokens in the CI system's secret store or the environment of the tool that
-uses them (`BROWSERJS_TOKEN`).
+uses them (`COMPUTERUSE_TOKEN`).
 
 ## Local
 

@@ -1,7 +1,0 @@
-/terraform-provider-browserjs
-/fakeapi
-.terraform/
-.terraform.lock.hcl
-*.tfstate
-*.tfstate.*
-.lib/
