@@ -57,9 +57,8 @@ locked() {
     grep -q '<true>'
 }
 
-# Control-socket unlock and Secret Service object registration need not finish
-# together. Wait for the collection to be exported and unlocked before asking
-# libsecret to store an item; a stale default alias alone is not readiness.
+# Bound readiness for an already exported collection. This is not a way to
+# export a new collection created through the login control socket.
 wait_unlocked() {
   local path
   for _ in $(seq 1 100); do
@@ -109,16 +108,25 @@ wait_unlocked
 printf %s 'keyring-smoke-secret' | timeout 20 secret-tool store \
   --label='Computer Use smoke test' computeruse-smoke keyring
 [ "$(timeout 20 secret-tool lookup computeruse-smoke keyring)" = keyring-smoke-secret ]
-[ -n "$(find "$HOME/.local/share/keyrings" -type f -print -quit)" ]
+[ -n "$(find "$HOME/.local/share/keyrings" -name '*.keyring' -type f -print -quit)" ]
 if grep -R -a -q 'keyring-smoke-secret' "$HOME/.local/share/keyrings"; then
   echo "Secret appeared unencrypted on disk" >&2
   exit 1
 fi
 
 stop
+# A fresh runtime directory proves no control socket is needed for persistence.
+export XDG_RUNTIME_DIR="$TMPDIR/keyring-runtime-restarted"
+export GNOME_KEYRING_CONTROL="$XDG_RUNTIME_DIR/keyring"
+mkdir -m 700 "$XDG_RUNTIME_DIR"
 start
 # The files survived, but memory did not: startup must not unlock them.
 [ -n "$(find "$HOME/.local/share/keyrings" -type f -print -quit)" ]
+locked
+# A wrong nonempty password must leave the existing collection locked. The
+# CLI may return success even if the control request was denied; inspect state.
+printf %s 'keyring-smoke-wrong-password' | gnome-keyring-daemon --unlock \
+  --control-directory="$GNOME_KEYRING_CONTROL" >/dev/null
 locked
 printf %s 'keyring-smoke-password' | gnome-keyring-daemon --unlock \
   --control-directory="$GNOME_KEYRING_CONTROL" >/dev/null

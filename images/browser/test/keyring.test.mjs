@@ -74,7 +74,9 @@ test('encrypted smoke seeds before export and exercises locked runtime twice', (
  assert.match(smoke, /--foreground --unlock --components=secrets/);
  // The fixture daemon must exit before testing the production helper locked.
  assert.match(smoke, /pid=\$!\nwait_service\nwait_unlocked\nstop\nstart\nlocked/);
- assert.equal((smoke.match(/^locked$/gm) || []).length, 2);
+ assert.equal((smoke.match(/^locked$/gm) || []).length, 3);
+ assert.match(smoke, /keyring-smoke-wrong-password/);
+ assert.match(smoke, /keyring-runtime-restarted/);
  assert.match(smoke, /secret-tool store/);
  assert.match(smoke, /Secret appeared unencrypted on disk/);
  assert.equal((smoke.match(/secret-tool lookup/g) || []).length, 2);
