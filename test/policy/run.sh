@@ -71,7 +71,7 @@ build_bundle() {
   printf '{"roots": ["browserjs"]}\n' >"$dir/.manifest"
   for pair in "$@"; do
     id="${pair%%=*}" example="$contracts/examples/${pair#*=}.rego"
-    sed "s/^package browserjs\\.policy\$/package browserjs.tenant[\"$id\"]/" "$example" >"$dir/tenant/$id.rego"
+    sed "s/^package computeruse\\.policy\$/package browserjs.tenant[\"$id\"]/" "$example" >"$dir/tenant/$id.rego"
     sed "s/{{SESSION_ID}}/$id/g" "$contracts/decision-module.rego.tmpl" >"$dir/decision/$id.rego"
     loaded="$(jq -c --arg id "$id" --arg hash "sha256:$(sha256 <"$example")" '.[$id] = $hash' <<<"$loaded")"
   done
@@ -211,7 +211,7 @@ done
 # --- 1. the CRDs and their rules -----------------------------------------------
 step "1. CRDs"
 policy() { # name, sessionRef, extra spec lines
-  printf 'apiVersion: browserjs.dev/v1alpha1\nkind: SessionPolicy\nmetadata:\n  name: %s\nspec:\n  sessionRef:\n    name: %s\n  kind: rego\n  source: "package browserjs.policy"\n%s' "$1" "$2" "${3:-}"
+  printf 'apiVersion: browserjs.dev/v1alpha1\nkind: SessionPolicy\nmetadata:\n  name: %s\nspec:\n  sessionRef:\n    name: %s\n  kind: rego\n  source: "package computeruse.policy"\n%s' "$1" "$2" "${3:-}"
 }
 # refused <description> <text the message must contain>; the manifest on stdin
 refused() {
@@ -238,7 +238,7 @@ policy s-cel01 s-cel01 | k apply -f - >/dev/null
 is "management defaults to the editor" editor "$(k get sessionpolicy s-cel01 -o jsonpath='{.spec.management.mode}')"
 out="$(k patch sessionpolicy s-cel01 --type=merge -p '{"spec":{"sessionRef":{"name":"s-cel02"}}}' 2>&1)"
 ok "a changed sessionRef is refused" "$(grep -F "sessionRef is immutable" <<<"$out")" "$out"
-if k patch sessionpolicy s-cel01 --type=merge -p '{"spec":{"source":"package browserjs.policy\n"}}' >/dev/null 2>&1; then
+if k patch sessionpolicy s-cel01 --type=merge -p '{"spec":{"source":"package computeruse.policy\n"}}' >/dev/null 2>&1; then
   pass "the source of a SessionPolicy can be changed"
 else fail "the source of a SessionPolicy can be changed"; fi
 k delete sessionpolicy s-cel01 >/dev/null
@@ -548,7 +548,7 @@ if [ -n "${OPERATOR_IMAGE:-}" ]; then
   fi
   status="$(k get sessionpolicy "$WITH" -o json | jq -c '.status // {}')"
   is "it is loaded by both replicas" "2 of 2" "$(jq -r '"\(.loaded.replicas) of \(.loaded.total)"' <<<"$status")"
-  ok "its status has the hash and the Rego" "$(jq -r 'select((.hash // "") | startswith("sha256:")) | select((.rego // "") | contains("package browserjs.policy")) | "yes"' <<<"$status")" "$status"
+  ok "its status has the hash and the Rego" "$(jq -r 'select((.hash // "") | startswith("sha256:")) | select((.rego // "") | contains("package computeruse.policy")) | "yes"' <<<"$status")" "$status"
   is "an allowed call runs" ran "$(outcome "$(call $P_WITH url)")"
   is "a denied call does not" denied "$(outcome "$(call $P_WITH evaluate)")"
   is "the session without a SessionPolicy is denied" denied "$(outcome "$(call $P_WITHOUT url)")"
@@ -577,7 +577,7 @@ if [ -n "${OPERATOR_IMAGE:-}" ]; then
   # mcp-js. The same rule: its own file policy allows it, the session's
   # decides, and a policy that does not name it denies it.
   is "under no-scripting, which does not name the exec server, a command is denied" denied "$(outcome "$(SERVER="exec" call $P_WITH 'git status')")"
-  rego='package browserjs.policy\n\nimport rego.v1\n\nallow_tool_call if {\n\tinput.server == \"exec\"\n\tinput.tool == \"exec\"\n\tinput.arguments.bin == \"git\"\n\tinput.arguments.args[0] in {\"status\", \"log\"}\n}\n'
+  rego='package computeruse.policy\n\nimport rego.v1\n\nallow_tool_call if {\n\tinput.server == \"exec\"\n\tinput.tool == \"exec\"\n\tinput.arguments.bin == \"git\"\n\tinput.arguments.args[0] in {\"status\", \"log\"}\n}\n'
   k patch sessionpolicy "$WITH" --type=merge -p "{\"spec\":{\"kind\":\"rego\",\"source\":\"$rego\"}}" >/dev/null
   command=""
   for _ in $(seq 1 60); do

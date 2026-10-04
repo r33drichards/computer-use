@@ -38,7 +38,7 @@ def test_layout_and_loaded_document(cfg):
         sid: check(cfg, "rego", src).hash for sid, src in sources.items()}}}
     # opa build writes each module formatted, so not byte for byte the source.
     tenant = files["/tenant/s-ab2cd.rego"].decode()
-    assert 'package browserjs.tenant["s-ab2cd"]\n' in tenant and "browserjs.policy" not in tenant
+    assert 'package browserjs.tenant["s-ab2cd"]\n' in tenant and "computeruse.policy" not in tenant
     decision = files["/decision/s-ab2cd.rego"].decode()
     assert 'package browserjs.decision["s-ab2cd"].mcp_tools\n' in decision
     assert 'data.browserjs.tenant["s-ab2cd"].allow_tool_call == true\n' in decision

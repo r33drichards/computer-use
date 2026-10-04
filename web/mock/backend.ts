@@ -112,7 +112,7 @@ export interface MockOptions {
 
 // The tools a policy is asked about, by server. Any other pair is refused.
 const TOOLS: Record<string, string[]> = { browser: ["browser_execute", "desktop_execute"], exec: ["exec", "stream_logs", "search_logs", "kill"] }
-const UNRESTRICTED = "packagebrowserjs.policyimportrego.v1allow_tool_call:=true"
+const UNRESTRICTED = "packagecomputeruse.policyimportrego.v1allow_tool_call:=true"
 // What GET /sizes answers: the desktop's limits at each size.
 const SIZES = [
   { name: "small", cpuMillis: 1500, memoryMiB: 2048, warm: true },
@@ -155,8 +155,8 @@ export function createMockBackend(options: MockOptions) {
     const errors: Diagnostic[] = []
     const warnings: Diagnostic[] = []
     const code = withoutComments(source)
-    if (!/^\s*package\s+browserjs\.policy\s*$/m.test(source))
-      errors.push({ row: 1, col: 1, code: "rego_package", message: "the module must be package browserjs.policy" })
+    if (!/^\s*package\s+computeruse\.policy\s*$/m.test(source))
+      errors.push({ row: 1, col: 1, code: "rego_package", message: "the module must be package computeruse.policy" })
     const sent = source.indexOf("http.send")
     if (sent >= 0) errors.push({ ...position(source, sent), code: "rego_type_error", message: "undefined function http.send" })
     if (!/\ballow_tool_call\b/.test(code))

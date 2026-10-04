@@ -1,7 +1,7 @@
 # Everything in the browser, and a short list of read-only programs: pwd,
 # ls, cat of files below the home directory, and git status, log, diff and
 # show. No desktop control.
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

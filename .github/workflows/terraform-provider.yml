@@ -1,6 +1,6 @@
 name: terraform provider
 
-# Builds and tests terraform-provider-browserjs. Contacts nothing but the Go
+# Builds and tests terraform-provider-computeruse. Contacts nothing but the Go
 # module proxy and crates.io: every test runs against the fake API in the
 # provider's own tree, never against a deployment.
 #
@@ -12,7 +12,7 @@ name: terraform provider
 on:
   pull_request:
     paths:
-      - "terraform-provider-browserjs/**"
+      - "terraform-provider-computeruse/**"
       # The provider links the SDK's library and imports its Go package.
       - "sdk/crates/**"
       - "sdk/Cargo.toml"
@@ -41,7 +41,7 @@ env:
   CGO_ENABLED: "1"
   # Where `make lib` puts the library; make sets this itself, bare go
   # commands here need it said.
-  CGO_LDFLAGS: -L${{ github.workspace }}/terraform-provider-browserjs/.lib
+  CGO_LDFLAGS: -L${{ github.workspace }}/terraform-provider-computeruse/.lib
 
 jobs:
   test:
@@ -51,7 +51,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: terraform-provider-browserjs
+        working-directory: terraform-provider-computeruse
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -68,7 +68,7 @@ jobs:
             sdk/target
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: terraform-provider-${{ hashFiles('sdk/Cargo.lock', 'flake.lock', 'terraform-provider-browserjs/go.sum') }}
+          key: terraform-provider-${{ hashFiles('sdk/Cargo.lock', 'flake.lock', 'terraform-provider-computeruse/go.sum') }}
           restore-keys: |
             terraform-provider-
 
@@ -97,7 +97,7 @@ jobs:
       # Nothing may be needed beside the binary: the SDK is linked into it.
       - name: The provider does not need the SDK as a shared library
         run: |
-          if ldd terraform-provider-browserjs | grep computeruse; then
+          if ldd terraform-provider-computeruse | grep computeruse; then
             echo "::error::the provider is linked to libcomputeruse.so"; exit 1
           fi
 

@@ -4,14 +4,14 @@
 > needs cgo and the SDK's library: see "It is built on the SDK" in the
 > provider's README for what that does to building and releasing it.
 
-`terraform-provider-browserjs/` is a provider for Terraform and OpenTofu that
+`terraform-provider-computeruse/` is a provider for Terraform and OpenTofu that
 creates sessions and manages their policies as code. It is built in this
 repository and installed locally; it is in no registry yet.
 
 - Installing it, and trying it against a fake API:
-  [`terraform-provider-browserjs/README.md`](../terraform-provider-browserjs/README.md).
+  [`terraform-provider-computeruse/README.md`](../terraform-provider-computeruse/README.md).
 - Every argument and attribute:
-  [`terraform-provider-browserjs/docs/`](../terraform-provider-browserjs/docs/index.md).
+  [`terraform-provider-computeruse/docs/`](../terraform-provider-computeruse/docs/index.md).
 - The contract: [`contracts/policy/terraform-provider.md`](contracts/policy/terraform-provider.md),
   over the API of [`contracts/policy/backend-api.yaml`](contracts/policy/backend-api.yaml).
 - The design: section 8 of
@@ -22,16 +22,16 @@ repository and installed locally; it is in no registry yet.
 ```hcl
 terraform {
   required_providers {
-    browserjs = { source = "r33drichards/browserjs" }
+    computeruse = { source = "r33drichards/computeruse" }
   }
 }
 
-provider "browserjs" {
-  # endpoint and token from BROWSERJS_ENDPOINT / BROWSERJS_TOKEN
+provider "computeruse" {
+  # endpoint and token from COMPUTERUSE_ENDPOINT / COMPUTERUSE_TOKEN
 }
 
 resource "session" "research" {
-  provider = browserjs
+  provider = computeruse
 
   name = "research"
 
@@ -41,20 +41,20 @@ resource "session" "research" {
 }
 
 resource "session_policy" "research" {
-  provider = browserjs
+  provider = computeruse
 
   session_id  = session.research.id
-  managed_url = "https://github.com/r33drichards/infra/tree/main/browserjs"
+  managed_url = "https://github.com/r33drichards/infra/tree/main/computeruse"
   rego        = file("${path.module}/no-scripting.rego")
 }
 ```
 
 The whole example, with another policy on two more sessions, is
-[`examples/session-policies/`](../terraform-provider-browserjs/examples/session-policies/main.tf).
+[`examples/session-policies/`](../terraform-provider-computeruse/examples/session-policies/main.tf).
 
 ## Writing a policy
 
-A policy is a Rego module of package `browserjs.policy` that defines
+A policy is a Rego module of package `computeruse.policy` that defines
 `allow_tool_call`. Rego is the only kind: there is no JSON format. The
 platform asks the policy about every tool call an agent makes, with
 `input.server`, `input.tool` and `input.arguments`: `browser_execute` and
@@ -83,8 +83,8 @@ the Tokens page of the UI and need the scopes `sessions:read`,
 `sessions:write`, `policies:read` and `policies:write` (the first two for
 `session`, the last two for `session_policy`).
 
-`endpoint` and `token` are provider arguments; `BROWSERJS_ENDPOINT` and
-`BROWSERJS_TOKEN` are used when they are left out, and an argument wins over
+`endpoint` and `token` are provider arguments; `COMPUTERUSE_ENDPOINT` and
+`COMPUTERUSE_TOKEN` are used when they are left out, and an argument wins over
 its variable. With no token at all, configuring fails. The token is marked
 sensitive, is sent only in the `Authorization` header, and appears in no log
 line and no error message. An `http` endpoint that is not on loopback gets a
@@ -170,8 +170,8 @@ deployed, nothing has run against the real API: token authentication on the
 real policy takes to be `ready`, and whether the API returns `source` byte
 for byte as it was sent (`rego` is compared as text, so a reformatted one
 would plan a change). The acceptance tests are the check:
-`BROWSERJS_ENDPOINT=… BROWSERJS_TOKEN=… make testacc` against a local
+`COMPUTERUSE_ENDPOINT=… COMPUTERUSE_TOKEN=… make testacc` against a local
 deployment.
 
 Resource types are `session` and `session_policy`; data-source types are `session`
-and `sessions`. Every HCL block must set `provider = browserjs`.
+and `sessions`. Every HCL block must set `provider = computeruse`.
