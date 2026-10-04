@@ -298,7 +298,13 @@ and `billing-apply` workflows are started by hand.
 
 ## Current compact production layout
 
-Production keeps one session node in us-west1-c and no warm pool spares.
+Production keeps one session node in us-west1-c and three slots total.
+A DaemonSet controller sets warm replicas to three minus claimed or retained
+session disks: two claimed sessions leave one warm spare. Releasing a session
+replenishes a clean warm slot after its disk is removed. The namespace storage
+quota is 97Gi (three 32Gi session disks plus the proxy disk), preventing a
+fourth disk during claim/replenishment races. Release checks temporarily reserve
+one slot; they require at most two claimed sessions and return the slot afterward.
 Small sessions request 1 CPU and 2.5 GiB in total (browser: 850m/2Gi;
 MCP: 150m/512Mi), and have a combined 3 GiB memory limit. Three small
 sessions fit alongside node services. Each has a 32 GiB persistent disk.

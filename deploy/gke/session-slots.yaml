@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: session-slot-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: session-slot-controller
+rules:
+  - apiGroups: [agents.x-k8s.io]
+    resources: [sandboxes]
+    verbs: [list]
+  - apiGroups: [""]
+    resources: [persistentvolumeclaims]
+    verbs: [list]
+  - apiGroups: [extensions.agents.x-k8s.io]
+    resources: [sandboxwarmpools]
+    resourceNames: [s]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: session-slot-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: session-slot-controller
+subjects:
+  - kind: ServiceAccount
+    name: session-slot-controller
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: session-slot-controller
+spec:
+  selector:
+    matchLabels: {app: session-slot-controller}
+  template:
+    metadata:
+      labels: {app: session-slot-controller}
+    spec:
+      nodeSelector:
+        cloud.google.com/gke-nodepool: sessions-n2d-standard-4
+      tolerations:
+        - key: sandbox.gke.io/runtime
+          operator: Equal
+          value: gvisor
+          effect: NoSchedule
+      serviceAccountName: session-slot-controller
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: controller
+          image: python:3.12-alpine
+          command: [python3, /controller/session-slots.py]
+          env:
+            - name: RESERVED_SLOTS
+              value: "0"
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - name: controller
+              mountPath: /controller
+              readOnly: true
+      volumes:
+        - name: controller
+          configMap:
+            name: session-slot-controller
+---
+# Proxy (1Gi) plus exactly three session disks (3 x 32Gi). This also
+# prevents a claim/replenishment race from allocating a fourth session disk.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: session-storage-budget
+spec:
+  hard:
+    requests.storage: 97Gi

@@ -20,7 +20,8 @@ metadata:
   # "<pool>-<5 characters>": this name is why they are "s-…".
   name: s
 spec:
-  # No spare sessions: keep the SSD quota for three user disks and other work.
+  # Bootstrap at zero; session-slot-controller owns replicas dynamically.
+  # Three slots total: two claimed sessions leave one warm spare.
   replicas: 0
   sandboxTemplateRef:
     name: session
