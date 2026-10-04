@@ -3,6 +3,7 @@ import json
 import hashlib
 from datetime import datetime, timedelta, timezone
 import os
+import sys
 from pathlib import Path
 import yaml
 
@@ -78,4 +79,6 @@ docs.append({'apiVersion': 'browserjs.dev/v1alpha1', 'kind': 'APIToken',
         'scopes': ['sessions:read', 'sessions:write', 'sessions:connect', 'policies:read', 'policies:write'],
         'expiresAt': (datetime.now(timezone.utc) + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%SZ'),
         'sha256': hashlib.sha256(token.encode()).hexdigest()}})
-print(yaml.safe_dump_all(docs))
+bootstrap = '--bootstrap' in sys.argv
+print(yaml.safe_dump_all(d for d in docs
+    if (d['kind'] in ['Namespace', 'CustomResourceDefinition']) == bootstrap))

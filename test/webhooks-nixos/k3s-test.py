@@ -11,6 +11,8 @@ try:
     cluster.succeed('mkdir -p /root/.kube; ln -sf /etc/rancher/k3s/k3s.yaml /root/.kube/config')
     cluster.wait_until_succeeds('kubectl get --raw=/readyz', timeout=180)
     cluster.wait_until_succeeds("kubectl get nodes -o jsonpath='{.items[0].status.conditions[?(@.type==\"Ready\")].status}' | grep True", timeout=180)
+    cluster.succeed('/etc/render-webhooks --bootstrap > /tmp/bootstrap.yaml; kubectl apply -f /tmp/bootstrap.yaml')
+    cluster.succeed('kubectl get crds -o name | xargs kubectl wait --for=condition=Established --timeout=60s')
     cluster.succeed('/etc/render-webhooks > /tmp/webhooks.yaml; kubectl apply -f /tmp/webhooks.yaml')
     k = 'kubectl -n browserjs-sessions '
     cluster.wait_until_succeeds(k + 'rollout status statefulset/webhook-redis --timeout=10s', timeout=180)

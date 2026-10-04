@@ -66,7 +66,7 @@ in pkgs.testers.runNixOSTest {
     environment.etc."render-webhooks".text = ''
       #!${pkgs.runtimeShell}
       export SOURCE=${source} PYTHON=${python}/bin/python SANDBOX_MANIFEST=${sandboxManifest}
-      exec ${python}/bin/python ${source}/test/webhooks-nixos/manifests.py
+      exec ${python}/bin/python ${source}/test/webhooks-nixos/manifests.py "$@"
     '';
     environment.etc."render-webhooks".mode = "0755";
   };
