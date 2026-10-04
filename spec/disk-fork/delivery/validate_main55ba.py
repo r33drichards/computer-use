@@ -29,7 +29,7 @@ for args in commands:
    if e.get('Action')=='fail':print(line,end='',flush=True)
   p.wait();report['test_counts']={'pass_events_including_subtests':count,'top_level_passes':top,'packages_passed':len(packages)}
  else:p=subprocess.run(args,cwd=root/'backend',env=env)
- 
+
  report['commands'].append({'command':args,'returncode':p.returncode,'seconds':round(time.time()-start,2)});out.write_text(json.dumps(report,indent=2)+'\n')
  if p.returncode:raise SystemExit(p.returncode)
 report['source_unchanged']=all(hashlib.sha256((root/p).read_bytes()).hexdigest()==h for p,h in report['source_sha256'].items());report['complete']=report['source_unchanged'];out.write_text(json.dumps(report,indent=2)+'\n')

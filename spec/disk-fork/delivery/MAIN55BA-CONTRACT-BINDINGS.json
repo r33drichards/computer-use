@@ -1,5 +1,5 @@
 {
   "docs/contracts/disk-fork-coordination.md": "e179a4ebfd6fe67acd53cb4b1d13ac26684fbf584e37c0ea1f6ec10a6589c71d",
   "spec/disk-fork/delivery/REFERENCE-SOURCES-main55ba20b.json": "fad0fd7f6d711c63f91aeab3fde6a898c5f58c310bff300cd3863d87e84733fc",
-  "spec/disk-fork/delivery/validate_main55ba.py": "36786e84dc3c63ad747862690997d6a319888c1dd37941e875b0d50f617133a8"
+  "spec/disk-fork/delivery/validate_main55ba.py": "b520933b0028c687e6190e83ee30d1a82f66e6f6b8f1835d4479061210e1e037"
 }
