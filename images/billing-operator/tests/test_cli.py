@@ -34,7 +34,7 @@ def test_simulate_prints_the_events_of_each_tick():
 
 def test_simulate_takes_a_catalogue_the_windows_and_a_kubectl_list(tmp_path):
     catalogue = tmp_path / "catalogue.yaml"
-    catalogue.write_text((CONTRACTS / "catalogue.yaml").read_text().replace("sessionDiskGB: 5", "sessionDiskGB: 7"))
+    catalogue.write_text((CONTRACTS / "catalogue.yaml").read_text().replace("sessionDiskGB: 32", "sessionDiskGB: 7"))
     directory = tmp_path / "cluster"
     directory.mkdir()
     # As `kubectl get sandboxes -o yaml` writes them.

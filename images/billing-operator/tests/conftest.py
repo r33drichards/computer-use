@@ -50,7 +50,8 @@ def asleep(name: str, owner: str = OWNER) -> dict:
 @pytest.fixture
 def catalogue_path(tmp_path):
     path = tmp_path / "catalogue.yaml"
-    path.write_text((CONTRACTS / "catalogue.yaml").read_text(encoding="utf-8"), encoding="utf-8")
+    # Metering fixtures keep their explicit 5 GB sample disks.
+    path.write_text((CONTRACTS / "catalogue.yaml").read_text(encoding="utf-8").replace("sessionDiskGB: 32", "sessionDiskGB: 5"), encoding="utf-8")
     return path
 
 

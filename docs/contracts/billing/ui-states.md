@@ -48,8 +48,8 @@ billing"), then four `Container`s.
    30 Dec", "Purchased credit $0.00"). For a subscriber a `ProgressBar` of
    the period's charges over `planCreditMicros` ("Plan credit used this
    period", "Resets <period.end>"). One line of text: "Credit is used at
-   $0.20 for each hour a session is awake, and $1.40 a month for each
-   session you keep (its 5 GB disk), awake or asleep. An idle session sleeps
+   $0.20 for each hour a session is awake, and $8.97 a month for each
+   session you keep (its 32 GB disk), awake or asleep. An idle session sleeps
    after 15 minutes; stop it to stop the hourly charge at once; delete it
    to stop the disk charge."
 2. **Plan.** A pricing table (Cloudscape `Cards`, one per option, the

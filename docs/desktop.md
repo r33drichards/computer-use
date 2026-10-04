@@ -304,7 +304,7 @@ cannot reach:
 - **mcp-js's own files stay out of reach.** `/data/memory` and `/data/mcp`
   are mounted in the other container only.
 - **It can break its own session:** kill Xvnc or the entrypoint (the
-  container restarts), fill the 5Gi disk, use the memory up to the limit.
+  container restarts), fill the 32Gi disk, use the memory up to the limit.
 
 ## Snapshot and restore
 

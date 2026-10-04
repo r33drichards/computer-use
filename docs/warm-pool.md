@@ -12,7 +12,7 @@ Sources, and what is and is not confirmed, are at the end.
 Three Agent Sandbox resources of `extensions.agents.x-k8s.io/v1beta1`:
 
 - `SandboxTemplate/session` (`deploy/gke/warmpool.yaml`): the session pod
-  and its 5Gi disk, the same as `deploy/gke/blueprint.yaml`.
+  and its 32Gi disk, the same as `deploy/gke/blueprint.yaml`.
 - `SandboxWarmPool/s`: keeps `replicas` (7) Sandboxes of that template
   running. Each is a complete `Sandbox` named `s-<5 characters>`, with its pod
   and its `data-s-…` disk, owned by the pool.
@@ -208,8 +208,8 @@ Per node of overhead, around the clock, from the table in
 | Spot | $0.1316 | about $96 |
 | On demand | $0.2093 | about $153 |
 
-plus the seven waiting 5 GB disks, $3.50 a month. With nobody online that
-takes the cluster's idle bill from about $78 to about $178 on Spot. While
+plus the seven waiting 32 GB disks, $22.40 a month. With nobody online that
+takes the cluster's idle bill from about $78 to about $197 on Spot. While
 three or more sessions run, the second node is a second $0.13 an hour that a
 cluster without the pool would only pay from its tenth session; and a pool
 left split over two nodes (above) costs two.

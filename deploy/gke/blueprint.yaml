@@ -158,4 +158,4 @@ volumeClaimTemplates:
       storageClassName: browserjs-zonal
       resources:
         requests:
-          storage: 5Gi
+          storage: 32Gi

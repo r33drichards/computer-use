@@ -3,7 +3,7 @@
 A session is small, medium or large. The size is chosen when it is created
 (`size`, default `small`) and can be changed later. It decides how much CPU
 and memory the desktop has, and nothing else: every size is the same pod,
-the same images, the same 5 GB disk.
+the same images, the same 32 GB disk.
 
 What is and is not confirmed on the cluster is at the end.
 

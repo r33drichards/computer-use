@@ -10,7 +10,7 @@
 # fails when the two drift apart, and hack/pin-images.sh writes the image
 # lines of both.
 #
-# A warm Sandbox has everything a session has, its 5Gi disk included. The
+# A warm Sandbox has everything a session has, its 32Gi disk included. The
 # pool is sized in nodes (replicas, below); what that costs and how the
 # cluster grows and shrinks around it is docs/warm-pool.md.
 apiVersion: extensions.agents.x-k8s.io/v1beta1
@@ -211,4 +211,4 @@ spec:
         storageClassName: browserjs-zonal
         resources:
           requests:
-            storage: 5Gi
+            storage: 32Gi

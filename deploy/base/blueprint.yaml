@@ -104,4 +104,4 @@ volumeClaimTemplates:
       accessModes: ["ReadWriteOnce"]
       resources:
         requests:
-          storage: 5Gi
+          storage: 32Gi

@@ -15,14 +15,14 @@ currency: usd
 # One balance of credit per account, in dollars. It is used up by:
 rates:
   awakeMicrosPerHour: 200000     # $0.20 for each hour a small session is awake
-  diskMicrosPerGBHour: 384       # $0.28 per GB-month (730 h): $1.40 a month for a 5 GB session, awake or asleep
-sessionDiskGB: 5
+  diskMicrosPerGBHour: 384       # $0.28 per GB-month (730 h): $8.97 a month for a 32 GB session, awake or asleep
+sessionDiskGB: 32
 
 # The awake rate of each size of session other than small (whose rate is
 # rates.awakeMicrosPerHour). The sizes themselves, what each gives a
 # session, are the deployment's (deploy/gke/sizes.yaml): a size named here
 # and not there is never used, and one there and not here is charged as
-# small. The disk is the same 5 GB at every size.
+# small. The disk is the same 32 GB at every size.
 sizes:
   medium:
     awakeMicrosPerHour: 400000   # $0.40: a third of a session node
