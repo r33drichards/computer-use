@@ -302,7 +302,8 @@ Production keeps one session node in us-west1-c and three slots total.
 A DaemonSet controller sets warm replicas to three minus claimed or retained
 session disks: two claimed sessions leave one warm spare. Releasing a session
 replenishes a clean warm slot after its disk is removed. The namespace storage
-quota is 97Gi (three 32Gi session disks plus the proxy disk), preventing a
+quota for the browserjs-zonal storage class is 97Gi (three 32Gi session
+disks plus the proxy disk), preventing a
 fourth disk during claim/replenishment races. Release checks temporarily reserve
 one slot; they require at most two claimed sessions and return the slot afterward.
 Small sessions request 1 CPU and 2.5 GiB in total (browser: 850m/2Gi;

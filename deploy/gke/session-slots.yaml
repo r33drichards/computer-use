@@ -84,7 +84,7 @@ spec:
 apiVersion: v1
 kind: ResourceQuota
 metadata:
-  name: session-storage-budget
+  name: session-slot-storage-quota
 spec:
   hard:
-    requests.storage: 97Gi
+    browserjs-zonal.storageclass.storage.k8s.io/requests.storage: 97Gi
