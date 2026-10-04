@@ -7,19 +7,8 @@ metadata:
     argocd.argoproj.io/sync-wave: '0'
 spec:
   hard:
-    browserjs-session-hdd.storageclass.storage.k8s.io/requests.storage: 1536Gi
+    browserjs-zonal.storageclass.storage.k8s.io/requests.storage: 97Gi
     count/sandboxes.agents.x-k8s.io: '3'
----
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: session-storage-budget
-  namespace: browserjs-sessions
-  annotations:
-    argocd.argoproj.io/sync-wave: '0'
-spec:
-  hard:
-    requests.storage: 1643Gi
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -106,22 +95,6 @@ rules:
   - update
   - patch
   - delete
-- apiGroups:
-  - ''
-  resources:
-  - persistentvolumeclaims
-  verbs:
-  - get
-  - patch
-- apiGroups:
-  - coordination.k8s.io
-  resourceNames:
-  - session-capacity
-  resources:
-  - leases
-  verbs:
-  - get
-  - patch
 - apiGroups:
   - extensions.agents.x-k8s.io
   resources:
@@ -348,14 +321,6 @@ rules:
   verbs:
   - list
 - apiGroups:
-  - coordination.k8s.io
-  resourceNames:
-  - session-capacity
-  resources:
-  - leases
-  verbs:
-  - get
-- apiGroups:
   - ''
   resources:
   - persistentvolumeclaims
@@ -576,17 +541,6 @@ metadata:
 ---
 apiVersion: v1
 data:
-  flags.json: "{\n  \"session-disk-max-gb\": {\"default\": 128, \"accounts\": {}}\n\
-    }\n"
-kind: ConfigMap
-metadata:
-  name: feature-flags-mgdk2dckc5
-  namespace: browserjs-sessions
-  annotations:
-    argocd.argoproj.io/sync-wave: '-3'
----
-apiVersion: v1
-data:
   opa-config.yaml: "# Configuration of the shared OPA (opa run --server -c this).\
     \ Verified with\n# OPA 1.9.0; see ../../plans/2026-10-02-session-policies-design.md,\
     \ section 11.\nservices:\n  operator:\n    url: http://policy-operator.browserjs-sessions.svc:8080\n\
@@ -778,8 +732,7 @@ data:
     \ /data\n    volumes:\n      - name: shm\n        emptyDir:\n          medium:\
     \ Memory\n          sizeLimit: 1Gi\nvolumeClaimTemplates:\n  - metadata:\n   \
     \   name: data\n    spec:\n      accessModes: [\"ReadWriteOnce\"]\n      storageClassName:\
-    \ browserjs-session-hdd\n      resources:\n        requests:\n          storage:\
-    \ 32Gi\n"
+    \ browserjs-zonal\n      resources:\n        requests:\n          storage: 32Gi\n"
   sizes.yaml: "# The sizes a session can have besides \"small\". Small is blueprint.yaml\
     \ as it\n# is written (and the SandboxTemplate of warmpool.yaml, which is the\
     \ same):\n# 1.5 CPU and 2 GiB limit for the desktop (850m and 2 GiB requested).\
@@ -788,25 +741,37 @@ data:
     \ variables that go with the size. The\n# backend (internal/sessions/sizes.go)\
     \ puts them into the blueprint when a\n# session of that size is made or resized\
     \ to it; deploy_test.go there holds\n# this file to the node it has to fit on\
-    \ and to the billing catalogue.\n#\n# Only small is kept warm. Medium and large\
-    \ start cold after idle warm\n# spares yield the resources they need (docs/session-sizes.md\
-    \ has the\n# times).\n#\n# The numbers are sized for a session node of 4 vCPU\
-    \ and 16 GB, which has\n# 3213m of CPU and 12097Mi left for sessions (capacity,\
-    \ below).\nsizes:\n  - name: medium\n    containers:\n      browser:\n       \
-    \ resources:\n          requests: {cpu: 1350m, memory: 5Gi}\n          limits:\
-    \ {cpu: \"2\", memory: 5Gi}\n      mcp-js:\n        resources:\n          requests:\
-    \ {cpu: 150m, memory: 512Mi}\n          limits: {cpu: 500m, memory: 1Gi}\n   \
-    \     env: {MCP_V8_HEAP_MEMORY_MAX: \"16\"}\n    shm: 2Gi\n  - name: large\n \
-    \   containers:\n      browser:\n        resources:\n          requests: {cpu:\
-    \ 2850m, memory: 10Gi}\n          limits: {cpu: \"3\", memory: 10Gi}\n      mcp-js:\n\
-    \        resources:\n          requests: {cpu: 150m, memory: 1Gi}\n          limits:\
-    \ {cpu: 500m, memory: 1Gi}\n        env: {MCP_V8_HEAP_MEMORY_MAX: \"32\"}\n  \
-    \  shm: 4Gi\n\n# One production session node in us-west1-c. Conservative room\
-    \ after node\n# services: three small sessions (1 CPU/2.5 GiB requested each)\
-    \ fit.\ncapacity:\n  nodes: 1\n  cpu: 3213m\n  memory: 12097Mi\n"
+    \ and to the billing catalogue.\n#\n# Only small is kept warm. Any other size\
+    \ starts cold: from the blueprint, on\n# whichever node has room, or on a new\
+    \ one (docs/session-sizes.md has the\n# times).\n#\n# The numbers are sized for\
+    \ a session node of 4 vCPU and 16 GB, which has\n# 3213m of CPU and 12097Mi left\
+    \ for sessions (capacity, below).\nsizes:\n  # A third of a node. Three fit an\
+    \ empty one (3 x 3328Mi of 12097Mi); the\n  # node that holds the warm pool has\
+    \ no room for one (7 x 1280Mi are taken).\n  - name: medium\n    containers:\n\
+    \      browser:\n        resources:\n          requests:\n            cpu: 500m\n\
+    \            memory: 3Gi\n          limits:\n            cpu: \"2\"\n        \
+    \    memory: 5Gi\n      mcp-js:\n        resources:\n          requests:\n   \
+    \         cpu: 50m\n            memory: 256Mi\n          limits:\n           \
+    \ cpu: 500m\n            memory: 1Gi\n        # The heap one run_js call has when\
+    \ it names none, in MB (8 without\n        # this). A call can still ask for up\
+    \ to 64.\n        env:\n          MCP_V8_HEAP_MEMORY_MAX: \"16\"\n    # Memory,\
+    \ counted against the browser container's limit.\n    shm: 2Gi\n  # A whole node.\
+    \ Memory is requested in full (the request is the limit), so\n  # the scheduler\
+    \ puts nothing beside it and it is never short because of a\n  # neighbour: 11264Mi\
+    \ of the 12097Mi, the 833Mi left over fit no session.\n  # CPU is not: 2050m are\
+    \ its own, and it may use 3.5 cores when they are\n  # free, which on a node of\
+    \ its own they are.\n  - name: large\n    containers:\n      browser:\n      \
+    \  resources:\n          requests:\n            cpu: \"2\"\n            memory:\
+    \ 10Gi\n          limits:\n            cpu: \"3\"\n            memory: 10Gi\n\
+    \      mcp-js:\n        resources:\n          requests:\n            cpu: 50m\n\
+    \            memory: 1Gi\n          limits:\n            cpu: 500m\n         \
+    \   memory: 1Gi\n        env:\n          MCP_V8_HEAP_MEMORY_MAX: \"32\"\n    shm:\
+    \ 4Gi\n\n# One production session node in us-west1-c. Conservative room after\
+    \ node\n# services: three small sessions (1 CPU/2.5 GiB requested each) fit.\n\
+    capacity:\n  nodes: 1\n  cpu: 3213m\n  memory: 12097Mi\n"
 kind: ConfigMap
 metadata:
-  name: session-blueprint-86h6mmfgh7
+  name: session-blueprint-h7ctf4mhd6
   namespace: browserjs-sessions
   annotations:
     argocd.argoproj.io/sync-wave: '-3'
@@ -814,45 +779,22 @@ metadata:
 apiVersion: v1
 data:
   session-slots.py: "\"\"\"Keep claimed sessions and warm capacity within a three-disk\
-    \ budget.\"\"\"\nimport json\nfrom datetime import datetime, timezone\nimport\
-    \ os\nimport ssl\nimport time\nimport urllib.request\n\n\ndef quantity(value,\
-    \ memory=False):\n    value = str(value)\n    suffixes = {'Gi': 1024, 'Mi': 1,\
-    \ 'Ki': 1 / 1024} if memory else {'m': 1}\n    for suffix, factor in suffixes.items():\n\
-    \        if value.endswith(suffix):\n            return float(value[:-len(suffix)])\
-    \ * factor\n    return float(value) / (1024 * 1024) if memory else float(value)\
-    \ * 1000\n\n\ndef desired_replicas(sandboxes, claims, total=3, reserved=0, reservation=None,\n\
-    \                     cpu=3213, memory=12097):\n    used_cpu, used_memory = 0,\
-    \ 0\n    excluded = (reservation or {}).get(\"exclude\", \"\")\n    warm = set()\n\
-    \    occupied = set()\n    for item in sandboxes:\n        name = item['metadata']['name']\n\
+    \ budget.\"\"\"\nimport json\nimport os\nimport ssl\nimport time\nimport urllib.request\n\
+    \n\ndef desired_replicas(sandboxes, claims, total=3, reserved=0):\n    warm =\
+    \ set()\n    occupied = set()\n    for item in sandboxes:\n        name = item['metadata']['name']\n\
     \        pooled = any(ref.get('kind') == 'SandboxWarmPool' and ref.get('name')\
     \ == 's'\n                     for ref in item['metadata'].get('ownerReferences',\
     \ []))\n        if pooled and not item['metadata'].get('deletionTimestamp'):\n\
     \            warm.add(name)\n        else:\n            occupied.add(name)\n \
-    \           if name != excluded and item.get('spec', {}).get('operatingMode')\
-    \ != 'Suspended':\n                for container in item.get('spec', {}).get('podTemplate',\
-    \ {}).get('spec', {}).get('containers', []):\n                    requests = container.get('resources',\
-    \ {}).get('requests', {})\n                    used_cpu += quantity(requests.get('cpu',\
-    \ 0))\n                    used_memory += quantity(requests.get('memory', 0),\
-    \ memory=True)\n    # A released disk still consumes quota until its claim disappears.\
-    \ Also\n    # count suspended sessions, cold starts and any retained recovery\
-    \ claims.\n    for claim in claims:\n        name = claim['metadata']['name']\n\
-    \        if name.startswith('data-s-') and name[5:] not in warm:\n           \
-    \ occupied.add(name[5:])\n    if reservation:\n        reserved += int(reservation.get('new_slot',\
-    \ False))\n        used_cpu += reservation['cpu']\n        used_memory += reservation['memory']\n\
-    \    available = min(total - reserved - len(occupied),\n                    int((cpu\
-    \ - used_cpu) // 1000),\n                    int((memory - used_memory) // 2560))\n\
-    \    return max(0, available)\n\n\ndef active_reservation(lease, now=None):\n\
-    \    spec = lease.get('spec', {})\n    if not spec.get('holderIdentity'):\n  \
-    \      return None\n    renewed = datetime.fromisoformat(spec['renewTime'].replace('Z',\
-    \ '+00:00'))\n    now = now or datetime.now(timezone.utc)\n    if (now - renewed).total_seconds()\
-    \ >= spec.get('leaseDurationSeconds', 120):\n        return None\n    ann = lease['metadata'].get('annotations',\
-    \ {})\n    return {'cpu': int(ann['browserjs.dev/capacity-cpu']),\n          \
-    \  'memory': int(ann['browserjs.dev/capacity-memory']),\n            'exclude':\
-    \ ann.get('browserjs.dev/capacity-exclude', ''),\n            'new_slot': ann.get('browserjs.dev/capacity-new-slot')\
-    \ == 'true'}\n\n\ndef main():\n    credentials = '/var/run/secrets/kubernetes.io/serviceaccount'\n\
-    \    with open(credentials + '/namespace') as stream:\n        namespace = stream.read().strip()\n\
-    \    context = ssl.create_default_context(cafile=credentials + '/ca.crt')\n  \
-    \  root = f\"https://{os.environ['KUBERNETES_SERVICE_HOST']}:{os.environ['KUBERNETES_SERVICE_PORT_HTTPS']}\"\
+    \   # A released disk still consumes quota until its claim disappears. Also\n\
+    \    # count suspended sessions, cold starts and any retained recovery claims.\n\
+    \    for claim in claims:\n        name = claim['metadata']['name']\n        if\
+    \ name.startswith('data-s-') and name[5:] not in warm:\n            occupied.add(name[5:])\n\
+    \    return max(0, total - reserved - len(occupied))\n\n\ndef main():\n    credentials\
+    \ = '/var/run/secrets/kubernetes.io/serviceaccount'\n    with open(credentials\
+    \ + '/namespace') as stream:\n        namespace = stream.read().strip()\n    context\
+    \ = ssl.create_default_context(cafile=credentials + '/ca.crt')\n    root = f\"\
+    https://{os.environ['KUBERNETES_SERVICE_HOST']}:{os.environ['KUBERNETES_SERVICE_PORT_HTTPS']}\"\
     \n\n    def api(path, patch=None):\n        with open(credentials + '/token')\
     \ as stream:\n            token = stream.read().strip()\n        headers = {'Authorization':\
     \ 'Bearer ' + token}\n        data = None\n        if patch is not None:\n   \
@@ -864,10 +806,8 @@ data:
     \n    pool_path = f'/apis/extensions.agents.x-k8s.io/v1beta1/namespaces/{namespace}/sandboxwarmpools/s'\n\
     \    while True:\n        try:\n            sandboxes = api(f'/apis/agents.x-k8s.io/v1beta1/namespaces/{namespace}/sandboxes')['items']\n\
     \            claims = api(f'/api/v1/namespaces/{namespace}/persistentvolumeclaims')['items']\n\
-    \            lease = api(f'/apis/coordination.k8s.io/v1/namespaces/{namespace}/leases/session-capacity')\n\
     \            wanted = desired_replicas(sandboxes, claims, reserved=int(os.getenv('RESERVED_SLOTS',\
-    \ '0')),\n                                      reservation=active_reservation(lease))\n\
-    \            pool = api(pool_path)\n            if pool['spec'].get('replicas')\
+    \ '0')))\n            pool = api(pool_path)\n            if pool['spec'].get('replicas')\
     \ != wanted:\n                api(pool_path, {'metadata': {'resourceVersion':\
     \ pool['metadata']['resourceVersion']},\n                                'spec':\
     \ {'replicas': wanted}})\n                print(f'Warm slots: {wanted}; total\
@@ -877,7 +817,7 @@ data:
     \n\nif __name__ == '__main__':\n    main()\n"
 kind: ConfigMap
 metadata:
-  name: session-slot-controller-dcfbggkb2t
+  name: session-slot-controller-tg55k67b4f
   namespace: browserjs-sessions
   annotations:
     argocd.argoproj.io/sync-wave: '-3'
@@ -1068,10 +1008,6 @@ spec:
           value: 2m
         - name: READY_TIMEOUT
           value: 5m
-        - name: WARM_CAPACITY
-          value: 'true'
-        - name: FEATURE_FLAGS_PATH
-          value: /etc/browserjs-flags/flags.json
         - name: WARM_POOL
           value: s
         - name: NAMESPACE
@@ -1150,7 +1086,7 @@ spec:
           value: '200'
         - name: SIGNUPS_PER_IP_PER_DAY
           value: '5'
-        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:61decfc3efc2720cba65780b161a395152ee0544020c2723336f4c7ae804789e
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:3fc9d47fc2d59f89aaca0573f5626988759f121f2f7dfa9ff8626b27abed3a42
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1183,9 +1119,6 @@ spec:
         - mountPath: /etc/podinfo
           name: podinfo
           readOnly: true
-        - mountPath: /etc/browserjs-flags
-          name: feature-flags
-          readOnly: true
         - mountPath: /etc/browserjs
           name: blueprint
           readOnly: true
@@ -1201,14 +1134,11 @@ spec:
               fieldPath: metadata.labels
             path: labels
         name: podinfo
-      - configMap:
-          name: feature-flags-mgdk2dckc5
-        name: feature-flags
       - name: blueprint
         projected:
           sources:
           - configMap:
-              name: session-blueprint-86h6mmfgh7
+              name: session-blueprint-h7ctf4mhd6
           - configMap:
               name: billing-catalogue
           - configMap:
@@ -1269,7 +1199,7 @@ spec:
               key: METRONOME_API_TOKEN
               name: metronome
               optional: true
-        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/billing-operator@sha256:b646fc55ab84b09b0e17aa0bbdb54f5f6d5a71070f05fb3bbbf1eacb703732dc
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/billing-operator@sha256:99181ed41692cb35e0fb8b982ac7048e7887b900252518471042c03d736776b5
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1997,7 +1927,7 @@ spec:
         value: gvisor
       volumes:
       - configMap:
-          name: session-slot-controller-dcfbggkb2t
+          name: session-slot-controller-tg55k67b4f
         name: controller
 ---
 apiVersion: argoproj.io/v1alpha1
@@ -2374,7 +2304,7 @@ spec:
       resources:
         requests:
           storage: 32Gi
-      storageClassName: browserjs-session-hdd
+      storageClassName: browserjs-zonal
 ---
 apiVersion: extensions.agents.x-k8s.io/v1beta1
 kind: SandboxWarmPool
