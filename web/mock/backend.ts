@@ -67,6 +67,7 @@ interface StoredPolicy extends Source {
 }
 
 interface StoredSession {
+  historySeconds?: number
   id: string
   name: string
   owner: string
@@ -413,6 +414,14 @@ export function createMockBackend(options: MockOptions) {
         return json(200, sessionView(s))
       }
       if (rest === "vnc-ticket" && method === "POST") return error(503, "the mock backend has no browser to show")
+      if (rest === "history" && (method === "GET" || method === "PUT")) {
+        if (s.state !== "running") return error(409, "history is available while the session is running")
+        if (method === "PUT") {
+          if (!Number.isInteger(body.seconds) || body.seconds < 0 || body.seconds > 3600) return error(400, "invalid history window")
+          s.historySeconds = body.seconds
+        }
+        return json(200, { seconds: s.historySeconds ?? 300, max_bytes: 256 << 20, clips: [], error: "" })
+      }
       if (rest === "files" && method === "GET") return json(200, { files: [], max_bytes: 1 << 20 })
 
       if (!policies) return notRouted()

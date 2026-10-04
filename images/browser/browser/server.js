@@ -26,6 +26,7 @@ import { createClipboard } from './clipboard.js';
 import { createFiles, setDownloadDir } from './files.js';
 import { mcpCallerRefusal } from './callers.js';
 import { DESKTOP_TOOL, createDesktop } from './desktop.js';
+import { createHistory } from './history.js';
 
 // `browser-mcp download-dir <profile> <folder>`: what the entrypoint runs
 // before each start of Chromium, instead of the server.
@@ -49,6 +50,27 @@ const files = process.env.FILES_DIR
 
 // The desktop_execute tool: nut.js on the X display, in a child process.
 const desktop = createDesktop();
+let history = null;
+if (process.env.HISTORY_DIR) {
+  try {
+    history = createHistory({ dir: process.env.HISTORY_DIR });
+  } catch (err) {
+    // A full/unwritable recording disk must not bring down desktop tools.
+    console.error('desktop history initialization failed:', err.message);
+    history = {
+      close() {},
+      async handle(req, res) {
+        const raw = req.url.split('?')[0];
+        if (raw !== '/history' && !raw.startsWith('/history/')) return false;
+        res.writeHead(503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
+          .end(JSON.stringify({ error: 'desktop history is unavailable' }));
+        return true;
+      },
+    };
+  }
+}
+process.once('SIGTERM', () => { history?.close(); process.exit(0); });
+process.once('SIGINT', () => { history?.close(); process.exit(0); });
 
 const MAX_WAIT_MS = 30000;
 const NAV_TIMEOUT_MS = 45000;
@@ -474,6 +496,7 @@ http
       res.writeHead(started ? 202 : 200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ started }));
       return;
     }
+    if (history && (await history.handle(req, res))) return;
     if (files && (await files(req, res))) return;
     if (!req.url.startsWith('/mcp')) {
       res.writeHead(404).end();

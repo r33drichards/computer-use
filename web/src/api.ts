@@ -36,6 +36,20 @@ export interface VncTicket {
   url: string // websocket URL on the sessions' host, ticket included
 }
 
+export interface HistoryClip {
+  name: string
+  start: number // UTC milliseconds
+  duration: number // seconds
+  bytes: number
+}
+
+export interface DesktopHistory {
+  seconds: number
+  max_bytes: number
+  clips: HistoryClip[]
+  error: string
+}
+
 // A file in the session's folder: where its browser downloads to, and where
 // its file chooser opens.
 export interface SessionFile {
@@ -148,6 +162,8 @@ export function createApi(fetchImpl: Fetch = fetch) {
     wakeSession: async (id: string) => call<Session>("POST", await sessionPath(id, "/wake")),
     deleteSession: async (id: string) => call<void>("DELETE", await sessionPath(id)),
     vncTicket: async (id: string) => call<VncTicket>("POST", await sessionPath(id, "/vnc-ticket")),
+    getHistory: async (id: string) => call<DesktopHistory>("GET", await sessionPath(id, "/history")),
+    setHistory: async (id: string, seconds: number) => call<DesktopHistory>("PUT", await sessionPath(id, "/history"), { seconds }),
     listFiles: async (id: string) => call<SessionFiles>("GET", await sessionPath(id, "/files")),
     deleteFile: async (id: string, name: string) =>
       call<void>("DELETE", await sessionPath(id, `/files/${encodeURIComponent(name)}`)),

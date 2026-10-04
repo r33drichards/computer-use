@@ -226,6 +226,8 @@
               pkgs.python3Packages.websockify
               # Owns the clipboard for files put on it (browser/clipboard.js).
               pkgs.xclip
+              # Desktop DVR: x11 capture and seekable H.264 clips.
+              pkgs.ffmpeg
               pkgs.xorg.xdpyinfo
               # The clipboard operations of desktop_execute (nut.js runs it).
               pkgs.xsel
@@ -307,6 +309,24 @@
                 touch $out
               '';
 
+          history-smoke = pkgs.runCommand "history-smoke"
+            { nativeBuildInputs = [ pkgs.nodejs_22 pkgs.ffmpeg pkgs.xdpyinfo xvnc ]; }
+            ''
+              export DISPLAY=:96
+              mkdir -p /tmp/.X11-unix
+              Xvnc :96 -geometry 1280x800 -depth 24 -nolisten tcp -ac \
+                -rfbport 5996 -localhost -UseIPv6=0 -SecurityTypes None &
+              trap 'kill $(jobs -p) 2>/dev/null || true' EXIT
+              for _ in $(seq 1 100); do
+                xdpyinfo >/dev/null 2>&1 && break
+                sleep 0.1
+              done
+              xdpyinfo >/dev/null
+              HISTORY_JS=${browser-mcp}/lib/node_modules/browser-mcp/history.js \
+                node ${./test/history-smoke.mjs}
+              touch $out
+            '';
+
           # The same for shell commands: mcp-exec as packaged, started by
           # exec-server.sh as the entrypoint starts it, called over HTTP as
           # mcp-js calls it (test/exec-smoke.mjs): a command end to end, a
@@ -349,6 +369,7 @@
             browser-mcp
             desktop
             exec-smoke
+            history-smoke
             runtime
             xvnc
             ;
