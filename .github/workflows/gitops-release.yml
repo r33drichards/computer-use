@@ -73,6 +73,10 @@ jobs:
           location: us-west1-a
           use_dns_based_endpoint: true
 
+      - name: Bootstrap session capacity lease
+        # Argo CD excludes Leases, so this must precede the new backend.
+        run: kubectl apply -f deploy/gke/session-capacity.yaml
+
       - name: Reserve a session slot for release checks
         run: |
           if kubectl -n "$NS" get daemonset session-slot-controller >/dev/null 2>&1; then

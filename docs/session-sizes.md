@@ -10,7 +10,7 @@ Production has one 4-vCPU/16-GB N2D session node in us-west1-c. Its minimum and 
 
 One small and one medium can share the node. A large session needs the node's session capacity to itself. A requested size that cannot fit returns `409 no_capacity`. Suspended sessions keep their disks and count toward the three total session slots, but release compute until they wake.
 
-Only small sessions are kept warm. The DaemonSet calculates spare capacity from both the three-slot budget and claimed sessions' actual CPU/memory requests. Two running small sessions leave one warm spare. Medium and large starts or wakes reserve their requested resources through the `session-capacity` Lease; warm spares yield those resources before admission. The Lease expires if the backend dies. Releasing a claim replenishes a clean warm spare after its disk disappears. No user's files are handed to another claimant.
+Only small sessions are kept warm. The DaemonSet calculates spare capacity from both the three-slot budget and claimed sessions' actual CPU/memory requests. Two running small sessions leave one warm spare. Medium and large starts or wakes reserve their requested resources through the `session-capacity` Lease; warm spares yield those resources before admission. The Lease expires if the backend dies. Release workflows explicitly apply `deploy/gke/session-capacity.yaml` before enabling the handshake, because Argo CD excludes Leases by default. Releasing a claim replenishes a clean warm spare after its disk disappears. No user's files are handed to another claimant.
 
 ## Independent HDD capacity
 
