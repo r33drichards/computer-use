@@ -1,0 +1,80 @@
+name: webhook NixOS integration
+
+on:
+  pull_request:
+    paths:
+      - "flake.nix"
+      - "flake.lock"
+      - "backend/**"
+      - "deploy/base/**"
+      - "images/policy-operator/**"
+      - "images/mcp-js/**"
+      - "docs/contracts/policy/**"
+      - "test/policy/mcp_call.py"
+      - "test/webhooks-nixos/**"
+      - ".github/workflows/webhooks-nixos.yml"
+  push:
+    branches: [main]
+    paths:
+      - "flake.nix"
+      - "flake.lock"
+      - "backend/**"
+      - "deploy/base/**"
+      - "images/policy-operator/**"
+      - "images/mcp-js/**"
+      - "docs/contracts/policy/**"
+      - "test/policy/mcp_call.py"
+      - "test/webhooks-nixos/**"
+      - ".github/workflows/webhooks-nixos.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: webhooks-nixos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+        with:
+          extra_nix_config: |
+            extra-experimental-features = nix-command flakes
+      - name: Free disk space for offline images and the VM
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          df -h /
+      - name: Enable KVM access
+        run: sudo chmod 666 /dev/kvm
+      - name: Build the NixOS VM test driver and offline images
+        run: |
+          set -euo pipefail
+          nix build .#webhooks-k3s-driver --print-build-logs --out-link result-webhooks-driver \
+            2>&1 | tee "$RUNNER_TEMP/webhooks-nixos.log"
+      - name: Collect unused Nix build dependencies
+        run: nix store gc
+      - name: Run k3s inside the NixOS VM integration test
+        run: |
+          set -euo pipefail
+          mkdir -p result-webhooks "$RUNNER_TEMP/webhooks-runtime"
+          driver=$(readlink -f result-webhooks-driver)
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/webhooks-runtime"
+          cd "$XDG_RUNTIME_DIR"
+          "$driver/bin/nixos-test-driver" -o "$GITHUB_WORKSPACE/result-webhooks" \
+            --junit-xml "$GITHUB_WORKSPACE/result-webhooks/report.xml" \
+            2>&1 | tee -a "$RUNNER_TEMP/webhooks-nixos.log"
+      - name: Upload test report and service logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: webhooks-nixos-report
+          path: |
+            result-webhooks/
+            ${{ runner.temp }}/webhooks-nixos.log

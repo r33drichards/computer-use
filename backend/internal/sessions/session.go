@@ -110,7 +110,8 @@ type Session struct {
 	Node        string `json:"-"` // the node its pod is scheduled to, if any
 	// PolicyCapable is whether the session's mcp-js asks OPA for decisions,
 	// and so whether the session can have a policy (see policy.go).
-	PolicyCapable bool `json:"-"`
+	PolicyCapable  bool `json:"-"`
+	WebhookCapable bool `json:"-"`
 	// StoppedBy is why a suspended session is suspended (StoppedBy*), ""
 	// for one that is not. Draining is the reason a running session is
 	// being drained for, and DrainingSince when that began. Shown by the
@@ -157,8 +158,9 @@ func FromSandbox(obj *unstructured.Unstructured) Session {
 		Owner:   obj.GetAnnotations()[AnnOwner],
 		Created: obj.GetCreationTimestamp().Time,
 
-		PolicyCapable: PolicyCapable(obj),
-		Size:          sizeOf(obj),
+		PolicyCapable:  PolicyCapable(obj),
+		WebhookCapable: WebhookCapable(obj),
+		Size:           sizeOf(obj),
 	}
 	if to := obj.GetAnnotations()[AnnResizeTo]; to != s.Size {
 		s.PendingSize = to

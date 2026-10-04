@@ -17,6 +17,26 @@ SITE = 'us-west1-docker.pkg.dev/browserjs-sessions/browserjs/site@sha256:' + 'c'
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_redis_and_permissions_precede_operator_startup(self):
+        resources = [
+            ('Service', 'webhook-redis'), ('StatefulSet', 'webhook-redis'),
+            ('NetworkPolicy', 'policy-operator'), ('NetworkPolicy', 'webhook-redis'),
+            ('Role', 'policy-operator'), ('RoleBinding', 'policy-operator'),
+            ('Deployment', 'policy-operator'), ('Deployment', 'opa'),
+            ('Deployment', 'backend'), ('CustomResourceDefinition', 'sessionpolicies.browserjs.dev')]
+        docs = [{'apiVersion':'v1', 'kind':kind, 'metadata':{'name':name}} for kind, name in resources]
+        with tempfile.TemporaryDirectory() as work:
+            path = Path(work)
+            with patch.object(render.subprocess, 'run'), patch.object(render.subprocess, 'check_output', return_value=yaml.safe_dump_all(docs)):
+                render.render(SHA, {'images':{'backend':IMAGE}}, path, path / 'out')
+            result = list(yaml.safe_load_all((path / 'out/manifests.yaml').read_text()))
+            waves = {(d['kind'], d['metadata']['name']): int(d['metadata']['annotations']['argocd.argoproj.io/sync-wave']) for d in result}
+            operator = waves[('Deployment', 'policy-operator')]
+            for resource in resources[:6]:
+                self.assertLess(waves[resource], operator)
+            self.assertLess(operator, waves[('Deployment', 'backend')])
+            self.assertNotIn(('CustomResourceDefinition', 'sessionpolicies.browserjs.dev'), waves)
+
     def test_foreign_commit_cannot_deploy(self):
         with tempfile.TemporaryDirectory() as work:
             path = Path(work)

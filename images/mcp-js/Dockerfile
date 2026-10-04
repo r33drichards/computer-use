@@ -29,7 +29,10 @@ RUN mcp-v8 --version
 COPY images/mcp-js/mcp_tools.rego images/mcp-js/filesystem.rego images/mcp-js/fetch.rego images/mcp-js/mcp-servers.json images/mcp-js/mcp-servers.no-exec.json images/mcp-js/run_js.md images/mcp-js/instructions.md /etc/mcp/
 COPY --chmod=755 images/mcp-js/start.sh /usr/local/bin/start.sh
 COPY --from=documentation /skills/ /etc/mcp/skills/
-ENV PORT=8080 \
+# Native hook deadlines must not be consumed by UDP resolver stalls.
+# Session NetworkPolicies allow TCP DNS to cluster and node-local DNS.
+ENV RES_OPTIONS=use-vc \
+    PORT=8080 \
     MCP_V8_HTTP_PORT=8080 \
     MCP_V8_ALLOWED_HOSTS=* \
     MCP_V8_HEAP_STORE=none \
