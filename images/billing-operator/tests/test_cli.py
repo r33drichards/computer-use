@@ -25,7 +25,7 @@ def test_simulate_prints_the_events_of_each_tick():
     assert docs[0]["events"] == [{"transaction_id": f"awake/s-aaaaa/{T0 - 300}", "customer_id": customer,
                                   "event_type": "session.awake", "timestamp": TIMES[0],
                                   "properties": {"session_id": "s-aaaaa", "seconds": "20"}}]
-    assert docs[1]["events"] == [] and "awake_seconds=60 disk_gb_seconds=600 events=0" in docs[1]["pass"]
+    assert docs[1]["events"] == [] and "awake_seconds=60 disk_gb_seconds=3840 events=0" in docs[1]["pass"]
     # Three minutes later is beyond the gap: the window holds the two minutes that were seen.
     assert [(e["transaction_id"], e["timestamp"], e["properties"]) for e in docs[3]["events"]] == [
         (f"awake/s-aaaaa/{T0}", TIMES[3], {"session_id": "s-aaaaa", "seconds": "120"})]
