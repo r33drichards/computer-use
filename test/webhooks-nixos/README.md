@@ -1,25 +1,19 @@
-# Webhook pipeline in a NixOS nspawn k3s cluster
+# Webhook pipeline in a NixOS k3s VM
 
-Run on an x86_64 Linux host:
+Run on an x86_64 Linux host with access to `/dev/kvm`:
 
 ```sh
-sudo modprobe dummy overlay br_netfilter ip_tables iptable_nat nf_conntrack
-sudo sysctl -w vm.overcommit_memory=1 kernel.panic=10 kernel.panic_on_oops=1
 nix build .#webhooks-k3s-driver --out-link result-webhooks-driver -L
 mkdir -p result-webhooks
-sudo systemd-run --wait --pipe --collect -p Delegate=yes -p TasksMax=infinity \
-  "$(readlink -f result-webhooks-driver)/bin/nixos-test-driver" \
-  -o "$PWD/result-webhooks"
+./result-webhooks-driver/bin/nixos-test-driver -o "$PWD/result-webhooks"
 ```
 
-The NixOS integration test boots a systemd-nspawn container containing a real
-single-node k3s cluster. There is no QEMU, KVM, Docker daemon, or kind. k3s uses
-containerd's native snapshotter and host-gw networking inside the NixOS container. The host must provide cgroup v2 and the networking kernel modules;
-the workflow configures them on `ubuntu-24.04`. It builds the packaged NixOS
-test driver with Nix and executes it as root in a delegated systemd unit.
-Nix 2.35 build sandboxes do not expose the writable cgroup hierarchy k3s
-requires; running the driver directly retains the same NixOS containers and
-assertions without a VM.
+The NixOS integration test boots a QEMU/KVM VM containing a real single-node
+k3s cluster with containerd's overlayfs snapshotter and host-gw networking.
+The VM has its own kernel, 6 GiB RAM, two CPUs, and a 20 GiB writable disk.
+The workflow uses KVM on `ubuntu-24.04`. This avoids the cgroup, read-only
+kernel settings, and nested container runtime constraints encountered with
+systemd-nspawn. The smaller container check remains available below.
 
 k3s airgap images and all application images are preloaded from fixed Nix
 inputs. The test does not download images after the cluster starts. The real

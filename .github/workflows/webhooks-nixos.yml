@@ -1,4 +1,4 @@
-name: webhook NixOS containers
+name: webhook NixOS integration
 
 on:
   pull_request:
@@ -47,25 +47,21 @@ jobs:
         with:
           extra_nix_config: |
             extra-experimental-features = nix-command flakes
-      - name: Load kernel modules for nested k3s networking
-        run: sudo modprobe dummy overlay br_netfilter ip_tables iptable_nat nf_conntrack
-      - name: Configure the host kernel defaults checked by kubelet
-        run: sudo sysctl -w vm.overcommit_memory=1 kernel.panic=10 kernel.panic_on_oops=1
-      - name: Build the NixOS container test driver and offline images
+      - name: Enable KVM access
+        run: sudo chmod 666 /dev/kvm
+      - name: Build the NixOS VM test driver and offline images
         run: |
           set -euo pipefail
           nix build .#webhooks-k3s-driver --print-build-logs --out-link result-webhooks-driver \
             2>&1 | tee "$RUNNER_TEMP/webhooks-nixos.log"
-      - name: Run k3s inside the NixOS nspawn integration test
+      - name: Run k3s inside the NixOS VM integration test
         run: |
           set -euo pipefail
           mkdir -p result-webhooks "$RUNNER_TEMP/webhooks-runtime"
           driver=$(readlink -f result-webhooks-driver)
-          sudo systemd-run --unit=webhooks-integration --wait --pipe --collect \
-            --property=Delegate=yes --property=TasksMax=infinity \
-            --working-directory="$RUNNER_TEMP/webhooks-runtime" \
-            "$driver/bin/nixos-test-driver" -o "$PWD/result-webhooks" \
-            --junit-xml "$PWD/result-webhooks/report.xml" \
+          cd "$RUNNER_TEMP/webhooks-runtime"
+          "$driver/bin/nixos-test-driver" -o "$GITHUB_WORKSPACE/result-webhooks" \
+            --junit-xml "$GITHUB_WORKSPACE/result-webhooks/report.xml" \
             2>&1 | tee -a "$RUNNER_TEMP/webhooks-nixos.log"
       - name: Upload test report and service logs
         if: always()
