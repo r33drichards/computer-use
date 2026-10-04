@@ -45,10 +45,11 @@ kubernetes_version = "1.36"
 # }
 
 # Each 4-vCPU/16-GB session node fits three small sessions.
-# Three nodes require 12 N2D vCPUs: keep one node warm and grow on demand.
+# Split the three-node ceiling across available N2D and N2 CPU quotas.
 # session_max_nodes is the ceiling on what sessions can cost.
-session_machine_type = "n2-standard-4"
-session_max_nodes    = 3
+session_machine_type   = "n2-standard-4"
+session_max_nodes      = 3
+session_pool_max_nodes = { sessions = 1, n2d-standard-4 = 2 }
 # Spot: cheaper, but Compute Engine can take a node back with 30 seconds'
 # notice; sessions on it restart from their disks (tabs reopen, pages reload).
 session_spot = true
@@ -62,7 +63,7 @@ session_image_streaming = true
 session_node_zones = ["us-west1-c"]
 
 # The same again on other machine series, tried when N2 has no capacity. Each
-# pool scales 0..session_max_nodes. Session templates select the N2D pool.
+# pool scales 0..session_max_nodes. Session templates select gVisor and can use either pool.
 session_fallback_machine_types = {
   "n2d-standard-4" = "AMD Milan"
 }

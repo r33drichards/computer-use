@@ -464,14 +464,15 @@ run "keeps_one_warm_session_node_and_scales_to_three_without_ssd_boot" {
 
   variables {
     session_max_nodes              = 3
+    session_pool_max_nodes         = { sessions = 1, n2d-standard-4 = 2 }
     session_fallback_machine_types = { n2d-standard-4 = null }
     session_fallback_min_nodes     = { n2d-standard-4 = 1 }
     session_disk_type              = "pd-standard"
   }
 
   assert {
-    condition     = google_container_node_pool.sessions_fallback["n2d-standard-4"].autoscaling[0].min_node_count == 1 && google_container_node_pool.sessions_fallback["n2d-standard-4"].autoscaling[0].max_node_count == 3
-    error_message = "The warm-pool controller needs one node available and up to three on demand."
+    condition     = google_container_node_pool.sessions_fallback["n2d-standard-4"].autoscaling[0].min_node_count == 1 && google_container_node_pool.sessions_fallback["n2d-standard-4"].autoscaling[0].max_node_count == 2 && google_container_node_pool.sessions.autoscaling[0].max_node_count == 1
+    error_message = "The warm-pool controller needs one minimum node and a combined maximum of three across N2D and N2."
   }
 
   assert {

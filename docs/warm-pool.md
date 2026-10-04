@@ -3,7 +3,7 @@
 The pool keeps up to one node's worth of small sessions ready, reduced by
 claimed sessions' CPU and memory requests. Two running small sessions leave
 one warm spare; there is no global session-count cap. GKE scales the session
-pool from one to three nodes when claimed sessions need more capacity.
+pools from one to three nodes total (up to two N2D plus one N2) when claimed sessions need more capacity.
 Current tier and storage details are in [session-sizes.md](session-sizes.md).
 
 ## How it works

@@ -47,7 +47,7 @@ spec:
       labels: {app: session-slot-controller}
     spec:
       nodeSelector:
-        cloud.google.com/gke-nodepool: sessions-n2d-standard-4
+        sandbox.gke.io/runtime: gvisor
       tolerations:
         - key: sandbox.gke.io/runtime
           operator: Equal

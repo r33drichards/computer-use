@@ -329,6 +329,24 @@ variable "session_max_nodes" {
   }
 }
 
+# Per-pool ceilings let production split its three-node budget across
+# separate machine-family CPU quotas without increasing the combined maximum.
+variable "session_pool_max_nodes" {
+  description = "Per-zone maximum overrides keyed by sessions or fallback machine type. Unspecified pools use session_max_nodes."
+  type        = map(number)
+  default     = {}
+
+  validation {
+    condition     = alltrue([for pool, count in var.session_pool_max_nodes : contains(concat(["sessions"], keys(var.session_fallback_machine_types)), pool) && count >= 1 && count <= var.session_max_nodes && floor(count) == count])
+    error_message = "Overrides must name configured pools and be whole numbers from one through session_max_nodes."
+  }
+
+  validation {
+    condition     = alltrue([for pool, minimum in var.session_fallback_min_nodes : minimum <= lookup(var.session_pool_max_nodes, pool, var.session_max_nodes)])
+    error_message = "A pool maximum must be at least its configured minimum."
+  }
+}
+
 variable "session_spot" {
   description = <<-EOT
     Run session nodes as Spot VMs (roughly 40 % cheaper in us-west1 for N2).

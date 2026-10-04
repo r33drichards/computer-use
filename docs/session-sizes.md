@@ -1,6 +1,6 @@
 # Session sizes and storage
 
-Production uses 4-vCPU/16-GB N2D session nodes in us-west1-c. GKE autoscaling keeps at least one node and grows to three. Three nodes require a regional N2D CPU quota of at least 12; quota availability can delay provisioning. The conservative usable session capacity is 3213m CPU and 12097Mi memory.
+Production uses 4-vCPU/16-GB session nodes in us-west1-c. GKE autoscaling keeps at least one N2D node and grows to three nodes total: up to two N2D nodes plus one N2 fallback. This fits the existing regional machine-family CPU quotas. The conservative usable session capacity is 3213m CPU and 12097Mi memory.
 
 | Compute tier | Pod CPU request | Pod memory request | Desktop limits | MCP limits | Fits alone on the node |
 |---|---:|---:|---|---|---:|
