@@ -935,7 +935,7 @@ spec:
           value: '200'
         - name: SIGNUPS_PER_IP_PER_DAY
           value: '5'
-        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:219cf78fb3c3681616b45b212563fc43ff69172d875b0e9fb7eaa3a8c5ae9f8f
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:e27a22de2177081fe2369203039864ffed74830077cd66c6950882db82d4f9c7
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1380,7 +1380,7 @@ spec:
     spec:
       automountServiceAccountToken: false
       containers:
-      - image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/site@sha256:e3cdda74945e3a655e65def3f2108eeaab596db8558dca4d54ed317b9bf87862
+      - image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/site@sha256:33833b87efd621d938d4cedd64a8885a6451a83c28a7454c4081c4cea5e261ac
         livenessProbe:
           httpGet:
             path: /healthz
