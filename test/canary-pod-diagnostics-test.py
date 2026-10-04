@@ -75,4 +75,22 @@ class Diagnostics(unittest.TestCase):
         self.assertFalse(any('--previous' in x and 'browser' in x for x in calls))
         self.assertNotIn('synthetic-private', json.dumps(result))
 
+    def test_events_and_messages_are_bounded_and_log_overflow_explicit(self):
+        pod = {'metadata': {'name': 's-abcdefghij', 'uid': 'owned', 'labels': {'app': 'browserjs-session'}}, 'spec': {'containers': [{'name': 'browser'}]}}
+        def command(*args):
+            if args[:2] == ('get', 'pod'): return json.dumps(pod)
+            if args[:2] == ('get', 'events'): return json.dumps({'items': [{'involvedObject': {'uid': 'owned'}, 'message': 'Bearer synthetic-private ' + 'x' * 2000} for _ in range(100)]})
+            raise d.OutputLimitExceeded('byte-limit')
+        with patch.object(d, 'command', command): result = json.loads(d.collect('s-abcdefghij'))
+        self.assertEqual(len(result['events']), 32)
+        self.assertTrue(result['eventsTruncated'])
+        self.assertTrue(all(len(e['message']) <= 1024 and e['messageTruncated'] for e in result['events']))
+        self.assertEqual(result['logs']['browser'], {'status': 'truncated', 'reason': 'byte-limit'})
+        self.assertNotIn('synthetic-private', json.dumps(result))
+
+    def test_oversized_pod_json_is_not_partially_parsed_or_disclosed(self):
+        with patch.object(d, 'command', side_effect=d.OutputLimitExceeded('byte-limit')):
+            result = json.loads(d.collect('s-abcdefghij'))
+        self.assertEqual(result, {'pod': 's-abcdefghij', 'status': 'truncated', 'reason': 'byte-limit'})
+
 if __name__ == '__main__': unittest.main()

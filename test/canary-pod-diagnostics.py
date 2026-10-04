@@ -6,6 +6,11 @@ import json
 import os
 import re
 import subprocess
+from bounded_process import run_bounded, OutputLimitExceeded
+
+MAX_COMMAND_BYTES = 131072
+MAX_EVENTS = 32
+MAX_MESSAGE_CHARS = 1024
 
 
 def redact(text):
@@ -25,8 +30,8 @@ def redact_values(value):
 
 
 def command(*args):
-    done = subprocess.run(['kubectl', '-n', 'browserjs-sessions', *args],
-                          capture_output=True, text=True, timeout=8)
+    done = run_bounded(['kubectl', '-n', 'browserjs-sessions', *args],
+                       timeout=8, max_bytes=8192 if args[0] == 'logs' else MAX_COMMAND_BYTES)
     if done.returncode:
         raise RuntimeError('diagnostic kubectl command failed')
     return done.stdout
@@ -44,7 +49,12 @@ def probe(value):
 def collect(sid):
     if not re.fullmatch(r's-[a-z0-9]{10}', sid):
         raise ValueError('invalid canary session id')
-    pod = json.loads(command('get', 'pod', sid, '-o', 'json'))
+    try:
+        pod = json.loads(command('get', 'pod', sid, '-o', 'json'))
+    except OutputLimitExceeded:
+        return json.dumps({'pod': sid, 'status': 'truncated', 'reason': 'byte-limit'})
+    except (subprocess.TimeoutExpired, RuntimeError, ValueError):
+        return json.dumps({'pod': sid, 'status': 'unavailable', 'reason': 'pod-metadata-unavailable'})
     meta = pod['metadata']
     if meta['name'] != sid or meta.get('labels', {}).get('app') != 'browserjs-session':
         raise ValueError('not an owned canary pod')
@@ -66,14 +76,27 @@ def collect(sid):
                 args = ['logs', sid, '-c', c['name'], '--tail=100']
                 if previous: args.append('--previous')
                 result['logs'][field] = redact(command(*args))
+            except OutputLimitExceeded:
+                result['logs'][field] = {'status': 'truncated', 'reason': 'byte-limit'}
             except subprocess.TimeoutExpired:
                 result['logs'][field] = {'status': 'unavailable', 'reason': 'timeout'}
             except RuntimeError:
                 result['logs'][field] = {'status': 'error', 'reason': 'command-failed'}
-    events = json.loads(command('get', 'events', '--field-selector',
-                               'involvedObject.uid=' + meta['uid'], '-o', 'json'))
-    result['events'] = [{k: e.get(k) for k in ('reason', 'message', 'type', 'count')}
-                        for e in events.get('items', []) if e.get('involvedObject', {}).get('uid') == meta['uid']]
+    try:
+        events = json.loads(command('get', 'events', '--field-selector',
+                                   'involvedObject.uid=' + meta['uid'], '-o', 'json'))
+        owned = [e for e in events.get('items', []) if e.get('involvedObject', {}).get('uid') == meta['uid']]
+        result['eventsTruncated'] = len(owned) > MAX_EVENTS
+        for e in owned[:MAX_EVENTS]:
+            event = {k: e.get(k) for k in ('reason', 'type', 'count')}
+            message = redact(str(e.get('message', '')))
+            event['messageTruncated'] = len(message) > MAX_MESSAGE_CHARS
+            event['message'] = message[:MAX_MESSAGE_CHARS]
+            result['events'].append(event)
+    except OutputLimitExceeded:
+        result['eventsStatus'] = {'status': 'truncated', 'reason': 'byte-limit'}
+    except (RuntimeError, subprocess.TimeoutExpired, ValueError):
+        result['eventsStatus'] = {'status': 'unavailable', 'reason': 'command-failed'}
     return json.dumps(redact_values(result), indent=2)
 
 

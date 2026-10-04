@@ -40,6 +40,8 @@ The environment:
   START_TIMEOUT        seconds to wait for a session to run (420)
   SUMMARY              a file the results are appended to, as Markdown
 """
+from bounded_process import run_bounded, OutputLimitExceeded
+
 import base64
 import json
 import os
@@ -367,18 +369,27 @@ def main():
                 try:
                     env = {k: v for k, v in os.environ.items()
                            if k in ("PATH", "HOME", "KUBECONFIG")}
-                    done = subprocess.run(hook, shell=True, env=dict(env, SESSION_ID=sid),
-                                          capture_output=True, text=True, timeout=65)
+                    try:
+                        done = run_bounded(hook, shell=True, env=dict(env, SESSION_ID=sid),
+                                           timeout=65, max_bytes=1048576)
+                    except OutputLimitExceeded:
+                        done = subprocess.CompletedProcess(hook, 0, json.dumps({'pod': sid, 'status': 'truncated', 'reason': 'byte-limit'}))
                     if done.returncode == 0:
+                        payload = json.loads(done.stdout)
                         os.makedirs(directory, mode=0o700, exist_ok=True)
                         path = os.path.join(directory, sid + ".json")
                         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
                         with os.fdopen(fd, "w") as output:
-                            output.write(scrub(done.stdout))
+                            def scrub_values(value):
+                                if isinstance(value, str): return scrub(value)
+                                if isinstance(value, list): return [scrub_values(x) for x in value]
+                                if isinstance(value, dict): return {k: scrub_values(v) for k, v in value.items()}
+                                return value
+                            output.write(json.dumps(scrub_values(payload)))
                         print("      saved sanitized owned-pod diagnostics", flush=True)
                     else:
                         print("      owned-pod diagnostics failed", flush=True)
-                except (OSError, subprocess.TimeoutExpired):
+                except (OSError, subprocess.TimeoutExpired, OutputLimitExceeded, ValueError, RecursionError):
                     print("      owned-pod diagnostics unavailable", flush=True)
             return
 

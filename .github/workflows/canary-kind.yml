@@ -62,6 +62,8 @@ jobs:
           shellcheck -S warning hack/release.sh test/canary-kind.sh
           python3 -m py_compile test/canary.py
           python3 -B test/canary-pod-diagnostics-test.py
+          python3 -B test/bounded-process-test.py
+          python3 -B test/chromium-launch-lock-test.py
           # Without a token it says so and does nothing.
           if env -u CANARY_API_TOKEN test/canary.py; then
             echo "::error::canary.py ran without a token"
@@ -108,20 +110,5 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      - name: What the cluster looked like
-        if: ${{ failure() }}
-        run: |
-          export KUBECONFIG="$PWD/.local/kubeconfig"
-          ns=browserjs-sessions
-          kubectl -n "$ns" get pods,sandboxes.agents.x-k8s.io,sessionpolicies.browserjs.dev,pvc -o wide || true
-          kubectl -n "$ns" describe pods -l app=browserjs-session | tail -80 || true
-          for target in deployment/backend deployment/policy-operator deployment/opa statefulset/pomerium; do
-            echo "=== $target"
-            kubectl -n "$ns" logs "$target" --all-containers --tail=60 || true
-          done
-          for pod in $(kubectl -n "$ns" get pods -l app=browserjs-session -o name); do
-            echo "=== $pod"
-            kubectl -n "$ns" logs "$pod" --all-containers --prefix --tail=40 || true
-          done
-          kubectl -n "$ns" get events --sort-by=.lastTimestamp | tail -60 || true
-          kubectl -n agent-sandbox-system logs deploy/agent-sandbox-controller --tail=40 || true
+      # Failure evidence comes only from the pre-cleanup, owned-pod collector.
+      # Never replace it with namespace-wide describe/logs/events dumps.
