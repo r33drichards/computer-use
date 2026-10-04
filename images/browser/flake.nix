@@ -82,7 +82,11 @@
           };
           # Scratch containers have no privileged /run/wrappers daemon.
           # Use the unprivileged binary, including in D-Bus activation files.
-          gnome-keyring = pkgs.gnome-keyring.override { useWrappedDaemon = false; };
+          gnome-keyring = (pkgs.gnome-keyring.override { useWrappedDaemon = false; }).overrideAttrs (old: {
+            # Keep libcap-ng and fail-closed privilege dropping. Containers may
+            # have partial caps but no IPC_LOCK; never try to add an ungranted cap.
+            patches = (old.patches or [ ]) ++ [ ./patches/gnome-keyring-partial-capabilities.patch ];
+          });
 
           xfce4-settings = pkgs.xfce4-settings.override {
             withColord = false;

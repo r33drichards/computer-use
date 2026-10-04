@@ -60,7 +60,7 @@ test('refuses to start without the desktop session bus', () => {
 
 test('default image packages unprivileged daemon, libsecret, UI and D-Bus prompter', () => {
  const flake = readFileSync(new URL('../flake.nix', import.meta.url), 'utf8');
- assert.match(flake, /gnome-keyring = pkgs.gnome-keyring.override \{ useWrappedDaemon = false; \}/);
+ assert.match(flake, /gnome-keyring = \(pkgs.gnome-keyring.override \{ useWrappedDaemon = false; \}/);
  for (const entry of ['gnome-keyring', 'pkgs.seahorse', 'pkgs.gcr_3', 'pkgs.libsecret']) assert.ok(flake.includes(entry));
  assert.match(flake, /export KEYRING_SERVER=/);
  const docker = readFileSync(new URL('../Dockerfile', import.meta.url), 'utf8');
@@ -131,4 +131,19 @@ test('fixture unlock targets existing socket, validates replies and refuses empt
   await new Promise(resolve => server.close(resolve));
   rmSync(dir, { recursive: true, force: true });
  }
+});
+
+test('partial-capability patch retains only originally permitted IPC_LOCK and preserves failures', () => {
+ const patch = readFileSync(new URL('../patches/gnome-keyring-partial-capabilities.patch', import.meta.url), 'utf8');
+ assert.match(patch, /retain_ipc_lock = capng_have_capability \(CAPNG_PERMITTED/);
+ assert.match(patch, /if \(retain_ipc_lock &&/);
+ assert.ok(!patch.includes('case CAPNG_FULL'));
+ assert.ok(!patch.includes('case CAPNG_NONE'));
+ assert.ok(!patch.includes('-\t\t\tif ((rc = capng_apply'));
+ const image = readFileSync(new URL('./keyring-capability-image-smoke.sh', import.meta.url), 'utf8');
+ assert.ok(image.includes('--user 1000:1000 --cap-drop ALL --security-opt no-new-privileges'));
+ assert.ok(!image.includes('--cap-add'));
+ assert.ok(image.includes('legacy-partial'));
+ assert.ok(image.includes('int(s[\'CapPrm\'], 16) == 0'));
+ assert.ok(image.includes('dbus-run-session -- bash /tmp/keyring-smoke.sh'));
 });

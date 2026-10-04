@@ -249,6 +249,7 @@ jobs:
         run: |
           docker image ls browser:ci
           images/browser/test/desktop-image-smoke.sh browser:ci desktop-smoke-out
+          bash images/browser/test/keyring-capability-image-smoke.sh browser:ci desktop-smoke-out/keyring-capabilities
 
       - name: Screenshots and logs of the smoke test
         if: matrix.name == 'browser' && !cancelled()

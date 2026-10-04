@@ -390,3 +390,34 @@ Docker on a GitHub runner is runc, not gVisor, and not GKE:
 5. An existing session's disk (a profile made under openbox) starting on
    this image: its saved windows are maximised by the entrypoint, but that
    was run on a new profile only.
+
+
+### GNOME Keyring 50 capability compatibility
+
+The unprivileged daemon package keeps libcap-ng privilege dropping enabled.
+GNOME 50's PARTIAL branch otherwise requests IPC_LOCK even when it was never
+permitted, causing capset to fail (-5) in an ordinary root container's partial
+capability set. The package patch snapshots the original permitted IPC_LOCK bit
+before clearing capabilities and retains it only if granted. With no IPC_LOCK,
+it keeps upstream memlock-limit checking/warnings and drops all process caps;
+apply/update errors still abort. FULL/setuid and NONE paths are unchanged.
+No Pod capability is granted and no health/supervision check is bypassed.
+
+The intended unprivileged managed-desktop contract is UID/GID1000, no process
+capabilities, no privilege escalation, persistent encrypted keyrings and private
+ephemeral sockets. The existing base/local browser Pod templates do not yet set
+runAsUser or drop browser capabilities: they inherit the image's legacy root
+UID with the container runtime's partial set. fsGroup1000 does not change that
+UID. This compatibility fix does **not** silently migrate volume ownership or
+change the Pod UID; a managed-session UID migration needs separate review.
+The image regression covers both explicit UID1000/dropALL and the observed
+legacy-root/default-partial configuration without adding IPC_LOCK. Both must
+pass encrypted store/lookup, restart locked, wrong-password denial and explicit
+unlock; the runtime never supplies a password. Chromium's basic password-store
+backend is unchanged; Secret Service is not a passkey authenticator.
+
+Readiness evidence: canary37177953626 browser log reported capability-drop -5
+before its8081 health server started. mcp-js start.sh waits for that browser
+TCP endpoint before starting mcp-v8 (which cannot initialize an unreachable
+upstream), consistent with the simultaneous8080 probe refusal without establishing a separate MCP failure. New canary validation is
+required; if MCP remains unready after browser recovery, inspect it separately.

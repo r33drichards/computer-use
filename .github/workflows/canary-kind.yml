@@ -52,6 +52,7 @@ jobs:
           set -euo pipefail
           shellcheck -S warning hack/release.sh test/canary-kind.sh
           python3 -m py_compile test/canary.py
+          python3 -B test/canary-pod-diagnostics-test.py
           # Without a token it says so and does nothing.
           if env -u CANARY_API_TOKEN test/canary.py; then
             echo "::error::canary.py ran without a token"
@@ -82,9 +83,21 @@ jobs:
           df -h /
 
       - name: test/canary.py
+        env:
+          SESSION_FAILURE_HOOK: "python3 test/canary-pod-diagnostics.py"
+          CANARY_DIAGNOSTICS_DIR: 4{{ runner.temp }}/canary-pod-diagnostics
         run: |
           printf '## The release canary, on kind\n\n' >> "$GITHUB_STEP_SUMMARY"
           UP=0 SUMMARY="$GITHUB_STEP_SUMMARY" test/canary-kind.sh
+
+      - name: Owned canary pod diagnostics
+        if: 4{{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: canary-pod-diagnostics
+          path: 4{{ runner.temp }}/canary-pod-diagnostics
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: What the cluster looked like
         if: ${{ failure() }}

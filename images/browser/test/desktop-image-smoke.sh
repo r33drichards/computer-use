@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The built image, started the way a session pod starts it (uid 1000, no
-# capabilities, SESSION_MODE=1, a volume at /data/chrome), with its XFCE
+# The built image under the intended unprivileged desktop contract (uid1000,
+# no capabilities, SESSION_MODE=1, volume at /data/chrome), with its XFCE
 # desktop checked on the real display: the image build of CI runs this
 # (.github/workflows/images.yml). Under Docker's runc, not gVisor.
 #

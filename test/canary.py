@@ -358,6 +358,28 @@ def main():
         def running():
             return "running after %.0fs" % wait_state(sid, "running", START_TIMEOUT)
         if not check("it runs", running):
+            # Capture only this owned canary pod before finally deletes it.
+            # Diagnostic errors cannot turn a failed check into success or
+            # prevent cleanup. The hook is opt-in for kind CI, never runtime.
+            hook = os.environ.get("SESSION_FAILURE_HOOK")
+            directory = os.environ.get("CANARY_DIAGNOSTICS_DIR")
+            if hook and directory:
+                try:
+                    env = {k: v for k, v in os.environ.items()
+                           if k in ("PATH", "HOME", "KUBECONFIG")}
+                    done = subprocess.run(hook, shell=True, env=dict(env, SESSION_ID=sid),
+                                          capture_output=True, text=True, timeout=65)
+                    if done.returncode == 0:
+                        os.makedirs(directory, mode=0o700, exist_ok=True)
+                        path = os.path.join(directory, sid + ".json")
+                        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+                        with os.fdopen(fd, "w") as output:
+                            output.write(scrub(done.stdout))
+                        print("      saved sanitized owned-pod diagnostics", flush=True)
+                    else:
+                        print("      owned-pod diagnostics failed", flush=True)
+                except (OSError, subprocess.TimeoutExpired):
+                    print("      owned-pod diagnostics unavailable", flush=True)
             return
 
         hook = os.environ.get("SESSION_HOOK")
