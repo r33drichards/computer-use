@@ -23,6 +23,14 @@ class Trigger(unittest.TestCase):
         unrelated = subprocess.run(['bash','-c',script,'filter',regex],input='docs/unrelated.md\n',text=True,capture_output=True,timeout=5)
         self.assertEqual(unrelated.returncode,0)
         self.assertEqual(unrelated.stdout.strip(),'')
+    def test_module_fixture_consumed_policy_inputs_select_actual_mcp_branch(self):
+        text = Path('.github/workflows/images.yml').read_text()
+        regex = re.search(r"if touches '([^']+)'; then wanted\+=\(mcp-js\); fi", text).group(1)
+        self.assertEqual(text.split('jobs:')[0].count('"hack/policy-stage.sh"'),2)
+        for file in ('images/mcp-js/modules.rego','docs/contracts/policy/decision-module.rego.tmpl','docs/contracts/policy/examples/unrestricted.rego','backend/internal/policy/presets/unrestricted.rego','deploy/gke/blueprint.yaml','deploy/gke/warmpool.yaml','deploy/base/opa.yaml','hack/policy-stage.sh'):
+            result = subprocess.run(['bash','-c','if grep -Eq "$1"; then echo mcp-js; fi','filter',regex],input=file+'\n',text=True,capture_output=True,timeout=5)
+            self.assertEqual(result.stdout.strip(),'mcp-js',file)
+
     def test_publish_security_and_immutable_definition_retained(self):
         text = Path('.github/workflows/images.yml').read_text()
         self.assertNotIn('pull_request_target',text)

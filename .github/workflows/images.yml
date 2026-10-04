@@ -38,6 +38,7 @@ on:
       - "test/ci-source-binding*"
       - "test/image-helper-trigger-test.py"
       - "hack/site-release.sh"
+      - "hack/policy-stage.sh"
       - "deploy/argocd/**"
       - "deploy/gke/**"
       - "deploy/base/**"
@@ -65,6 +66,7 @@ on:
       - "test/ci-source-binding*"
       - "test/image-helper-trigger-test.py"
       - "hack/site-release.sh"
+      - "hack/policy-stage.sh"
       - "deploy/argocd/**"
       - "deploy/gke/**"
       - "deploy/base/**"
@@ -181,7 +183,7 @@ jobs:
               wanted=(backend mcp-js browser site policy-operator billing-operator)
             else
               if touches '^(Dockerfile$|\.dockerignore$|backend/|web/)'; then wanted+=(backend); fi
-              if touches '^(images/mcp-js/|site/(tutorials|guides|reference|explanation)/)'; then wanted+=(mcp-js); fi
+              if touches '^(images/mcp-js/|site/(tutorials|guides|reference|explanation)/|docs/contracts/policy/(decision-module\.rego\.tmpl|examples/unrestricted\.rego)$|backend/internal/policy/presets/unrestricted\.rego$|deploy/gke/(blueprint|warmpool)\.yaml$|deploy/base/opa\.yaml$|hack/policy-stage\.sh$)'; then wanted+=(mcp-js); fi
               if touches '^images/browser/'; then wanted+=(browser); fi
               if touches '^(site/|hack/site-release\.sh$)'; then wanted+=(site); fi
               if touches '^(images/policy-operator/|docs/contracts/policy/)'; then wanted+=(policy-operator); fi
