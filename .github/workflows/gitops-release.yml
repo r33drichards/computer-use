@@ -108,6 +108,20 @@ jobs:
           kubectl -n argocd annotate application computer-use-production argocd.argoproj.io/refresh=hard --overwrite
           python3 hack/gitops/wait.py "$REVISION" 1200
 
+      - name: Wait for promoted backend traffic to settle
+        if: steps.publish.outputs.skipped != 'true'
+        run: |
+          # Healthy promotion precedes the blue-green scale-down delay.
+          # Wait for the old pod to disappear, then let edge connections drain.
+          ready=false
+          for attempt in $(seq 1 90); do
+            ready=$(kubectl -n "$NS" get pods -l app=backend -o json | python3 -c 'import json,sys; pods=json.load(sys.stdin)["items"]; print(str(len(pods)==1 and not pods[0]["metadata"].get("deletionTimestamp") and any(c.get("type")=="Ready" and c.get("status")=="True" for c in pods[0].get("status",{}).get("conditions",[]))).lower())')
+            [ "$ready" = true ] && break
+            sleep 2
+          done
+          [ "$ready" = true ] || { echo '::error::The previous backend did not drain'; exit 1; }
+          sleep 10
+
       - name: Canary through the public edge
         if: steps.publish.outputs.skipped != 'true'
         env:
