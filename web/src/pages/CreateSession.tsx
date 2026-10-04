@@ -90,7 +90,7 @@ export function CreateSession() {
   const [diskGB, setDiskGB] = useState("32")
   const [size, setSize] = useState("") // "" until chosen: the default
   const chosenSize = size || sizes?.default || ""
-  const gate = useCreateGate(chosenSize || undefined) // billing: why a session cannot be created, and what one costs
+  const gate = useCreateGate(chosenSize || undefined, storage ? Number(diskGB) : undefined) // billing: why a session cannot be created, and what one costs
 
   useEffect(() => {
     let cancelled = false

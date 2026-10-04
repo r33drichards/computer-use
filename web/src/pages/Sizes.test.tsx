@@ -116,6 +116,14 @@ describe("the size with billing on", () => {
     )
   })
 
+  it("prices the chosen disk independently of compute", async () => {
+    await form("active")
+    fireEvent.change(await screen.findByRole("spinbutton", { name: "HDD storage (GB)" }), { target: { value: "64" } })
+    expect(screen.getByTestId("create-cost").textContent).toBe(
+      "This session will use $0.20 an hour while awake and $2.80 a month while it exists.",
+    )
+  })
+
   it("does not offer a size the plan does not include", async () => {
     await form("payg") // pay as you go: small and medium
     expect(radio(/^Large/).disabled).toBe(true)
