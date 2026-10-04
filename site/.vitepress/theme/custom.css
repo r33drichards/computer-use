@@ -176,3 +176,19 @@
 .theme-settings { display: flex; align-items: center; gap: 8px; padding: 12px; }
 .theme-settings select { font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--pencil); border-radius: 2px; padding: 3px; }
 @media (max-width: 767px) { .theme-desktop { display: none; } }
+
+/* Let the REPL example occupy the hero's unused column. */
+.VPHomeHero.has-image .image-container {
+  width: 100%;
+  height: auto;
+  transform: none;
+}
+.VPHomeHero.has-image .image { margin: 0; }
+@media (min-width: 960px) {
+  .VPHomeHero.has-image .container { align-items: center; gap: 56px; }
+  .VPHomeHero.has-image .main { width: 54%; flex-shrink: 1; }
+  .VPHomeHero.has-image .image { width: 42%; max-width: 460px; flex-shrink: 0; }
+}
+@media (max-width: 959px) {
+  .VPHomeHero.has-image .image { order: 3; width: 100%; max-width: 460px; margin: 40px auto 0; }
+}
