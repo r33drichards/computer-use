@@ -43,9 +43,13 @@ def render(source, previous, artifacts, output):
     for d in docs:
         meta = d.setdefault('metadata', {})
         meta.setdefault('annotations', {})['argocd.argoproj.io/sync-wave'] = '0'
+        # Pod references must exist before early-wave storage/controllers.
+        # In particular Kustomize gives OPA's ConfigMap a new name on changes.
+        if d['kind'] in {'ConfigMap', 'Secret', 'ServiceAccount', 'Service'}:
+            meta['annotations']['argocd.argoproj.io/sync-wave'] = '-3'
         # Install durable storage, connectivity and namespaced permissions
         # before the operator: its startup requires Redis and pod watches.
-        if d['kind'] in {'NetworkPolicy', 'Role', 'RoleBinding'} or (meta['name'] == 'webhook-redis' and d['kind'] in {'Service', 'StatefulSet'}):
+        if d['kind'] in {'NetworkPolicy', 'Role', 'RoleBinding'} or (meta['name'] == 'webhook-redis' and d['kind'] == 'StatefulSet'):
             meta['annotations']['argocd.argoproj.io/sync-wave'] = '-2'
         if d['kind'] == 'Deployment' and meta['name'] in {'policy-operator', 'opa'}:
             meta['annotations']['argocd.argoproj.io/sync-wave'] = '-1'
