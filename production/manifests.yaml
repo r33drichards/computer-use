@@ -16,7 +16,7 @@ metadata:
   name: backend
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -24,7 +24,7 @@ metadata:
   name: billing-export
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -32,7 +32,7 @@ metadata:
   name: billing-operator
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -40,7 +40,7 @@ metadata:
   name: dex
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: v1
 automountServiceAccountToken: false
@@ -49,7 +49,7 @@ metadata:
   name: opa
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -57,7 +57,7 @@ metadata:
   name: policy-operator
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: v1
 automountServiceAccountToken: false
@@ -66,7 +66,7 @@ metadata:
   name: session
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -74,7 +74,7 @@ metadata:
   name: session-slot-controller
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -513,7 +513,7 @@ metadata:
   name: billing-catalogue
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: v1
 data:
@@ -537,7 +537,7 @@ metadata:
   name: dex-config-kbb56k6kh8
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: v1
 data:
@@ -568,7 +568,7 @@ metadata:
   name: opa-config-4fmcg98kmg
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: v1
 data:
@@ -652,7 +652,7 @@ metadata:
   name: pomerium-config-66h5k972b7
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: v1
 data:
@@ -776,7 +776,7 @@ metadata:
   name: session-blueprint-h7ctf4mhd6
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: v1
 data:
@@ -822,7 +822,7 @@ metadata:
   name: session-slot-controller-tg55k67b4f
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: v1
 kind: Service
@@ -830,7 +830,7 @@ metadata:
   name: backend
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 spec:
   ports:
   - name: http
@@ -845,7 +845,7 @@ metadata:
   name: backend-preview
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 spec:
   ports:
   - name: http
@@ -860,7 +860,7 @@ metadata:
   name: dex
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 spec:
   ports:
   - name: http
@@ -875,7 +875,7 @@ metadata:
   name: opa
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 spec:
   ports:
   - name: http
@@ -890,7 +890,7 @@ metadata:
   name: policy-operator
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 spec:
   ports:
   - name: http
@@ -904,7 +904,7 @@ kind: Service
 metadata:
   annotations:
     networking.gke.io/load-balancer-ip-addresses: browserjs-edge
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
   name: pomerium
   namespace: browserjs-sessions
 spec:
@@ -924,7 +924,7 @@ metadata:
   name: site
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 spec:
   ports:
   - name: http
@@ -939,7 +939,7 @@ metadata:
   name: site-canary
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '0'
+    argocd.argoproj.io/sync-wave: '-3'
 spec:
   ports:
   - name: http
@@ -954,7 +954,7 @@ metadata:
   name: webhook-redis
   namespace: browserjs-sessions
   annotations:
-    argocd.argoproj.io/sync-wave: '-2'
+    argocd.argoproj.io/sync-wave: '-3'
 spec:
   ports:
   - name: redis
@@ -2813,23 +2813,25 @@ data:
     \ session policies off.\n  EXPECT_MCP_CAPABILITIES  1 (default): verify skills,\
     \ PNG imports, fetch and editable fetch\n                       permissions. 0:\
     \ baseline/rollback checks of old releases.\n  FETCH_URL            URL to fetch\
-    \ (public site home page, or localhost in kind).\n  SESSION_HOOK         a command\
-    \ run once the session is running, with\n                       SESSION_ID in\
-    \ its environment (the release workflow\n                       checks the pod's\
-    \ images with it). Its failure fails\n                       the run; its output\
-    \ is shown.\n  START_TIMEOUT        seconds to wait for a session to run (420)\n\
-    \  SUMMARY              a file the results are appended to, as Markdown\n\"\"\"\
-    \nimport base64\nimport hashlib\nimport json\nimport os\nimport re\nimport secrets\n\
-    import ssl\nimport subprocess\nimport sys\nimport time\nimport urllib.error\n\
-    import urllib.parse\nimport urllib.request\n\nDOMAIN = os.environ.get(\"DOMAIN\"\
-    , \"computeruse.site\")\nAPI = os.environ.get(\"API_URL\", \"https://api.\" +\
-    \ DOMAIN).rstrip(\"/\")\nAPP = os.environ.get(\"APP_URL\", \"https://app.\" +\
-    \ DOMAIN).rstrip(\"/\")\nSITE = os.environ.get(\"SITE_URL\", \"https://\" + DOMAIN).rstrip(\"\
-    /\")\nAPI_HOST = os.environ.get(\"API_HOST\", \"\")\nTOKEN = os.environ.get(\"\
-    CANARY_API_TOKEN\", \"\")\nEXPECT_STATE_SAVED = os.environ.get(\"EXPECT_STATE_SAVED\"\
-    , \"1\") != \"0\"\nEXPECT_MCP_CAPABILITIES = os.environ.get(\"EXPECT_MCP_CAPABILITIES\"\
-    , \"1\") != \"0\"\nFETCH_URL = os.environ.get(\"FETCH_URL\", (SITE + \"/\") if\
-    \ SITE else \"http://127.0.0.1:8081/healthz\")\nEXPECT_POLICIES = os.environ.get(\"\
+    \ (example.com, or localhost in kind).\n  SESSION_HOOK         a command run once\
+    \ the session is running, with\n                       SESSION_ID in its environment\
+    \ (the release workflow\n                       checks the pod's images with it).\
+    \ Its failure fails\n                       the run; its output is shown.\n  START_TIMEOUT\
+    \        seconds to wait for a session to run (420)\n  SUMMARY              a\
+    \ file the results are appended to, as Markdown\n\"\"\"\nimport base64\nimport\
+    \ hashlib\nimport json\nimport os\nimport re\nimport secrets\nimport ssl\nimport\
+    \ subprocess\nimport sys\nimport time\nimport urllib.error\nimport urllib.parse\n\
+    import urllib.request\n\nDOMAIN = os.environ.get(\"DOMAIN\", \"computeruse.site\"\
+    )\nAPI = os.environ.get(\"API_URL\", \"https://api.\" + DOMAIN).rstrip(\"/\")\n\
+    APP = os.environ.get(\"APP_URL\", \"https://app.\" + DOMAIN).rstrip(\"/\")\nSITE\
+    \ = os.environ.get(\"SITE_URL\", \"https://\" + DOMAIN).rstrip(\"/\")\nAPI_HOST\
+    \ = os.environ.get(\"API_HOST\", \"\")\nTOKEN = os.environ.get(\"CANARY_API_TOKEN\"\
+    , \"\")\nEXPECT_STATE_SAVED = os.environ.get(\"EXPECT_STATE_SAVED\", \"1\") !=\
+    \ \"0\"\nEXPECT_MCP_CAPABILITIES = os.environ.get(\"EXPECT_MCP_CAPABILITIES\"\
+    , \"1\") != \"0\"\n# The public site is served by this cluster. Its load-balancer\
+    \ hairpin can\n# hit the session's private-network deny rule, so test external\
+    \ HTTPS here.\nFETCH_URL = os.environ.get(\"FETCH_URL\", \"https://example.com/\"\
+    \ if SITE else \"http://127.0.0.1:8081/healthz\")\nEXPECT_POLICIES = os.environ.get(\"\
     EXPECT_POLICIES\", \"1\") != \"0\"\nSTART_TIMEOUT = int(os.environ.get(\"START_TIMEOUT\"\
     , \"420\"))\n# Sessions this script made are named so, and it deletes any it finds.\n\
     NAME_PREFIX = \"release-canary-\"\n# Where a policy taken over by a token says\
@@ -3111,11 +3113,12 @@ data:
     management\": {\"mode\": \"iac\", \"managed_url\": MANAGED_URL}})\n          \
     \      expect(status in (200, 202), \"PUT fetch policy failed: %s\" % saved)\n\
     \                wait_policy(sid)\n                expect_fetch(mcp)\n       \
-    \         expect_fetch(mcp, method=\"POST\", allowed=False)\n                expect_fetch(mcp,\
-    \ url=\"https://example.com/\", allowed=False)\n                expect_fetch(mcp,\
-    \ url=FETCH_URL.rstrip(\"/\") + \"/denied-path\", allowed=False)\n           \
-    \     return \"deny by default, allow GET at one host/path, deny POST and other\
-    \ destinations without restarting\"\n\n            if EXPECT_MCP_CAPABILITIES:\n\
+    \         expect_fetch(mcp, method=\"POST\", allowed=False)\n                other\
+    \ = \"https://example.org/\" if parsed.hostname != \"example.org\" else \"https://example.com/\"\
+    \n                expect_fetch(mcp, url=other, allowed=False)\n              \
+    \  expect_fetch(mcp, url=FETCH_URL.rstrip(\"/\") + \"/denied-path\", allowed=False)\n\
+    \                return \"deny by default, allow GET at one host/path, deny POST\
+    \ and other destinations without restarting\"\n\n            if EXPECT_MCP_CAPABILITIES:\n\
     \                check(\"editable fetch policy binds to the running session\"\
     , fetch_permissions)\n\n            def restore():\n                status, saved\
     \ = api(\"DELETE\", \"/v1/sessions/%s/policy\" % sid)\n                expect(status\
