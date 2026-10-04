@@ -144,6 +144,9 @@ test('partial-capability patch retains only originally permitted IPC_LOCK and pr
  assert.ok(image.includes('--user 1000:1000 --cap-drop ALL --security-opt no-new-privileges'));
  assert.ok(!image.includes('--cap-add'));
  assert.ok(image.includes('legacy-partial'));
+ assert.ok(!/[\x00-\x08]/.test(image));
+ const workflow = readFileSync(new URL('../../../.github/workflows/canary-kind.yml', import.meta.url), 'utf8');
+ assert.ok(!/[\x00-\x08]/.test(workflow));
  assert.ok(image.includes('int(s[\'CapPrm\'], 16) == 0'));
  assert.ok(image.includes('dbus-run-session -- bash /tmp/keyring-smoke.sh'));
 });

@@ -2,8 +2,8 @@
 # Actual image regression: zero-cap UID1000 contract and existing legacy root
 # containers with Docker's partial default set (no IPC_LOCK). Never add caps.
 set -euo pipefail
-image="4{1:?image}"
-out="4{2:-keyring-capability-out}"
+image="${1:?image}"
+out="${2:-keyring-capability-out}"
 mkdir -p "$out"
 name="keyring-capability-$$"
 data=""
@@ -20,7 +20,7 @@ for mode in nonroot-zero legacy-partial; do
     sudo chown 1000:1000 "$data"
     args=(--user 1000:1000 --cap-drop ALL --security-opt no-new-privileges)
   fi
-  docker run -d --name "$name" "4{args[@]}" --shm-size 1g \
+  docker run -d --name "$name" "${args[@]}" --shm-size 1g \
     -e SESSION_MODE=1 -e DATA_DIR=/data -v "$data:/data/chrome" "$image" >/dev/null
   ready=""
   for _ in $(seq 1 120); do

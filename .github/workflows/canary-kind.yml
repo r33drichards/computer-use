@@ -85,17 +85,17 @@ jobs:
       - name: test/canary.py
         env:
           SESSION_FAILURE_HOOK: "python3 test/canary-pod-diagnostics.py"
-          CANARY_DIAGNOSTICS_DIR: 4{{ runner.temp }}/canary-pod-diagnostics
+          CANARY_DIAGNOSTICS_DIR: ${{ runner.temp }}/canary-pod-diagnostics
         run: |
           printf '## The release canary, on kind\n\n' >> "$GITHUB_STEP_SUMMARY"
           UP=0 SUMMARY="$GITHUB_STEP_SUMMARY" test/canary-kind.sh
 
       - name: Owned canary pod diagnostics
-        if: 4{{ failure() }}
+        if: ${{ failure() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: canary-pod-diagnostics
-          path: 4{{ runner.temp }}/canary-pod-diagnostics
+          path: ${{ runner.temp }}/canary-pod-diagnostics
           if-no-files-found: warn
           retention-days: 7
 
