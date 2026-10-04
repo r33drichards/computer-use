@@ -73,7 +73,8 @@ type Config struct {
 	APIURL string
 	// AllowedEmails is who may use the product: the same addresses as the
 	// policy of Pomerium's routes, which is not consulted on the API host.
-	// Empty: nobody may make a token, and the API host refuses every one.
+	// "*": any authenticated user. Empty: nobody may make a token,
+	// and the API host refuses every one.
 	AllowedEmails []string
 	// APISigningKey signs the access tokens API tokens are exchanged for.
 	// Empty: a key made at start, so access tokens end with the process.

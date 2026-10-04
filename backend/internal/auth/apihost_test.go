@@ -614,3 +614,28 @@ func TestAuthenticatePrefersNothingOverTheAPIHostsCaller(t *testing.T) {
 		t.Error("a caller on the context without a token was accepted")
 	}
 }
+
+func TestAllowListOpenSignup(t *testing.T) {
+	for _, tc := range []struct {
+		emails []string
+		email  string
+		want   bool
+	}{
+		{[]string{"*"}, "new@example.com", true},
+		{[]string{"*"}, "  ", false},
+		{nil, "new@example.com", false},
+		{[]string{"alice@example.com"}, "new@example.com", false},
+		{[]string{"alice@example.com"}, " ALICE@example.com ", true},
+	} {
+		if got := NewAllowList(tc.emails).Allows(tc.email); got != tc.want {
+			t.Errorf("%v Allows(%q) = %v, want %v", tc.emails, tc.email, got, tc.want)
+		}
+	}
+	f := newAPIHostFixture("*")
+	if rec := f.do("GET", "/v1/me", "removed"); rec.Code != http.StatusNoContent {
+		t.Fatalf("new user's valid token: %d %s", rec.Code, rec.Body)
+	}
+	if rec := f.do("GET", "/v1/me", "invalid"); rec.Code != http.StatusUnauthorized {
+		t.Fatalf("invalid token: %d", rec.Code)
+	}
+}

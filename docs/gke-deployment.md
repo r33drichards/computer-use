@@ -55,8 +55,8 @@ collected at the end.
     Secret `pomerium-tls`.
   - Pomerium's and Dex's production configuration: the three session routes
     on `sessions.computeruse.site`, the four deprecated ones on the old session
-    hosts, and the app route as locally, MCP settings as locally, the allow-list
-    `rwendt1337@gmail.com` and `browserjs06@gmail.com`; Dex with the issuer
+    hosts, and the app route as locally, MCP settings as locally, access for
+    any authenticated user; Dex with the issuer
     `https://dex.computeruse.site/dex`, the Google and GitHub connectors and no
     passwords. Pomerium's databroker is on a 1 GiB Persistent Disk.
   - The backend with the production URLs and `ADMIN_EMAILS=rwendt1337@gmail.com`.

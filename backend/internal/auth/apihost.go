@@ -76,7 +76,7 @@ type TokenVerifier interface {
 
 // AllowList is who may use the product at all: the same email addresses as
 // the policy of Pomerium's routes. Pomerium is not asked on the API host, so
-// the backend has to know the list itself.
+// the backend has to know the list itself. "*" permits any nonempty owner.
 type AllowList map[string]bool
 
 func NewAllowList(emails []string) AllowList {
@@ -89,7 +89,10 @@ func NewAllowList(emails []string) AllowList {
 	return list
 }
 
-func (l AllowList) Allows(email string) bool { return l[normalEmail(email)] }
+func (l AllowList) Allows(email string) bool {
+	email = normalEmail(email)
+	return email != "" && (l["*"] || l[email])
+}
 
 // SameHost reports whether a request's Host is host, a configured "name" or
 // "name:port". The ports must agree only when both sides state one.
