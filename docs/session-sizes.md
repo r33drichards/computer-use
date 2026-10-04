@@ -14,20 +14,19 @@ the scheduler packs a node by; limits are what the session may use.
 
 | | Desktop limit | mcp-js limit | Pod requests | `/dev/shm` | `run_js` heap default | Fit an empty node |
 |---|---|---|---|---|---|---|
-| **small** | 1.5 CPU, 2 GiB | 0.5 CPU, 1 GiB | 200m, 1280Mi | 1 GiB | 8 MB | 9 |
+| **small** | 1.5 CPU, 2 GiB | 0.5 CPU, 1 GiB | 1000m, 2560Mi | 1 GiB | 8 MB | 3 |
 | **medium** | 2 CPU, 5 GiB | 0.5 CPU, 1 GiB | 550m, 3328Mi | 2 GiB | 16 MB | 3 |
 | **large** | 3 CPU, 10 GiB | 0.5 CPU, 1 GiB | 2050m, 11264Mi | 4 GiB | 32 MB | 1 |
 
 Why these numbers. A session node is a 4-vCPU, 16 GB machine
-(`n2-standard-4`, or the `n2d` and `c3` fallbacks). After the kubelet's
+(production selects the `n2d-standard-4` pool). After the kubelet's
 reservation and GKE's own pods it has **3213m of CPU and 12097Mi of memory
-left for sessions** (measured: the table in `deploy/gke/warmpool.yaml`).
+left for sessions** (the conservative capacity in `deploy/gke/sizes.yaml`).
 Memory is what fills a node, so memory is what the sizes are cut from.
 
-- **Small** is today's session, unchanged: `deploy/gke/blueprint.yaml` as it
-  is written. Its memory request (1280Mi) is well under its limit (3 GiB for
-  the pod), which is how nine share a node; a session started desktop-only
-  idles at about 160 MiB.
+- **Small** requests 1 CPU and 2560Mi across both containers. CPU limits
+  still allow bursts up to 2 cores when free; the combined memory limit is
+  3 GiB. Three fit the production node with room for node services.
 - **Medium** requests 3328Mi, a little over a quarter of a node, so three
   fit an empty one. Its limit (6 GiB for the pod) is under twice its
   request.
