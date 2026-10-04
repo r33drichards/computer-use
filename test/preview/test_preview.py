@@ -64,7 +64,7 @@ class PreviewTests(unittest.TestCase):
         hard = self.get("ResourceQuota", "preview")["spec"]["hard"]
         self.assertEqual(hard["persistentvolumeclaims"], "2")
         self.assertEqual(hard["count/sandboxes.agents.x-k8s.io"], "2")
-        self.assertEqual(hard["requests.storage"], "10Gi")
+        self.assertEqual(hard["requests.storage"], "64Gi")
 
     def test_invalid_identifiers_and_production_images_are_refused(self):
         for pr in ("0", "-1", "154;echo bad", "../production", "000154"):

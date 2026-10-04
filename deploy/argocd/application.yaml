@@ -47,6 +47,18 @@ spec:
         factor: 2
         maxDuration: 1m
   ignoreDifferences:
+  - group: apps
+    kind: DaemonSet
+    name: session-slot-controller
+    namespace: browserjs-sessions
+    jqPathExpressions:
+    - '.spec.template.spec.containers[] | select(.name == "controller") | .env[] | select(.name == "RESERVED_SLOTS")'
+  - group: extensions.agents.x-k8s.io
+    kind: SandboxWarmPool
+    name: s
+    namespace: browserjs-sessions
+    jsonPointers:
+    - /spec/replicas
   - group: ''
     kind: Service
     name: backend

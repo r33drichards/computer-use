@@ -302,7 +302,7 @@ func TestSizesAreTheBlueprintButForResources(t *testing.T) {
 	fit := func(size string) int64 {
 		return min(nodeCPU.MilliValue()/pods[size].cpu, nodeMem.Value()/pods[size].mem)
 	}
-	for size, want := range map[string]int64{"small": 9, "medium": 3, "large": 1} {
+	for size, want := range map[string]int64{"small": 3, "medium": 3, "large": 1} {
 		if got := fit(size); got != want {
 			t.Errorf("%d %s sessions fit an empty node, want %d (docs/session-sizes.md, the catalogue's rates)", got, size, want)
 		}

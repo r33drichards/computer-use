@@ -154,7 +154,7 @@ def render(pr, sha, images, now=None):
     opa_config = (ROOT / "docs/contracts/policy/opa-config.yaml").read_text().replace("policy-operator.browserjs-sessions.svc", f"policy-operator.{ns}.svc")
     result.append({"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": "opa-config", "namespace": ns}, "data": {"opa-config.yaml": opa_config, "system-authz.rego": (ROOT / "docs/contracts/policy/system-authz.rego").read_text()}})
     result += [
-        {"apiVersion": "v1", "kind": "ResourceQuota", "metadata": {"name": "preview", "namespace": ns}, "spec": {"hard": {"pods": "10", "persistentvolumeclaims": "2", "requests.storage": "10Gi", "requests.cpu": "3", "requests.memory": "6Gi", "count/sandboxes.agents.x-k8s.io": "2", "services.loadbalancers": "0", "services.nodeports": "0"}}},
+        {"apiVersion": "v1", "kind": "ResourceQuota", "metadata": {"name": "preview", "namespace": ns}, "spec": {"hard": {"pods": "10", "persistentvolumeclaims": "2", "requests.storage": "64Gi", "requests.cpu": "3", "requests.memory": "6Gi", "count/sandboxes.agents.x-k8s.io": "2", "services.loadbalancers": "0", "services.nodeports": "0"}}},
         {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": "default-deny", "namespace": ns}, "spec": {"podSelector": {}, "policyTypes": ["Ingress"], "ingress": []}},
     ]
     # Quotas and ingress isolation must exist before any PR image starts.

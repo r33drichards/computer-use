@@ -27,6 +27,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 COPY --from=builder --chmod=755 /mcp-v8 /usr/local/bin/mcp-v8
 RUN mcp-v8 --version
 COPY images/mcp-js/mcp_tools.rego images/mcp-js/filesystem.rego images/mcp-js/fetch.rego images/mcp-js/mcp-servers.json images/mcp-js/mcp-servers.no-exec.json images/mcp-js/run_js.md images/mcp-js/instructions.md /etc/mcp/
+# Warm-session templates require this policy file; verify the packaged image.
+RUN test -r /etc/mcp/fetch.rego
 COPY --chmod=755 images/mcp-js/start.sh /usr/local/bin/start.sh
 COPY --from=documentation /skills/ /etc/mcp/skills/
 # Native hook deadlines must not be consumed by UDP resolver stalls.

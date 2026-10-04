@@ -1,6 +1,6 @@
 # The sizes a session can have besides "small". Small is blueprint.yaml as it
 # is written (and the SandboxTemplate of warmpool.yaml, which is the same):
-# 1.5 CPU and 2 GiB for the desktop. A size here is that same pod with other
+# 1.5 CPU and 2 GiB limit for the desktop (850m and 2 GiB requested). A size here is that same pod with other
 # numbers, and can say nothing else: each container's requests and limits,
 # the size of /dev/shm, and environment variables that go with the size. The
 # backend (internal/sessions/sizes.go) puts them into the blueprint when a
@@ -67,15 +67,9 @@ sizes:
           MCP_V8_HEAP_MEMORY_MAX: "32"
     shm: 4Gi
 
-# The room there is for sessions, for refusing one that would only wait
-# ("no capacity for a large session right now") instead of leaving it
-# starting until it times out. nodes is how many session nodes the project's
-# quotas allow at once (12 CPUs: the system node and two session nodes of 4;
-# infra/main/terraform.tfvars), whatever session_max_nodes says. cpu and
-# memory are what one such node has left for session pods once GKE's own
-# pods have theirs: the "left for sessions" row of warmpool.yaml. Raise nodes
-# with the quota.
+# One production session node in us-west1-c. Conservative room after node
+# services: three small sessions (1 CPU/2.5 GiB requested each) fit.
 capacity:
-  nodes: 2
+  nodes: 1
   cpu: 3213m
   memory: 12097Mi
