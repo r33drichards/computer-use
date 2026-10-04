@@ -63,7 +63,7 @@ env_block() { # session id
     {"mcp_tools":{"mode":"all","policies":[
     {"url":"file:///etc/mcp/mcp_tools.rego"},
     {"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/$1/mcp_tools"}]},
-    "filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]}}
+    "filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]},"fetch":{"policies":[{"url":"file:///etc/mcp/fetch.rego"}]}}
 BLOCK
 }
 
