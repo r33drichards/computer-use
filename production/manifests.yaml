@@ -1902,6 +1902,7 @@ spec:
   - dex.computeruse.site
   - sessions.computeruse.site
   - '*.sessions.computeruse.site'
+  - '*.preview.computeruse.site'
   issuerRef:
     kind: ClusterIssuer
     name: letsencrypt-production
