@@ -631,7 +631,7 @@ data:
     \     runAsUser: 1000\n      runAsGroup: 1000\n      # No seccompProfile: GKE\
     \ Sandbox does not support seccomp (gVisor is\n      # the system call filter),\
     \ and the policies do not ask for one.\n    containers:\n      - name: browser\n\
-    \        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/browser@sha256:58b11812b7651f2b3af7a754feda7a3eca05d21db81af73916b47d037faad3de\n\
+    \        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/browser@sha256:873e3e15d249b6f171805549c5969bf169bb0a22545cb03f799b5d2ee2bd286e\n\
     \        env:\n          - name: SESSION_MODE\n            value: \"1\"\n    \
     \      - name: DATA_DIR\n            value: /data\n          - name: TAB_STATE_FILE\n\
     \            value: /data/chrome/browserjs-tabs.json\n        ports:\n       \
@@ -657,7 +657,7 @@ data:
     \          allowPrivilegeEscalation: false\n          capabilities:\n        \
     \    drop: [\"ALL\"]\n        volumeMounts:\n          - name: data\n        \
     \    mountPath: /data/chrome\n            subPath: chrome\n          - name: shm\n\
-    \            mountPath: /dev/shm\n      - name: mcp-js\n        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/mcp-js@sha256:e3e1e5501814d36c33a02c66bac9ed3b0c0c799e9c3597b144b854621f69a1a6\n\
+    \            mountPath: /dev/shm\n      - name: mcp-js\n        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/mcp-js@sha256:7c2ee8fcbf752ad920c4c30d05f4b6db9b72ea58564f69b178bd5c53edfc6d09\n\
     \        env:\n          # One-time upload URLs are made from this (mcp-js appends\n\
     \          # /api/artifact-uploads/<token>), so they come back under the\n   \
     \       # session's own prefix.\n          - name: MCP_V8_PUBLIC_URL\n       \
@@ -725,7 +725,7 @@ data:
     \ nodes\n# with the quota.\ncapacity:\n  nodes: 2\n  cpu: 3213m\n  memory: 12097Mi\n"
 kind: ConfigMap
 metadata:
-  name: session-blueprint-d8f9744c29
+  name: session-blueprint-7fkm8g6tcm
   namespace: browserjs-sessions
   annotations:
     argocd.argoproj.io/sync-wave: '0'
@@ -991,7 +991,7 @@ spec:
           value: '200'
         - name: SIGNUPS_PER_IP_PER_DAY
           value: '5'
-        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:2d4de7d8698732abeaf465cc1ed720ed4f439f825f4cbfd71e429e6c34ade6bd
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:219cf78fb3c3681616b45b212563fc43ff69172d875b0e9fb7eaa3a8c5ae9f8f
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1043,7 +1043,7 @@ spec:
         projected:
           sources:
           - configMap:
-              name: session-blueprint-d8f9744c29
+              name: session-blueprint-7fkm8g6tcm
           - configMap:
               name: billing-catalogue
           - configMap:
@@ -1104,7 +1104,7 @@ spec:
               key: METRONOME_API_TOKEN
               name: metronome
               optional: true
-        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/billing-operator@REPLACE_WITH_DIGEST
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/billing-operator@sha256:67a2b405a4e883fdfe6c47ff8803c35788c475198391ba07d105ecc03a0e0239
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1371,7 +1371,7 @@ spec:
             secretKeyRef:
               key: operator-api-token
               name: policy-tokens
-        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/policy-operator@sha256:e1a4f6bb7054f9e47a0464f394900cece813323f12dfc79bf76dcb7c934b5977
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/policy-operator@sha256:647b37935c87b8abbf66da341ea0596d2f3951882cf5b1728af2cd99568be425
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1934,7 +1934,7 @@ spec:
           value: /data
         - name: TAB_STATE_FILE
           value: /data/chrome/browserjs-tabs.json
-        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/browser@sha256:58b11812b7651f2b3af7a754feda7a3eca05d21db81af73916b47d037faad3de
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/browser@sha256:873e3e15d249b6f171805549c5969bf169bb0a22545cb03f799b5d2ee2bd286e
         name: browser
         ports:
         - containerPort: 6080
@@ -1983,7 +1983,7 @@ spec:
           value: '{"mcp_tools":{"mode":"all","policies":[ {"url":"file:///etc/mcp/mcp_tools.rego"},
             {"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/$(SESSION_ID)/mcp_tools"}]},
             "filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]}}'
-        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/mcp-js@sha256:e3e1e5501814d36c33a02c66bac9ed3b0c0c799e9c3597b144b854621f69a1a6
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/mcp-js@sha256:7c2ee8fcbf752ad920c4c30d05f4b6db9b72ea58564f69b178bd5c53edfc6d09
         name: mcp-js
         ports:
         - containerPort: 8080
