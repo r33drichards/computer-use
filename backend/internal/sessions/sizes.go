@@ -526,6 +526,10 @@ func (s *Store) Resize(ctx context.Context, id, asked string) error {
 // and every warm one is a Sandbox, with its node in its status and what its
 // pod asks for in its template.
 func (s *Store) room(ctx context.Context, size string, spec map[string]any, exclude string) error {
+	return s.roomWithWarm(ctx, size, spec, exclude, true)
+}
+
+func (s *Store) roomWithWarm(ctx context.Context, size string, spec map[string]any, exclude string, includeWarm bool) error {
 	z := s.sizes
 	if z.nodes == 0 {
 		return nil
@@ -540,6 +544,9 @@ func (s *Store) room(ctx context.Context, size string, spec map[string]any, excl
 	var waiting []use
 	for i := range list.Items {
 		obj := &list.Items[i]
+		if !includeWarm && isWarm(obj) {
+			continue
+		}
 		if obj.GetName() == exclude || obj.GetDeletionTimestamp() != nil || operatingMode(obj) == "Suspended" {
 			continue
 		}

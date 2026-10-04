@@ -11,6 +11,10 @@ rules:
   - apiGroups: [agents.x-k8s.io]
     resources: [sandboxes]
     verbs: [list]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    resourceNames: [session-capacity]
+    verbs: [get]
   - apiGroups: [""]
     resources: [persistentvolumeclaims]
     verbs: [list]
@@ -79,8 +83,8 @@ spec:
           configMap:
             name: session-slot-controller
 ---
-# Proxy (1Gi) plus exactly three session disks (3 x 32Gi). This also
-# prevents a claim/replenishment race from allocating a fourth session disk.
+# Three session slots. HDD budget leaves room for account-specific disk
+# limits above 128Gi without consuming the SSD quota.
 apiVersion: v1
 kind: ResourceQuota
 metadata:
@@ -88,4 +92,22 @@ metadata:
 spec:
   hard:
     count/sandboxes.agents.x-k8s.io: "3"
-    browserjs-zonal.storageclass.storage.k8s.io/requests.storage: 97Gi
+    browserjs-session-hdd.storageclass.storage.k8s.io/requests.storage: 1536Gi
+
+---
+apiVersion: coordination.k8s.io/v1
+kind: Lease
+metadata:
+  name: session-capacity
+spec: {}
+
+---
+# Shared HDD budget plus the existing 107Gi balanced-disk allocation. Legacy
+# session disks, Pomerium and Redis retain their storage classes and contents.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: session-storage-budget
+spec:
+  hard:
+    requests.storage: 1643Gi

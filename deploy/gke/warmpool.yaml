@@ -195,7 +195,7 @@ spec:
         name: data
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: browserjs-zonal
+        storageClassName: browserjs-session-hdd
         resources:
           requests:
             storage: 32Gi

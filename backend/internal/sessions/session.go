@@ -104,6 +104,7 @@ type Session struct {
 	// Size is the size the session runs at (sizes.go). PendingSize is one
 	// asked for while it was awake: it has it from its next start, which is
 	// a fresh one.
+	DiskGB      int    `json:"diskGB,omitempty"`
 	Size        string `json:"size"`
 	PendingSize string `json:"pendingSize,omitempty"`
 	PodIP       string `json:"-"`
@@ -152,6 +153,7 @@ func conditions(obj *unstructured.Unstructured) map[string]condition {
 
 // FromSandbox derives the API view of a session from its Sandbox.
 func FromSandbox(obj *unstructured.Unstructured) Session {
+	spec, _ := obj.Object["spec"].(map[string]any)
 	s := Session{
 		ID:      obj.GetName(),
 		Name:    obj.GetAnnotations()[AnnName],
@@ -161,6 +163,7 @@ func FromSandbox(obj *unstructured.Unstructured) Session {
 		PolicyCapable:  PolicyCapable(obj),
 		WebhookCapable: WebhookCapable(obj),
 		Size:           sizeOf(obj),
+		DiskGB:         diskGBOf(spec),
 	}
 	if to := obj.GetAnnotations()[AnnResizeTo]; to != s.Size {
 		s.PendingSize = to

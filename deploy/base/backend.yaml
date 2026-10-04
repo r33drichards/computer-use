@@ -14,6 +14,13 @@ rules:
   - apiGroups: ["agents.x-k8s.io"]
     resources: ["sandboxes"]
     verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "patch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    resourceNames: ["session-capacity"]
+    verbs: ["get", "patch"]
   # A session taken from a warm pool (WARM_POOL) is asked for with a
   # SandboxClaim, and deleted by deleting it.
   - apiGroups: ["extensions.agents.x-k8s.io"]

@@ -32,6 +32,7 @@ import (
 	"github.com/r33drichards/computer-use/backend/internal/auth"
 	"github.com/r33drichards/computer-use/backend/internal/authz"
 	"github.com/r33drichards/computer-use/backend/internal/config"
+	"github.com/r33drichards/computer-use/backend/internal/featureflags"
 	"github.com/r33drichards/computer-use/backend/internal/idle"
 	"github.com/r33drichards/computer-use/backend/internal/leader"
 	"github.com/r33drichards/computer-use/backend/internal/metrics"
@@ -131,6 +132,9 @@ func run() error {
 	}
 	if cfg.WarmPool != "" {
 		store.EnableWarmPool(cfg.WarmPool, cfg.WarmPoolWait)
+		if cfg.WarmCapacity {
+			store.EnableWarmCapacity()
+		}
 	}
 	verifier, err := auth.NewJWKSVerifier(ctx, cfg.PomeriumJWKSURL, cfg.AdminEmails)
 	if err != nil {
@@ -314,6 +318,14 @@ func newHandlerWith(cfg config.Config, verifier auth.Verifier, store *sessions.S
 
 	apiMux := http.NewServeMux()
 	sessionAPI := api.New(store, owners, cfg.SessionURLs, cfg.MaxSessionsPerUser)
+	if cfg.FeatureFlagsPath != "" {
+		client, err := featureflags.Client(cfg.FeatureFlagsPath)
+		if err != nil {
+			slog.Error("feature flags", "err", err)
+		} else {
+			sessionAPI.SetDiskFlags(client)
+		}
+	}
 	// The release's canary (docs/releases.md): the admins, by address, may
 	// start a session on other digests of the session images.
 	sessionAPI.SetCanary(cfg.AdminEmails)

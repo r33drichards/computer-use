@@ -126,12 +126,12 @@ function refusalAlert(r: Refusal) {
 // button is disabled, the line beneath the form, and what to do with a
 // refusal that still comes from the server.
 // `size` is the size chosen on the form: the cost is that size's.
-export function useCreateGate(size?: string) {
+export function useCreateGate(size?: string, diskGB?: number) {
   const { billing, sessions, reload } = useBilling()
   const [fromServer, setFromServer] = useState<Refusal | null>(null)
   const known = billing ? createRefusal(billing, sessions) : null
   const refusal = known ?? fromServer
-  const words = billing ? { ...ratesInWords(billing.rates), awake: dollars(awakeRate(billing, size)) } : null
+  const words = billing ? { ...ratesInWords({ ...billing.rates, sessionDiskGB: diskGB && Number.isInteger(diskGB) ? diskGB : billing.rates.sessionDiskGB }), awake: dollars(awakeRate(billing, size)) } : null
 
   return {
     alert: refusal ? <div data-testid="create-refusal">{refusalAlert(refusal)}</div> : null,
