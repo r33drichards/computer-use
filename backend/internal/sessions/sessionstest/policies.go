@@ -22,7 +22,7 @@ import (
 
 // PolicyEnv is the value of mcp-js's MCP_V8_POLICIES_JSON in a session that
 // asks OPA for decisions, as docs/contracts/policy/deploy.md has it.
-const PolicyEnv = `{"mcp_tools":{"mode":"all","policies":[{"url":"file:///etc/mcp/mcp_tools.rego"},{"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/{{ .ID }}/mcp_tools"}]},"filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]}}`
+const PolicyEnv = `{"mcp_tools":{"mode":"all","policies":[{"url":"file:///etc/mcp/mcp_tools.rego"},{"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/{{ .ID }}/mcp_tools"}]},"filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]},"fetch":{"mode":"all","policies":[{"url":"file:///etc/mcp/fetch.rego"},{"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/{{ .ID }}/mcp_tools"}]}}`
 
 // PolicyBlueprint is Blueprint as it is once policies are deployed.
 var PolicyBlueprint = strings.Replace(Blueprint, `            value: "{{ .SessionURL }}"

@@ -75,6 +75,7 @@ jobs:
 
       - name: Current production must pass before release
         env:
+          EXPECT_MCP_CAPABILITIES: "0"
           CANARY_API_TOKEN: ${{ secrets.CANARY_API_TOKEN }}
         run: test/canary.py
 
@@ -119,7 +120,7 @@ jobs:
           CANARY_API_TOKEN: ${{ secrets.CANARY_API_TOKEN }}
         run: |
           hack/gitops/rollback.sh "$FAILED" "$PREVIOUS"
-          test/canary.py
+          EXPECT_MCP_CAPABILITIES=0 test/canary.py
 
       - name: Release summary
         if: always()
