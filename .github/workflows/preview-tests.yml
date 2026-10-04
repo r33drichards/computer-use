@@ -31,3 +31,5 @@ jobs:
           persist-credentials: false
       - run: python3 -m pip install PyYAML==6.0.3
       - run: python3 -m unittest discover -s test/preview -v
+      - name: Lint preview and production deployment workflows
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck= .github/workflows/preview-build.yml .github/workflows/preview-deploy.yml .github/workflows/preview-cleanup.yml .github/workflows/preview-tests.yml .github/workflows/deploy.yml

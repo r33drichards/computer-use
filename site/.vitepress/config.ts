@@ -1,8 +1,8 @@
 import { defineConfig } from "vitepress"
 
 // Where the site is served.
-const origin = "https://computeruse.site"
-const app = "https://app.computeruse.site"
+const origin = process.env.VITEPRESS_SITE_ORIGIN || "https://computeruse.site"
+const app = process.env.VITEPRESS_APP_URL || "https://app.computeruse.site"
 
 const tutorials = [
   { text: "Create a desktop and connect an agent", link: "/tutorials/first-desktop" },
@@ -54,6 +54,7 @@ export default defineConfig({
   // Black on white only, like the app.
   appearance: false,
   sitemap: { hostname: origin },
+  head: process.env.VITEPRESS_PREVIEW === "true" ? [["meta", { name: "robots", content: "noindex, nofollow" }]] : [],
   // Each page names its one address.
   transformPageData(pageData) {
     const path = pageData.relativePath.replace(/(^|\/)index\.md$/, "$1").replace(/\.md$/, "")

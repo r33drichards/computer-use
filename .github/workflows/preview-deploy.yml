@@ -1,0 +1,148 @@
+name: preview deploy
+
+# workflow_run executes trusted main workflow code. Artifacts are Docker
+# archives only; never run an artifact or check out the PR with credentials.
+on:
+  workflow_run:
+    workflows: [preview build]
+    types: [completed]
+
+permissions:
+  contents: read
+
+# Serialize shared edge edits with production deployment and cleanup.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  CLUSTER: browserjs
+  CLUSTER_LOCATION: us-west1-a
+  KUBECTL_VERSION: v1.36.5
+
+jobs:
+  verify:
+    if: >-
+      github.ref == 'refs/heads/main' && vars.PREVIEWS_ENABLED == 'true' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      eligible: ${{ steps.source.outputs.eligible }}
+      pr: ${{ steps.source.outputs.pr }}
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - run: python3 -m pip install PyYAML==6.0.3
+      - name: Verify run, PR ownership, label and current head
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: python3 hack/preview_lifecycle.py resolve-run --run-id "$RUN_ID"
+
+  publish:
+    needs: verify
+    if: needs.verify.outputs.eligible == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [backend, site, policy-operator, browser, mcp-js]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - run: python3 -m pip install PyYAML==6.0.3
+      - name: Recheck current PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ needs.verify.outputs.pr }}
+          SHA: ${{ needs.verify.outputs.sha }}
+        run: python3 hack/preview_lifecycle.py guard --pr "$PR" --sha "$SHA"
+      - name: Free disk for the browser archive
+        if: matrix.name == 'browser'
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/share/boost
+          sudo docker image prune --all --force
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: preview-${{ matrix.name }}
+          path: ${{ runner.temp }}/image
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.PREVIEW_PUBLISH_SA }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - name: Publish exact image and record its digest
+        env:
+          IMAGE_NAME: ${{ matrix.name }}
+          PREVIEW_REGISTRY: ${{ vars.PREVIEW_REGISTRY }}
+          PR: ${{ needs.verify.outputs.pr }}
+          SHA: ${{ needs.verify.outputs.sha }}
+        run: |
+          python3 hack/preview_publish.py --archive "$RUNNER_TEMP/image/$IMAGE_NAME.tar" --name "$IMAGE_NAME" --pr "$PR" --sha "$SHA" --output "$RUNNER_TEMP/$IMAGE_NAME.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: published-${{ matrix.name }}
+          path: ${{ runner.temp }}/${{ matrix.name }}.json
+          if-no-files-found: error
+          retention-days: 2
+
+  deploy:
+    needs: [verify, publish]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: previews
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+      deployments: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - run: python3 -m pip install PyYAML==6.0.3
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: published-*
+          path: ${{ runner.temp }}/published
+          merge-multiple: true
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.PREVIEW_DEPLOY_SA }}
+      - uses: azure/setup-kubectl@829323503d1be3d00ca8346e5391ca0b07a9ab0d # v5.1.0
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+      - uses: google-github-actions/get-gke-credentials@3da1e46a907576cefaa90c484278bb5b259dd395 # v3.0.0
+        with:
+          cluster_name: ${{ env.CLUSTER }}
+          location: ${{ env.CLUSTER_LOCATION }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          use_dns_based_endpoint: "true"
+      - name: Deploy isolated namespace and publish links
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ needs.verify.outputs.pr }}
+          SHA: ${{ needs.verify.outputs.sha }}
+        run: python3 hack/preview_lifecycle.py deploy --pr "$PR" --sha "$SHA" --images-dir "$RUNNER_TEMP/published"

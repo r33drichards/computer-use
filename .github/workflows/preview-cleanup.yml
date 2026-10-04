@@ -1,0 +1,69 @@
+name: preview cleanup
+
+# This target event NEVER checks out or runs PR code. Only trusted main
+# scripts receive the deployer identity. The sweep catches missed events.
+on:
+  pull_request_target:
+    types: [closed, unlabeled, converted_to_draft]
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: PR number to reconcile (empty sweeps all previews)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  CLUSTER: browserjs
+  CLUSTER_LOCATION: us-west1-a
+  KUBECTL_VERSION: v1.36.5
+
+jobs:
+  cleanup:
+    if: github.ref == 'refs/heads/main' && vars.PREVIEWS_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: previews
+    permissions:
+      contents: read
+      pull-requests: write
+      deployments: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - run: python3 -m pip install PyYAML==6.0.3
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.PREVIEW_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - uses: azure/setup-kubectl@829323503d1be3d00ca8346e5391ca0b07a9ab0d # v5.1.0
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+      - uses: google-github-actions/get-gke-credentials@3da1e46a907576cefaa90c484278bb5b259dd395 # v3.0.0
+        with:
+          cluster_name: ${{ env.CLUSTER }}
+          location: ${{ env.CLUSTER_LOCATION }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          use_dns_based_endpoint: "true"
+      - name: Remove closed, unlabelled, draft or expired previews
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number || inputs.pr }}
+        run: |
+          if [ -n "$PR" ]; then
+            python3 hack/preview_lifecycle.py cleanup --pr "$PR"
+          else
+            python3 hack/preview_lifecycle.py cleanup
+          fi

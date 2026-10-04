@@ -159,14 +159,14 @@ def render(pr, sha, images, now=None):
     return sorted(result, key=lambda obj: priority.get(obj["kind"], 6))
 
 
-def live_previews():
+def live_previews(include_terminating=False):
     items = json.loads(kubectl("get", "namespaces", "-l", f"{MANAGED}={MANAGER}", "-o", "json"))["items"]
     previews = []
     for obj in items:
         pr = pr_number(obj["metadata"]["labels"][LABEL])
         if obj["metadata"]["name"] != namespace(pr):
             raise ValueError("Preview label on an unexpected namespace")
-        if "deletionTimestamp" not in obj["metadata"]:
+        if include_terminating or "deletionTimestamp" not in obj["metadata"]:
             previews.append(pr)
     return sorted(previews, key=int)
 

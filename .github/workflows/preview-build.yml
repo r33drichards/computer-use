@@ -1,0 +1,81 @@
+name: preview build
+
+# No cloud identity, registry login or write-capable GitHub token here.
+# Build the PR's exact head, not GitHub's synthetic merge commit.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-build-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: >-
+      vars.PREVIEWS_ENABLED == 'true' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !github.event.pull_request.draft &&
+      contains(github.event.pull_request.labels.*.name, 'preview') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'preview')
+    name: preview ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend
+            context: .
+            file: Dockerfile
+            timeout: 30
+          - name: site
+            context: site
+            file: site/Dockerfile
+            timeout: 15
+          - name: policy-operator
+            context: .
+            file: images/policy-operator/Dockerfile
+            timeout: 15
+          - name: browser
+            context: images/browser
+            file: images/browser/Dockerfile
+            timeout: 120
+          - name: mcp-js
+            context: images/mcp-js
+            file: images/mcp-js/Dockerfile
+            timeout: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Free disk for the browser image
+        if: matrix.name == 'browser'
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/share/boost
+          sudo docker image prune --all --force
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          platforms: linux/amd64
+          tags: preview/${{ matrix.name }}:build
+          push: false
+          provenance: false
+          outputs: type=docker,dest=${{ runner.temp }}/${{ matrix.name }}.tar
+          build-args: |
+            VITEPRESS_SITE_ORIGIN=https://site-pr-${{ github.event.pull_request.number }}.preview.computeruse.site
+            VITEPRESS_APP_URL=https://app-pr-${{ github.event.pull_request.number }}.preview.computeruse.site
+            VITEPRESS_PREVIEW=true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: preview-${{ matrix.name }}
+          path: ${{ runner.temp }}/${{ matrix.name }}.tar
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 0

@@ -48,7 +48,8 @@ credentials or deployment secrets. Publishing and deployment execute only
 trusted main scripts, in separate jobs/runners. The publisher can write only
 the preview registry. The separate deployer has GKE administrator access
 because namespace/RBAC creation and the shared edge ConfigMap need it;
-its main-only identity must never be granted to a PR job. Neither identity
+its main-only identity must never be granted to a PR job. It also has
+writer access to the preview registry to remove obsolete tags. Neither identity
 can be used by a preview pod. Production image repositories are unchanged.
 
 ## One-time setup
@@ -61,13 +62,16 @@ can be used by a preview pod. Production image repositories are unchanged.
    - `PREVIEW_REGISTRY`: `preview_registry_url`
    - `PREVIEW_PUBLISH_SA`: `preview_publisher_service_account_email`
    - `PREVIEW_DEPLOY_SA`: `preview_deployer_service_account_email`
-   - `PREVIEWS_ENABLED`: `true`, after the next step succeeds.
-3. Run the production **deploy** workflow on main with its existing `deploy`
+   Leave `PREVIEWS_ENABLED` unset until step 4.
+3. Merge the automation PR, then run the production **deploy** workflow on main with its existing `deploy`
    confirmation. This adds `*.preview.computeruse.site` to the existing
-   Pomerium certificate. Wait for the certificate to be Ready before
+   Pomerium certificate and installs the preview deployer's explicit
+   cluster-admin binding for custom-resource operations. This is a cloud
+   identity, not a ServiceAccount available to preview pods. Wait for the
+   certificate to be Ready before
    enabling preview workflows. The DNS and certificate names are deliberately
    fixed to this repository's GKE deployment, as in `deploy/gke`.
-4. Merge the automation PR. Label a same-repository, non-draft PR `preview`.
+4. Set `PREVIEWS_ENABLED=true`. Label a same-repository, non-draft PR `preview`.
    The workflow builds and creates its environment. Fork PRs are refused.
 
 The workflows need no new repository secrets. Existing GCP Workload
@@ -90,8 +94,11 @@ and removes environments seven days after their last deployment. This is a
 hard expiry even for open PRs, to bound forgotten environments; push another
 commit or remove/re-add the label to recreate one. Namespace deletion also
 removes session resources and PVCs; the disk provisioner reclaims the disks.
-Image versions expire after 14 days in the preview registry. Refreshing an
-old environment requires a new build so its images will not expire in use.
+The sweep removes registry tags belonging to namespaces that no longer
+exist or are terminating, including tags left by failed publications.
+Artifact Registry reclaims untagged versions older than 14 days. Every tag
+of a live preview is retained, including previous rollout images; identical
+images shared by another active preview remain tagged and are protected.
 
 Reconciliation edits the ConfigMap mounted by the current production
 Pomerium StatefulSet and preserves all non-preview routes. It uses
