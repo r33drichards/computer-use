@@ -432,3 +432,50 @@ func TestResizeDropsTheSnapshot(t *testing.T) {
 		}
 	})
 }
+
+func TestAdmissionReservesFutureNodesForPendingSessions(t *testing.T) {
+	store, client := sessionstest.NewSized(t)
+	// Fill the first existing node. A large request must be admitted even
+	// though the second node has not been provisioned yet.
+	for range 7 {
+		place(t, store, client, "small", "node-1")
+	}
+	made, err := store.CreateSized(t.Context(), "pending", "alice@example.com", "large", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if made.State != sessions.Starting {
+		t.Fatalf("state = %s", made.State)
+	}
+	// Another large cannot wait for a third node: the ceiling is two.
+	if _, err := store.CreateSized(t.Context(), "overflow", "alice@example.com", "large", nil); !errors.Is(err, sessions.ErrNoCapacity) {
+		t.Fatalf("extra pending large: %v", err)
+	}
+}
+
+func TestOversubscribedPendingPodsDoNotDisappearFromAdmission(t *testing.T) {
+	store, client := sessionstest.NewSized(t)
+	var last string
+	for range 6 {
+		made, err := store.CreateSized(t.Context(), "pending", "alice@example.com", "medium", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		last = made.ID
+	}
+	// Simulate another writer admitting a pod beyond the two-node budget.
+	resource := client.Resource(sessions.SandboxGVR).Namespace(sessionstest.Namespace)
+	extra, err := resource.Get(t.Context(), last, metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	extra.SetName("s-bcdfghjklm")
+	extra.SetResourceVersion("")
+	extra.SetUID("")
+	if _, err := resource.Create(t.Context(), extra, metav1.CreateOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Create(t.Context(), "small", "alice@example.com"); !errors.Is(err, sessions.ErrNoCapacity) {
+		t.Fatalf("overloaded pending queue accepted another pod: %v", err)
+	}
+}

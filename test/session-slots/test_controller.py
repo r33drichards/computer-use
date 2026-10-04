@@ -48,8 +48,22 @@ class SlotsTest(unittest.TestCase):
         self.assertIsNotNone(slots.active_reservation(lease, now))
         self.assertIsNone(slots.active_reservation(lease, now + timedelta(seconds=120)))
 
-    def test_more_than_three_sessions_fit_larger_compute_budget(self):
-        self.assertEqual(slots.desired_replicas([running(f's-{i}') for i in range(4)], cpu=6426, memory=24194), 2)
+    def test_multiple_nodes_do_not_multiply_warm_budget(self):
+        items = [running(f's-{i}') for i in range(4)]
+        for index, item in enumerate(items):
+            item['status'] = {'nodeName': f'node-{index // 3}'}
+        self.assertEqual(slots.desired_replicas(items), 0)
+
+    def test_stopping_medium_keeps_compute_until_pod_is_gone(self):
+        small = [running('s-a'), running('s-b')]
+        stopped = sandbox('s-medium')
+        stopped['spec'] = {'operatingMode': 'Suspended'}
+        pod = {'metadata': {'name': 's-medium'}, 'spec': running('s-medium', '1500m', '5632Mi')['spec']['podTemplate']['spec']}
+        self.assertEqual(slots.desired_replicas(small + [stopped], pods=[pod]), 0)
+        self.assertEqual(slots.desired_replicas(small + [stopped]), 1)
+
+    def test_terminating_pod_cannot_attract_a_warm_replacement(self):
+        self.assertEqual(slots.desired_replicas([], pods=[{'metadata': {'name': 's-old', 'deletionTimestamp': 'now'}}]), 0)
 
 
 if __name__ == '__main__':

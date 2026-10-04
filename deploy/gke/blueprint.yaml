@@ -11,11 +11,22 @@
 # and the owner label.
 podTemplate:
   metadata:
+    annotations:
+      cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
     labels:
       app: browserjs-session
   spec:
     # The managed add-on's sandbox-core-policy requires gVisor; the label and
     # taint are what GKE puts on the sessions node pool.
+    # Prefer packing beside existing sessions, but allow a new node.
+    affinity:
+      podAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels: {app: browserjs-session}
+              topologyKey: kubernetes.io/hostname
     runtimeClassName: gvisor
     nodeSelector:
       sandbox.gke.io/runtime: gvisor

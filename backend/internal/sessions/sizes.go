@@ -584,7 +584,9 @@ func (s *Store) roomWithWarm(ctx context.Context, size string, spec map[string]a
 	}
 	// Pods already waiting for a node were there first.
 	for _, u := range waiting {
-		place(u)
+		if !place(u) {
+			return &NoCapacityError{Size: size}
+		}
 	}
 	if !place(use{cpu, mem}) {
 		return &NoCapacityError{Size: size}
