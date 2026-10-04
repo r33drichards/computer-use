@@ -1,6 +1,6 @@
 # No restrictions: every operation in the browser, full control of the
 # desktop, and any shell command.
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

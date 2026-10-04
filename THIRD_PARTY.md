@@ -23,7 +23,7 @@ the image digests in the Dockerfiles, and the lock files.
 | kopf and the Python dependencies | the two operator images (`requirements.txt`) | MIT, BSD, Apache-2.0 | |
 | Python, Debian (`python:3.12-slim`), distroless | image bases | PSF, various | |
 | Cloudscape, React, Monaco | `web/` (npm) | Apache-2.0, MIT, MIT | bundled into the backend image |
-| Go modules | `backend/`, `terraform-provider-browserjs/` (`go.sum`) | BSD, MIT, Apache-2.0, MPL-2.0 (HashiCorp plugin framework) | |
+| Go modules | `backend/`, `terraform-provider-computeruse/` (`go.sum`) | BSD, MIT, Apache-2.0, MPL-2.0 (HashiCorp plugin framework) | |
 | Fonts: DejaVu, Noto | `browser` image | Bitstream Vera terms, OFL-1.1 | |
 | Pomerium, Dex, cert-manager, Agent Sandbox | pulled by `deploy/`, not built here | Apache-2.0 | |
 

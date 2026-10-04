@@ -241,7 +241,7 @@ describe("blocked create", () => {
   it("always says what a session costs", async () => {
     await form("active")
     expect(screen.getByTestId("create-cost").textContent).toBe(
-      "This session will use $0.20 an hour while awake and $1.40 a month while it exists.",
+      "This session will use $0.20 an hour while awake and $8.97 a month while it exists.",
     )
     expect(screen.queryByTestId("create-refusal")).toBeNull()
     expect(disabled()).toBe(false)

@@ -13,6 +13,7 @@ export interface Session {
   // A session that is asleep holds a snapshot of its pod to wake from. Absent
   // (asleep without one, or stopped), it starts fresh, with its disk only.
   stateSaved?: boolean
+  diskGB?: number
   // The size it runs at, and one asked for while it was awake: it has that
   // one from its next start. Absent from a backend without sizes.
   size?: string
@@ -127,14 +128,18 @@ export function createApi(fetchImpl: Fetch = fetch) {
   }
 
   return {
+    getWebhook: async <T,>(id: string) => call<T>("GET", await sessionPath(id, "/webhook")),
+    putWebhook: async (id: string, settings: unknown) => call<void>("PUT", await sessionPath(id, "/webhook"), settings),
+    deleteWebhook: async (id: string) => call<void>("DELETE", await sessionPath(id, "/webhook")),
     me: () => call<Me>("GET", "/api/me"),
     listSessions: (all = false) => call<Session[]>("GET", all ? "/api/sessions?all=1" : "/api/sessions"),
     getSession: async (id: string) => call<Session>("GET", await sessionPath(id)),
     // The sizes a session can have here. A backend from before sizes has no such route.
     listSizes: () => call<Sizes>("GET", "/api/sizes"),
     // `size` is sent only when one is chosen: left out, the session is small.
-    createSession: (name: string, size?: string) => call<Session>("POST", "/api/sessions", size ? { name, size } : { name }),
+    createSession: (name: string, size?: string, diskGB?: number) => call<Session>("POST", "/api/sessions", { name, ...(size ? { size } : {}), ...(diskGB !== undefined ? { diskGB } : {}) }),
     // Takes effect at the session's next start, which is then a fresh one.
+    growDisk: async (id: string, diskGB: number) => call<Session>("PATCH", await sessionPath(id), { diskGB }),
     resizeSession: async (id: string, size: string) => call<Session>("PATCH", await sessionPath(id), { size }),
     renameSession: async (id: string, name: string) => call<Session>("PATCH", await sessionPath(id), { name }),
     setRunning: async (id: string, running: boolean) =>

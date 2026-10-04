@@ -1,17 +1,18 @@
 # Terraform and OpenTofu
 
-The `browserjs` provider creates Computer Use sessions and manages their
-policies through the [HTTP API](/reference/api). The provider and its resource
-names retain the product's earlier name.
+The `computeruse` provider creates Computer Use sessions and manages their
+policies through the [HTTP API](/reference/api). Resource and data-source types
+use `session`, `session_policy`, and `sessions`. Each block must set
+`provider = computeruse` because these type names do not infer the provider.
 
 This page covers every resource and data source in the Computer Use provider:
 
 | Type | Name | Use it to |
 | --- | --- | --- |
-| Resource | [`browserjs_session`](#resource-browserjs-session) | Create, rename, resize and delete a session |
-| Resource | [`browserjs_session_policy`](#resource-browserjs-session-policy) | Manage one session's Rego policy as code |
-| Data source | [`browserjs_session`](#data-source-browserjs-session) | Look up an existing session by ID or name |
-| Data source | [`browserjs_sessions`](#data-source-browserjs-sessions) | List every session belonging to the token's owner |
+| Resource | [`session`](#resource-session) | Create, rename, resize and delete a session |
+| Resource | [`session_policy`](#resource-session-policy) | Manage one session's Rego policy as code |
+| Data source | [`session`](#data-source-session) | Look up an existing session by ID or name |
+| Data source | [`sessions`](#data-source-sessions) | List every session belonging to the token's owner |
 
 There are no resources for API tokens, sleep/wake actions, or network rules
 in this provider. Create tokens in the app and use the API or app for session
@@ -30,7 +31,7 @@ From a checkout of the repository:
 
 ```sh
 git clone https://github.com/r33drichards/computer-use.git
-cd computer-use/terraform-provider-browserjs
+cd computer-use/terraform-provider-computeruse
 nix develop ..#sdk -c make install
 ```
 
@@ -51,9 +52,9 @@ Create an **API token** in the app. For all examples on this page, give it
 `sessions:connect` is needed only if that token will also call MCP.
 
 ```sh
-export BROWSERJS_TOKEN='bjs_...'
+export COMPUTERUSE_TOKEN='bjs_...'
 # Optional; this is the default:
-export BROWSERJS_ENDPOINT='https://api.computeruse.site'
+export COMPUTERUSE_ENDPOINT='https://api.computeruse.site'
 mkdir -p ~/computeruse-terraform
 cd ~/computeruse-terraform
 ```
@@ -63,15 +64,15 @@ Save this as `providers.tf` in that new directory:
 ```hcl
 terraform {
   required_providers {
-    browserjs = {
-      source  = "r33drichards/browserjs"
+    computeruse = {
+      source  = "r33drichards/computeruse"
       version = "0.1.0"
     }
   }
 }
 
-provider "browserjs" {
-  # Uses BROWSERJS_TOKEN and BROWSERJS_ENDPOINT.
+provider "computeruse" {
+  # Uses COMPUTERUSE_TOKEN and COMPUTERUSE_ENDPOINT.
 }
 ```
 
@@ -80,8 +81,8 @@ account, and data sources see that account's sessions.
 
 | Provider argument | Type | Default or environment variable |
 | --- | --- | --- |
-| `endpoint` | String, optional | `BROWSERJS_ENDPOINT`, then `https://api.computeruse.site`. Use the API host's base URL, without `/v1` |
-| `token` | Sensitive string, optional in HCL | `BROWSERJS_TOKEN`. A token is required to configure the provider |
+| `endpoint` | String, optional | `COMPUTERUSE_ENDPOINT`, then `https://api.computeruse.site`. Use the API host's base URL, without `/v1` |
+| `token` | Sensitive string, optional in HCL | `COMPUTERUSE_TOKEN`. A token is required to configure the provider |
 
 An explicit nonempty provider argument takes precedence over its environment
 variable. Keep the token in the environment rather than committing it to
@@ -89,7 +90,7 @@ HCL. For a self-hosted deployment, set `endpoint` to its API host; a nonlocal
 `http` endpoint produces a warning because credentials cross it unencrypted.
 
 For a development build using `dev_overrides`, follow the
-[provider installation instructions](https://github.com/r33drichards/computer-use/blob/main/terraform-provider-browserjs/README.md#for-development-dev_overrides).
+[provider installation instructions](https://github.com/r33drichards/computer-use/blob/main/terraform-provider-computeruse/README.md#for-development-dev_overrides).
 That route uses `plan` directly rather than registry installation through
 `init`. The examples below use the local installation above.
 
@@ -122,7 +123,9 @@ It creates one session, restricts its browser operations, reads that session
 back, lists the account's sessions, and exposes useful outputs.
 
 ```hcl
-resource "browserjs_session" "research" {
+resource "session" "research" {
+  provider = computeruse
+
   name = "research"
   size = "small"
 
@@ -135,13 +138,15 @@ resource "browserjs_session" "research" {
   }
 }
 
-resource "browserjs_session_policy" "research" {
-  session_id     = browserjs_session.research.id
+resource "session_policy" "research" {
+  provider = computeruse
+
+  session_id     = session.research.id
   managed_url    = "https://github.com/example/infra/tree/main/desktops"
   wait_for_ready = true
 
   rego = <<-EOT
-    package browserjs.policy
+    package computeruse.policy
 
     import rego.v1
 
@@ -162,39 +167,43 @@ resource "browserjs_session_policy" "research" {
   }
 }
 
-data "browserjs_session" "research" {
-  id = browserjs_session.research.id
+data "session" "research" {
+  provider = computeruse
 
-  depends_on = [browserjs_session_policy.research]
+  id = session.research.id
+
+  depends_on = [session_policy.research]
 }
 
-data "browserjs_sessions" "account" {
+data "sessions" "account" {
+  provider = computeruse
+
   # Read after this configuration has created its session and policy.
-  depends_on = [browserjs_session_policy.research]
+  depends_on = [session_policy.research]
 }
 
 output "research" {
   value = {
-    id           = data.browserjs_session.research.id
-    mcp_url      = data.browserjs_session.research.mcp_url
-    state        = data.browserjs_session.research.state
-    size         = data.browserjs_session.research.size
-    pending_size = data.browserjs_session.research.pending_size
-    owner        = data.browserjs_session.research.owner
+    id           = data.session.research.id
+    mcp_url      = data.session.research.mcp_url
+    state        = data.session.research.state
+    size         = data.session.research.size
+    pending_size = data.session.research.pending_size
+    owner        = data.session.research.owner
   }
 }
 
 output "policy" {
   value = {
-    state   = browserjs_session_policy.research.state
-    version = browserjs_session_policy.research.version
-    hash    = browserjs_session_policy.research.hash
+    state   = session_policy.research.state
+    version = session_policy.research.version
+    hash    = session_policy.research.hash
   }
 }
 
 output "account_sessions" {
   value = {
-    for session in data.browserjs_sessions.account.sessions :
+    for session in data.sessions.account.sessions :
     session.id => {
       name    = session.name
       mcp_url = session.mcp_url
@@ -226,7 +235,7 @@ is `ready` before connecting an agent. The dependencies above make the
 example's reads and outputs wait for the policy resource. They do not make
 session creation and policy attachment one atomic operation.
 
-## Resource: browserjs_session
+## Resource: session
 
 Creates one session and owns its lifecycle. Renaming or resizing updates it
 in place and retains its ID and disk. Destroying it deletes its disk, files,
@@ -275,7 +284,9 @@ resize. Use the app or API when you want the next start.
 With the shared `providers.tf`, save this as `main.tf`:
 
 ```hcl
-resource "browserjs_session" "desktop" {
+resource "session" "desktop" {
+  provider = computeruse
+
   name = "automation-desktop"
   size = "medium"
 
@@ -289,7 +300,7 @@ resource "browserjs_session" "desktop" {
 }
 
 output "desktop_mcp_url" {
-  value = browserjs_session.desktop.mcp_url
+  value = session.desktop.mcp_url
 }
 ```
 
@@ -302,14 +313,14 @@ the token endpoint described in [Use it from code](/guides/use-from-code).
 Define the resource in HCL, then import by session ID:
 
 ```sh
-terraform import browserjs_session.desktop s-ab2cd
+terraform import session.desktop s-ab2cd
 terraform plan
 ```
 
 Match `name` and `size` to the existing session before applying. Import
 brings the session under Terraform's lifecycle; it does not import its policy.
 
-## Resource: browserjs_session_policy
+## Resource: session_policy
 
 Manages one session's Rego policy. It changes the policy to `iac` mode, with
 the app showing a read-only policy and a link to `managed_url`. Policy edits
@@ -320,7 +331,7 @@ apply in place and restart neither the session nor its desktop.
 | Argument | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `session_id` | String | Yes | ID of the session. Changing it replaces the policy resource and resets the old session's policy; it does not replace either session |
-| `rego` | String | Yes | Rego v1 module declaring `package browserjs.policy` and defining `allow_tool_call`. Source must be nonempty and at most 65536 bytes |
+| `rego` | String | Yes | Rego v1 module declaring `package computeruse.policy` and defining `allow_tool_call`. Source must be nonempty and at most 65536 bytes |
 | `managed_url` | String | Yes | https URL of the configuration's location, shown in the app |
 | `wait_for_ready` | Boolean | No | Default `true`. Wait for the saved policy to be in force |
 | `timeouts` | Block | No | `create` and `update` are the readiness wait limits; each defaults to `2m` |
@@ -340,8 +351,10 @@ apply in place and restart neither the session nor its desktop.
 Instead of a heredoc, keep the source beside your HCL:
 
 ```hcl
-resource "browserjs_session_policy" "research" {
-  session_id  = browserjs_session.research.id
+resource "session_policy" "research" {
+  provider = computeruse
+
+  session_id  = session.research.id
   managed_url = "https://github.com/example/infra/tree/main/desktops"
   rego        = file("${path.module}/policy.rego")
 }
@@ -383,7 +396,7 @@ unrestricted.
 Import by the policy's session ID:
 
 ```sh
-terraform import browserjs_session_policy.research s-ab2cd
+terraform import session_policy.research s-ab2cd
 terraform plan
 ```
 
@@ -391,7 +404,7 @@ Define `session_id`, `rego` and `managed_url` first. Import reads the existing
 policy; if it was managed in the editor, the first apply takes it into
 managed-as-code mode. Importing a policy does not import its session.
 
-## Data source: browserjs_session
+## Data source: session
 
 Finds one session without managing its lifecycle. It needs `sessions:read`.
 Exactly one of `id` or `name` is required. Name lookup must match exactly one
@@ -413,20 +426,24 @@ sessions in your account. These are two separate lookups; they can name
 different sessions.
 
 ```hcl
-data "browserjs_session" "by_id" {
+data "session" "by_id" {
+  provider = computeruse
+
   id = "s-ab2cd"
 }
 
-data "browserjs_session" "by_name" {
+data "session" "by_name" {
+  provider = computeruse
+
   name = "research"
 }
 
 output "session_by_id" {
-  value = data.browserjs_session.by_id
+  value = data.session.by_id
 }
 
 output "session_by_name" {
-  value = data.browserjs_session.by_name
+  value = data.session.by_name
 }
 ```
 
@@ -438,16 +455,20 @@ URL. Removing this configuration's policy resets it; the session is not
 owned by Terraform and is not deleted.
 
 ```hcl
-data "browserjs_session" "existing" {
+data "session" "existing" {
+  provider = computeruse
+
   name = "research"
 }
 
-resource "browserjs_session_policy" "existing" {
-  session_id  = data.browserjs_session.existing.id
+resource "session_policy" "existing" {
+  provider = computeruse
+
+  session_id  = data.session.existing.id
   managed_url = "https://github.com/example/infra/tree/main/desktops"
 
   rego = <<-EOT
-    package browserjs.policy
+    package computeruse.policy
 
     import rego.v1
 
@@ -459,8 +480,8 @@ resource "browserjs_session_policy" "existing" {
 }
 
 output "existing_mcp_url" {
-  value      = data.browserjs_session.existing.mcp_url
-  depends_on = [browserjs_session_policy.existing]
+  value      = data.session.existing.mcp_url
+  depends_on = [session_policy.existing]
 }
 ```
 
@@ -469,7 +490,7 @@ desktop control and the shell. The token needs `sessions:read`,
 `policies:read` and `policies:write` for this example; `sessions:write` is not
 needed because the session is only read.
 
-## Data source: browserjs_sessions
+## Data source: sessions
 
 Lists all sessions belonging to the token's owner. It needs `sessions:read`
 and accepts no arguments or filters. It does not wait for session readiness.
@@ -477,15 +498,17 @@ and accepts no arguments or filters. It does not wait for session readiness.
 With `providers.tf`, save this as `main.tf`:
 
 ```hcl
-data "browserjs_sessions" "all" {}
+data "sessions" "all" {
+  provider = computeruse
+}
 
 output "session_names" {
-  value = [for session in data.browserjs_sessions.all.sessions : session.name]
+  value = [for session in data.sessions.all.sessions : session.name]
 }
 
 output "running_sessions" {
   value = {
-    for session in data.browserjs_sessions.all.sessions :
+    for session in data.sessions.all.sessions :
     session.id => session.mcp_url if session.state == "running"
   }
 }
@@ -523,7 +546,9 @@ locals {
   }
 }
 
-resource "browserjs_session" "worker" {
+resource "session" "worker" {
+  provider = computeruse
+
   for_each = local.desktops
   name     = each.key
   size     = each.value
@@ -533,16 +558,18 @@ resource "browserjs_session" "worker" {
   }
 }
 
-resource "browserjs_session_policy" "worker" {
-  for_each    = browserjs_session.worker
+resource "session_policy" "worker" {
+  provider = computeruse
+
+  for_each    = session.worker
   session_id  = each.value.id
   managed_url = "https://github.com/example/infra/tree/main/desktops"
   rego        = file("${path.module}/policy.rego")
 }
 
 output "worker_mcp_urls" {
-  value      = { for name, session in browserjs_session.worker : name => session.mcp_url }
-  depends_on = [browserjs_session_policy.worker]
+  value      = { for name, session in session.worker : name => session.mcp_url }
+  depends_on = [session_policy.worker]
 }
 ```
 
@@ -552,9 +579,9 @@ names or sizes. The deployment must have capacity for the sizes requested.
 ## Reference and source
 
 The resource registrations and schemas in the
-[provider source](https://github.com/r33drichards/computer-use/tree/main/terraform-provider-browserjs/internal/provider)
+[provider source](https://github.com/r33drichards/computer-use/tree/main/terraform-provider-computeruse/internal/provider)
 are the inventory this page describes. The
-[generated provider reference](https://github.com/r33drichards/computer-use/tree/main/terraform-provider-browserjs/docs)
+[generated provider reference](https://github.com/r33drichards/computer-use/tree/main/terraform-provider-computeruse/docs)
 contains the same argument schemas. For tool inputs, see
 [Policy format](/reference/policy); for session states and operations, see
 [Session lifecycle](/reference/lifecycle).

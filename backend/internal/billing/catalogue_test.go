@@ -21,7 +21,7 @@ func TestTheContractsCatalogueParses(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Rates != (Rates{AwakeMicrosPerHour: 200000, DiskMicrosPerGBHour: 384}) || c.SessionDiskGB != 5 {
+	if c.Rates != (Rates{AwakeMicrosPerHour: 200000, DiskMicrosPerGBHour: 384}) || c.SessionDiskGB != 32 {
 		t.Errorf("rates %+v, disk %d", c.Rates, c.SessionDiskGB)
 	}
 	if c.SignupCredit.AmountMicros != 5000000 || c.SignupCredit.ValidDays != 90 || !c.SignupCredit.RefuseWallets || len(c.SignupCredit.RefuseFunding) != 1 {
@@ -56,7 +56,7 @@ func TestTheContractsCatalogueParses(t *testing.T) {
 	if strings.Contains(string(public), "scale") || strings.Contains(string(public), "productId") || strings.Contains(string(public), "cu_plan_") {
 		t.Errorf("the public catalogue shows what it should not: %s", public)
 	}
-	for _, want := range []string{`"key":"starter"`, `"key":"pro"`, `"key":"credit-50"`, `"awakeMicrosPerHour":200000`, `"sessionDiskGB":5`, `"currency":"usd"`} {
+	for _, want := range []string{`"key":"starter"`, `"key":"pro"`, `"key":"credit-50"`, `"awakeMicrosPerHour":200000`, `"sessionDiskGB":32`, `"currency":"usd"`} {
 		if !strings.Contains(string(public), want) {
 			t.Errorf("the public catalogue lacks %s: %s", want, public)
 		}

@@ -203,6 +203,12 @@ func TestAPIHostScopes(t *testing.T) {
 		{"policy", "POST", "/v1/sessions/s-abcdefghij/sleep", 403},
 		{"all", "POST", "/v1/sessions/s-abcdefghij/sleep", 204},
 		{"all", "POST", "/v1/sessions/s-abcdefghij/wake", 204},
+		{"read", "GET", "/v1/sessions/s-abcdefghij/webhook", 204},
+		{"read", "PUT", "/v1/sessions/s-abcdefghij/webhook", 403},
+		{"read", "DELETE", "/v1/sessions/s-abcdefghij/webhook", 403},
+		{"policy", "GET", "/v1/sessions/s-abcdefghij/webhook", 403},
+		{"all", "PUT", "/v1/sessions/s-abcdefghij/webhook", 204},
+		{"all", "DELETE", "/v1/sessions/s-abcdefghij/webhook", 204},
 		{"read", "GET", "/v1/sessions/s-abcdefghij/policy", 403},
 		{"policy", "GET", "/v1/sessions/s-abcdefghij/policy", 204},
 		{"policy", "PUT", "/v1/sessions/s-abcdefghij/policy", 403},
@@ -640,5 +646,30 @@ func TestDiskForkRouteScopeAndRewrite(t *testing.T) {
 		} else if len(f.seen) != 0 {
 			t.Fatal("denied request reached handler")
 		}
+	}
+}
+
+func TestAllowListOpenSignup(t *testing.T) {
+	for _, tc := range []struct {
+		emails []string
+		email  string
+		want   bool
+	}{
+		{[]string{"*"}, "new@example.com", true},
+		{[]string{"*"}, "  ", false},
+		{nil, "new@example.com", false},
+		{[]string{"alice@example.com"}, "new@example.com", false},
+		{[]string{"alice@example.com"}, " ALICE@example.com ", true},
+	} {
+		if got := NewAllowList(tc.emails).Allows(tc.email); got != tc.want {
+			t.Errorf("%v Allows(%q) = %v, want %v", tc.emails, tc.email, got, tc.want)
+		}
+	}
+	f := newAPIHostFixture("*")
+	if rec := f.do("GET", "/v1/me", "removed"); rec.Code != http.StatusNoContent {
+		t.Fatalf("new user's valid token: %d %s", rec.Code, rec.Body)
+	}
+	if rec := f.do("GET", "/v1/me", "invalid"); rec.Code != http.StatusUnauthorized {
+		t.Fatalf("invalid token: %d", rec.Code)
 	}
 }

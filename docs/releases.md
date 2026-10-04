@@ -1,5 +1,10 @@
 # Releases
 
+Production now uses [Argo CD GitOps deployment](gitops-deployment.md): main builds
+publish immutable image references to the production Git branch, Rollouts gate
+promotion, and failures restore Git’s previous desired state and send email.
+The manual procedures below are for bootstrap and recovery after GitOps is disabled.
+
 How a change reaches users without breaking them: a canary before the
 merge; at the deploy, the new backend checked on standby before users reach
 it, the new site on a quarter of its pods, new session images on one
@@ -483,3 +488,19 @@ production:
     deployment/backend` and waits on the Deployment, which now returns at
     once: the restart still happens (through the Rollout, with its check),
     but that workflow no longer waits for it. It is not this change's file.
+
+## MCP capabilities in the release canary
+
+The single MCP image includes documentation skills and HTTP(S) fetch.
+`test/canary.py` checks skills discovery, manifest/resource hashes, a fetch
+response and its body, and live fetch policy edits: browser-only denies
+fetch; a host/path/GET rule permits it; POST and other hosts/paths stay
+denied; restoring Unrestricted permits fetch again. These checks run through
+the public API on the temporary release session and require no session
+restart between policy edits.
+
+`EXPECT_MCP_CAPABILITIES=0` is reserved for the pre-release health check and
+rollback verification of an older production revision. Post-release and
+standby promotion checks use the default value `1` and must pass the new
+capability checks. `FETCH_URL` can override the read-only URL used by the
+canary; local kind tests use the browser server in their own session pod.

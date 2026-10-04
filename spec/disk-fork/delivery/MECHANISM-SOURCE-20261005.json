@@ -1,0 +1,32 @@
+[
+  {
+    "repo": "kubernetes/kubernetes",
+    "commit": "67a30c0adcf52bd3f56ff0893ce19966be12991f",
+    "path": "staging/src/k8s.io/cri-api/pkg/apis/runtime/v1/api.proto",
+    "sha256": "21960546f65b0a088d9ea6dcfbad906ce89fef1f6a951267cf44a5aa57b19d6b"
+  },
+  {
+    "repo": "container-storage-interface/spec",
+    "commit": "f6b6d53db606c651d975edf0ff3d0c9f5cd4fa35",
+    "path": "csi.proto",
+    "sha256": "084208e2655661a752db4e3dd0ea7cbda2a538c886586a1b4115a56028a654dc"
+  },
+  {
+    "repo": "containerd/containerd",
+    "commit": "c507a0257ea6462fbd6f5ba4f5c74facb04021f4",
+    "path": "internal/cri/server/container_stop.go",
+    "sha256": "a6fbea21c35deb578a987863645be38137c125e27d2f2a60724109c2954dc806"
+  },
+  {
+    "repo": "opencontainers/runc",
+    "commit": "59923ef18c98053ddb1acf23ecba10344056c28e",
+    "path": "libcontainer/container_linux.go",
+    "sha256": "e64f5d656fae90d67659a890d7ef5682b3bfdde4e50e60cdacbc0e0bdb5b09b4"
+  },
+  {
+    "repo": "kubernetes-csi/csi-driver-host-path",
+    "commit": "a785248f2709f55ed461e3da6c59d39152dace41",
+    "path": "pkg/hostpath/controllerserver.go",
+    "sha256": "2115afa91de036b4ef4904d1b38867fdf2a213955c6db170d459b57d4a45b91a"
+  }
+]

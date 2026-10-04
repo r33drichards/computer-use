@@ -9,8 +9,9 @@ name: images
 #   by hand on main           and :main, digests in the run summary
 #
 # Only the images whose files changed are built. Started by hand, it builds
-# the ones chosen in the form (default: all). A published site is then
-# deployed automatically; other images still follow the manual release flow.
+# the ones chosen in the form (default: all). Published digests feed the
+# Argo CD production branch when GitOps is enabled.
+# The standalone site deployment remains available until cutover.
 #
 # Pushing is keyless: GitHub's OIDC token is exchanged through Workload
 # Identity Federation for the images-push service account, which can write to
@@ -33,6 +34,12 @@ on:
       - "README.md"
       - ".github/workflows/images.yml"
       - "hack/site-release.sh"
+      - "deploy/argocd/**"
+      - "deploy/gke/**"
+      - "deploy/base/**"
+      - "test/canary.py"
+      - "hack/gitops/**"
+      - ".github/workflows/gitops-release.yml"
   push:
     branches:
       - main
@@ -50,6 +57,12 @@ on:
       - "README.md"
       - ".github/workflows/images.yml"
       - "hack/site-release.sh"
+      - "deploy/argocd/**"
+      - "deploy/gke/**"
+      - "deploy/base/**"
+      - "test/canary.py"
+      - "hack/gitops/**"
+      - ".github/workflows/gitops-release.yml"
   workflow_dispatch:
     inputs:
       images:
@@ -61,7 +74,6 @@ on:
           - all
           - backend
           - mcp-js
-          - mcp-js-skills
           - browser
           - site
           - policy-operator
@@ -104,6 +116,7 @@ jobs:
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           PUSH_BEFORE: ${{ github.event.before }}
           PUSH_AFTER: ${{ github.sha }}
+          ARGOCD_ENABLED: ${{ vars.ARGOCD_ENABLED }}
         run: |
           set -euo pipefail
 
@@ -118,8 +131,7 @@ jobs:
           # images/policy-operator/Dockerfile.dockerignore.
           table='[
             {"name":"backend","context":".",             "timeout":30, "cache":true, "free_disk":false},
-            {"name":"mcp-js", "context":"images/mcp-js", "timeout":15, "cache":true, "free_disk":false},
-            {"name":"mcp-js-skills", "repository":"mcp-js", "tag_prefix":"skills-", "context":".", "file":"images/mcp-js/Dockerfile.skills", "timeout":90, "cache":true, "free_disk":true},
+            {"name":"mcp-js", "context":".", "file":"images/mcp-js/Dockerfile", "timeout":90, "cache":true, "free_disk":true},
             {"name":"browser","context":"images/browser","timeout":120,"cache":false,"free_disk":true},
             {"name":"site",   "context":"site",          "timeout":15, "cache":true, "free_disk":false},
             {"name":"policy-operator","context":".","file":"images/policy-operator/Dockerfile","timeout":15,"cache":true,"free_disk":false},
@@ -133,6 +145,11 @@ jobs:
                 git diff --name-only "${PR_BASE}...${PR_HEAD}"
                 ;;
               push)
+                if [ "$ARGOCD_ENABLED" = true ]; then
+                  git fetch --quiet origin production-stable
+                  PUSH_BEFORE="$(git show FETCH_HEAD:production/release.json | jq -er .source_sha)"
+                  git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null || git fetch --quiet origin "$PUSH_BEFORE"
+                fi
                 if [ -z "$PUSH_BEFORE" ] || [ "$PUSH_BEFORE" = "0000000000000000000000000000000000000000" ] ||
                   ! git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null; then
                   # New branch or rewritten history: no base to compare with.
@@ -147,7 +164,7 @@ jobs:
           wanted=()
           if [ "$EVENT" = "workflow_dispatch" ]; then
             if [ "$CHOSEN" = "all" ] || [ -z "$CHOSEN" ]; then
-              wanted=(backend mcp-js mcp-js-skills browser site policy-operator billing-operator)
+              wanted=(backend mcp-js browser site policy-operator billing-operator)
             else
               wanted=("$CHOSEN")
             fi
@@ -158,11 +175,10 @@ jobs:
             touches() { grep -Eq "$1" <<<"$files"; }
             if touches '^\.github/workflows/images\.yml$'; then
               # The pipeline itself changed: prove it on every image.
-              wanted=(backend mcp-js mcp-js-skills browser site policy-operator billing-operator)
+              wanted=(backend mcp-js browser site policy-operator billing-operator)
             else
               if touches '^(Dockerfile$|\.dockerignore$|backend/|web/)'; then wanted+=(backend); fi
-              if touches '^images/mcp-js/'; then wanted+=(mcp-js); fi
-              if touches '^(images/mcp-js/|docs/|site/reference/|README.md$)'; then wanted+=(mcp-js-skills); fi
+              if touches '^(images/mcp-js/|site/(tutorials|guides|reference|explanation)/)'; then wanted+=(mcp-js); fi
               if touches '^images/browser/'; then wanted+=(browser); fi
               if touches '^(site/|hack/site-release\.sh$)'; then wanted+=(site); fi
               if touches '^(images/policy-operator/|docs/contracts/policy/)'; then wanted+=(policy-operator); fi
@@ -170,16 +186,7 @@ jobs:
             fi
           fi
 
-          # The backend's Dockerfile is at the repository root and may not
-          # have been merged yet: skip that image, do not fail.
-          build=()
-          for name in "${wanted[@]}"; do
-            if [ "$name" = "backend" ] && [ ! -f Dockerfile ]; then
-              echo "::notice::backend skipped: there is no Dockerfile at the repository root yet"
-              continue
-            fi
-            build+=("$name")
-          done
+          build=("${wanted[@]}")
 
           names="$(printf '%s\n' "${build[@]}" | jq -R . | jq -cs 'map(select(length > 0))')"
           matrix="$(jq -c --argjson names "$names" '{include: map(select(.name as $n | $names | index($n)))}' <<<"$table")"
@@ -273,7 +280,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
     env:
-      IMAGE: ${{ vars.IMAGE_REGISTRY }}/${{ matrix.repository || matrix.name }}
+      IMAGE: ${{ vars.IMAGE_REGISTRY }}/${{ matrix.name }}
     steps:
       - name: Check repository variables
         shell: bash
@@ -352,8 +359,8 @@ jobs:
           # One plain image manifest per tag: the digest below is the image.
           provenance: false
           tags: |
-            ${{ env.IMAGE }}:${{ matrix.tag_prefix || '' }}${{ github.sha }}
-            ${{ env.IMAGE }}:${{ matrix.tag_prefix || '' }}main
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:main
           cache-from: ${{ matrix.cache && format('type=gha,scope={0}', matrix.name) || '' }}
           cache-to: ${{ matrix.cache && format('type=gha,scope={0},mode=max,ignore-error=true', matrix.name) || '' }}
 
@@ -362,7 +369,6 @@ jobs:
         env:
           DIGEST: ${{ steps.push.outputs.digest }}
           NAME: ${{ matrix.name }}
-          TAG_PREFIX: ${{ matrix.tag_prefix || '' }}
         run: |
           {
             echo "### ${NAME}"
@@ -370,9 +376,24 @@ jobs:
             echo '```'
             echo "${IMAGE}@${DIGEST}"
             echo '```'
-            echo "Tags: \`${TAG_PREFIX}${GITHUB_SHA}\`, \`${TAG_PREFIX}main\`"
+            echo "Tags: \`${GITHUB_SHA}\`, \`main\`"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "${IMAGE}@${DIGEST}"
+
+      - name: Immutable image artifact for GitOps
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+          NAME: ${{ matrix.name }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/release-image"
+          jq -n --arg sha "$GITHUB_SHA" --arg name "$NAME" --arg image "$IMAGE@$DIGEST" \
+            '{source_sha: $sha, name: $name, image: $image}' > "$RUNNER_TEMP/release-image/image.json"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-image-${{ matrix.name }}
+          path: ${{ runner.temp }}/release-image/image.json
+          retention-days: 14
 
       - name: Site image for deployment
         if: matrix.name == 'site'
@@ -390,7 +411,7 @@ jobs:
   deploy-site:
     name: deploy site
     needs: [changes, publish]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && contains(fromJSON(needs.changes.outputs.matrix).include.*.name, 'site')
+    if: vars.ARGOCD_ENABLED != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && contains(fromJSON(needs.changes.outputs.matrix).include.*.name, 'site')
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     environment: production

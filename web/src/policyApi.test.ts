@@ -23,7 +23,7 @@ function fakeFetch(status: number, body: unknown, contentType = "application/jso
 }
 
 const ID = "s-aaaaaaaaaa"
-const SOURCE = "package browserjs.policy\n"
+const SOURCE = "package computeruse.policy\n"
 const policy = { kind: "rego", version: 3, state: "ready", source: SOURCE, management: { mode: "editor" } }
 const input = { kind: "rego", source: SOURCE } as const
 
@@ -93,13 +93,13 @@ describe("policy api", () => {
   it("posts the source to validate and the source with an input to evaluate", async () => {
     const fetch = fakeFetch(200, { ok: true, errors: [], warnings: [] })
     const api = createPolicyApi(fetch)
-    await api.validate({ kind: "rego", source: "package browserjs.policy" })
-    await api.evaluate({ kind: "rego", source: "package browserjs.policy" }, { tool: "browser_execute" })
+    await api.validate({ kind: "rego", source: "package computeruse.policy" })
+    await api.evaluate({ kind: "rego", source: "package computeruse.policy" }, { tool: "browser_execute" })
     const [validate, evaluate] = fetch.mock.calls as [string, RequestInit][]
     expect(validate[0]).toBe("/api/policies/validate")
-    expect(validate[1].body).toBe(JSON.stringify({ kind: "rego", source: "package browserjs.policy" }))
+    expect(validate[1].body).toBe(JSON.stringify({ kind: "rego", source: "package computeruse.policy" }))
     expect(evaluate[0]).toBe("/api/policies/evaluate")
-    expect(JSON.parse(String(evaluate[1].body))).toEqual({ kind: "rego", source: "package browserjs.policy", input: { tool: "browser_execute" } })
+    expect(JSON.parse(String(evaluate[1].body))).toEqual({ kind: "rego", source: "package computeruse.policy", input: { tool: "browser_execute" } })
   })
 
   it("creates a session with its policy, and has no schema to ask for", async () => {
@@ -161,15 +161,15 @@ describe("policy state", () => {
 
   it("recognises the unrestricted policy, whatever its comments and spacing", () => {
     const rego = (source: string) => ({ kind: "rego" as const, source })
-    expect(isUnrestricted(rego("package browserjs.policy\n\nimport rego.v1\n\nallow_tool_call := true\n"))).toBe(true)
-    expect(isUnrestricted(rego("# all of it\npackage browserjs.policy\nimport rego.v1 # v1\n\tallow_tool_call  :=  true"))).toBe(true)
-    expect(isUnrestricted(rego("package browserjs.policy\nimport rego.v1\nallow_tool_call := false\n"))).toBe(false)
-    expect(isUnrestricted(rego("package browserjs.policy\nimport rego.v1\nallow_tool_call := true\nx := 1\n"))).toBe(false)
+    expect(isUnrestricted(rego("package computeruse.policy\n\nimport rego.v1\n\nallow_tool_call := true\n"))).toBe(true)
+    expect(isUnrestricted(rego("# all of it\npackage computeruse.policy\nimport rego.v1 # v1\n\tallow_tool_call  :=  true"))).toBe(true)
+    expect(isUnrestricted(rego("package computeruse.policy\nimport rego.v1\nallow_tool_call := false\n"))).toBe(false)
+    expect(isUnrestricted(rego("package computeruse.policy\nimport rego.v1\nallow_tool_call := true\nx := 1\n"))).toBe(false)
     // Commented out, it allows nothing.
-    expect(isUnrestricted(rego("package browserjs.policy\nimport rego.v1\n# allow_tool_call := true\n"))).toBe(false)
-    expect(isUnrestricted(rego("package browserjs.policy"))).toBe(false)
+    expect(isUnrestricted(rego("package computeruse.policy\nimport rego.v1\n# allow_tool_call := true\n"))).toBe(false)
+    expect(isUnrestricted(rego("package computeruse.policy"))).toBe(false)
     expect(isUnrestricted({ kind: "rego", source: "" })).toBe(false)
-    expect(isUnrestricted({ source: "package browserjs.policy\nimport rego.v1\nallow_tool_call := true\n" })).toBe(false)
+    expect(isUnrestricted({ source: "package computeruse.policy\nimport rego.v1\nallow_tool_call := true\n" })).toBe(false)
   })
 
   it("calls the unrestricted preset unrestricted, and no other preset", () => {
@@ -189,10 +189,10 @@ describe("presets", () => {
     expect(presets.map(p => p.id)).toEqual(["unrestricted", "browser-only", "form-filling", "no-scripting", "observe-only", "one-site", "read-only-shell"])
     for (const p of presets) {
       expect(p.kind).toBe("rego")
-      expect(p.source).toMatch(/^package browserjs\.policy$/m)
+      expect(p.source).toMatch(/^package computeruse\.policy$/m)
       expect(p.cases.length).toBeGreaterThan(0)
     }
-    expect(presets.reduce((n, p) => n + p.cases.length, 0)).toBe(264)
+    expect(presets.reduce((n, p) => n + p.cases.length, 0)).toBe(285)
   })
 
   it("take the title from the id and the description from the comment the file begins with", () => {

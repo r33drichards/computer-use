@@ -1,5 +1,8 @@
 # Deploying to GKE
 
+For automatic workload releases, see [Argo CD GitOps deployment](gitops-deployment.md).
+The manual workflow here is for infrastructure/bootstrap and recovery with GitOps disabled.
+
 How `deploy/gke` gets onto the production cluster, in order, and what to look
 at when a step fails. Written 2026-10-01 without access to the cluster or the
 cloud account: nothing here has run. Claims are marked **VERIFIED** (read in
@@ -52,8 +55,8 @@ collected at the end.
     Secret `pomerium-tls`.
   - Pomerium's and Dex's production configuration: the three session routes
     on `sessions.computeruse.site`, the four deprecated ones on the old session
-    hosts, and the app route as locally, MCP settings as locally, the allow-list
-    `rwendt1337@gmail.com` and `browserjs06@gmail.com`; Dex with the issuer
+    hosts, and the app route as locally, MCP settings as locally, access for
+    any authenticated user; Dex with the issuer
     `https://dex.computeruse.site/dex`, the Google and GitHub connectors and no
     passwords. Pomerium's databroker is on a 1 GiB Persistent Disk.
   - The backend with the production URLs and `ADMIN_EMAILS=rwendt1337@gmail.com`.

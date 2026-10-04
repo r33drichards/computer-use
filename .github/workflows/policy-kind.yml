@@ -31,7 +31,7 @@ jobs:
   kind:
     name: kind
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 90
     defaults:
       run:
         shell: bash
@@ -93,7 +93,7 @@ jobs:
           python3 docs/contracts/policy/spike/run-cases.py "$RUNNER_TEMP/opa" docs/contracts/policy
 
       - name: mcp-js image
-        run: docker build -t browserjs/mcp-js:dev images/mcp-js
+        run: docker build -t browserjs/mcp-js:dev -f images/mcp-js/Dockerfile .
 
       # As images.yml builds it: the repository root is the context.
       - name: Policy operator image

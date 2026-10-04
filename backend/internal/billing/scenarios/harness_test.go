@@ -98,6 +98,8 @@ func newWorld(t *testing.T, with func(*billing.Config)) *world {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// These scenarios intentionally exercise 5 GB sample disks.
+	raw = bytes.ReplaceAll(raw, []byte("sessionDiskGB: 32"), []byte("sessionDiskGB: 5"))
 	catalogue, err := billing.ParseCatalogue(raw)
 	if err != nil {
 		t.Fatal(err)

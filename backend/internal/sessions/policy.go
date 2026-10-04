@@ -2,6 +2,7 @@ package sessions
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -245,4 +246,42 @@ func (s *Store) deletePolicy(ctx context.Context, id string) {
 	if err := s.policies.Delete(ctx, id, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 		slog.Warn("could not delete a deleted session's policy; the garbage collector will", "session", id, "err", err)
 	}
+}
+
+// WebhookCapable requires the native pre-hook in the stored session template.
+// Updating a blueprint does not retrofit already-created Sandboxes.
+func WebhookCapable(obj *unstructured.Unstructured) bool {
+	containers, _, _ := unstructured.NestedSlice(obj.Object, "spec", "podTemplate", "spec", "containers")
+	for _, item := range containers {
+		container, ok := item.(map[string]any)
+		if !ok || container["name"] != mcpJSContainer {
+			continue
+		}
+		env, _, _ := unstructured.NestedSlice(container, "env")
+		for _, item := range env {
+			variable, ok := item.(map[string]any)
+			if !ok || variable["name"] != policyEnv {
+				continue
+			}
+			value, _ := variable["value"].(string)
+			value = strings.ReplaceAll(value, "$(SESSION_ID)", obj.GetName())
+			var config struct {
+				Tools struct {
+					Pre []struct {
+						URL  string `json:"url"`
+						Path string `json:"policy_path"`
+					} `json:"pre"`
+				} `json:"mcp_tools"`
+			}
+			if json.Unmarshal([]byte(value), &config) != nil {
+				return false
+			}
+			for _, hook := range config.Tools.Pre {
+				if hook.URL != "" && hook.Path == "browserjs/hooks/"+obj.GetName()+"/mcp_tools/pre" {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }

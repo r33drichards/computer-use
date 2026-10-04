@@ -38,6 +38,22 @@ describe("create session", () => {
     await waitFor(() => expect(screen.getByTestId("landed").textContent).toMatch(new RegExp(`^/sessions/s-\\w+ Session ${placeholder} created`)))
   })
 
+  it("chooses disk capacity independently of compute tier and honors the account limit", async () => {
+    const server = await openForm({ diskMaxGB: 256 })
+    const disk = await screen.findByRole("spinbutton", { name: "HDD storage (GB)" })
+    expect((disk as HTMLInputElement).value).toBe("32")
+    fireEvent.change(disk, { target: { value: "257" } })
+    submit()
+    expect(await screen.findByText("Disk capacity must be between 10 and 256 GB.")).toBeTruthy()
+    expect(server.writes()).toHaveLength(0)
+    fireEvent.change(disk, { target: { value: "64" } })
+    choose(/^Medium/)
+    submit()
+    const body = await created(server)
+    expect(body.diskGB).toBe(64)
+    expect(body.size).toBe("medium")
+  })
+
   it("uses the typed name", async () => {
     const server = await openForm()
     fireEvent.change(screen.getByPlaceholderText(/^[a-z]+-[a-z]+$/), { target: { value: "  my browser " } })
@@ -105,12 +121,12 @@ describe("create session", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit policy" }))
     const editor = (await screen.findByLabelText("Rego policy editor")) as HTMLTextAreaElement
     expect(editor.value).toBe(REGO_TEMPLATE) // a new policy starts from the Rego template
-    fireEvent.change(editor, { target: { value: "package browserjs.policy\n\nallow_tool_call if http.send({})\n" } })
+    fireEvent.change(editor, { target: { value: "package computeruse.policy\n\nallow_tool_call if http.send({})\n" } })
     fireEvent.click(screen.getByRole("button", { name: "Use this policy" }))
     expect(await screen.findByText("Fix the errors in the policy before using it.")).toBeTruthy()
     expect(screen.getByTestId("custom-summary").textContent).toBe("No policy written yet")
 
-    const good = 'package browserjs.policy\n\nimport rego.v1\n\nallow_tool_call if input.tool == "browser_execute"\n'
+    const good = 'package computeruse.policy\n\nimport rego.v1\n\nallow_tool_call if input.tool == "browser_execute"\n'
     fireEvent.change(screen.getByLabelText("Rego policy editor"), { target: { value: good } })
     fireEvent.click(screen.getByRole("button", { name: "Use this policy" }))
     await waitFor(() => expect(screen.getByTestId("custom-summary").textContent).toBe("Rego · 5 lines · valid"))

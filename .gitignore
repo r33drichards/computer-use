@@ -15,3 +15,5 @@ result
 # TLC generated replay modules; human traces are retained
 /spec/disk-fork/**/*_TTrace_*.tla
 /test/disk-fork/__pycache__/
+__pycache__/
+*.py[cod]

@@ -5,7 +5,7 @@
 //   node test/browser-e2e.mjs
 //
 // Signs in, creates a session, checks the live screen, loses the Pomerium
-// session, signs out, tries a user who is not allowed in, and runs an MCP
+// session, signs out, tries a newly signed-in user, and runs an MCP
 // client against the session. Screenshots and browser-results.json go to OUT_DIR
 // (default .local/). CHROME names the browser binary; KEEP=1 leaves the
 // session in place.
@@ -125,7 +125,7 @@ try {
   const again = await page.goto(APP + "/api/me", { waitUntil: "networkidle2" })
   record("sign out", !page.url().startsWith(APP), `sign out link -> ${afterSignOut.split("?")[0]} ("${body}"); then ${APP}/api/me -> ${page.url().split("?")[0]} (${again.status()})`)
 
-  // Someone who can sign in at Dex but is not on Pomerium's list.
+  // A new user can sign in without being added to an email list.
   {
     const other = await browser.createBrowserContext()
     const p2 = await other.newPage()
@@ -133,11 +133,11 @@ try {
     const res = await p2.goto(APP + "/api/me", { waitUntil: "networkidle2" })
     const ui = await p2.goto(APP + "/", { waitUntil: "networkidle2" })
     const shown = (await text(p2)).replace(/\s+/g, " ").slice(0, 80)
-    record("a signed-in user who is not on the list is refused by Pomerium", res.status() === 403 && ui.status() === 403 && !shown.includes("Sessions"),
+    record("a newly signed-in user can access the app", res.status() === 200 && ui.status() === 200,
       `mallory@example.com: /api/me ${res.status()}, / ${ui.status()} ("${shown}")`)
     await other.close()
   }
-  // The routes with their own credentials are not behind the list, or any sign-in.
+  // The routes with their own credentials are not behind any sign-in.
   {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0" // the local CA
     const origin = "https://sessions.localtest.me"
@@ -162,7 +162,7 @@ try {
   }
 
   // A real MCP client on the session's MCP URL (test/mcp-client.mjs): the
-  // owner gets in, someone else on the list gets a token and then the
+  // owner gets in, another signed-in user gets a token and then the
   // backend's 404.
   {
     const client = (email, target = `https://sessions.localtest.me/${sid}/mcp`) => {

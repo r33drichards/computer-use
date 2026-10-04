@@ -98,6 +98,7 @@ export type PolicySession = Session & { policy?: PolicySummary }
 export interface NewSession {
   name?: string
   size?: string // left out: small
+  diskGB?: number
   policy?: PolicyInput
 }
 
@@ -264,7 +265,7 @@ export function updatedByLabel(by?: string): string {
   return `by ${by}`
 }
 
-const UNRESTRICTED = "package browserjs.policy import rego.v1 allow_tool_call := true".replace(/\s+/g, "")
+const UNRESTRICTED = "package computeruse.policy import rego.v1 allow_tool_call := true".replace(/\s+/g, "")
 
 // True for the `unrestricted` preset: the module that, with its comments and
 // whitespace removed, is the package, the import and `allow_tool_call := true`.

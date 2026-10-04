@@ -263,7 +263,7 @@ resource "google_container_node_pool" "sessions" {
       enabled = var.session_image_streaming
     }
 
-    disk_type    = "pd-balanced"
+    disk_type    = var.session_disk_type
     disk_size_gb = var.session_disk_size_gb
 
     service_account = google_service_account.nodes.email
@@ -312,7 +312,7 @@ resource "google_container_node_pool" "sessions_fallback" {
   initial_node_count = 0
 
   autoscaling {
-    min_node_count = 0
+    min_node_count = lookup(var.session_fallback_min_nodes, each.key, 0)
     max_node_count = var.session_max_nodes
     # ANY lets the autoscaler take Spot capacity wherever there is some.
     location_policy = var.session_spot ? "ANY" : "BALANCED"
@@ -342,7 +342,7 @@ resource "google_container_node_pool" "sessions_fallback" {
       enabled = var.session_image_streaming
     }
 
-    disk_type    = "pd-balanced"
+    disk_type    = var.session_disk_type
     disk_size_gb = var.session_disk_size_gb
 
     service_account = google_service_account.nodes.email

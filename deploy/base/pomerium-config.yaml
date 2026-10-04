@@ -54,7 +54,7 @@ routes:
 
   # The session's MCP endpoint. Pomerium signs the MCP client's user in and
   # says who it is; the backend decides whether the session is theirs. The
-  # list of who may sign in is shared with the app's route below.
+  # sign-in policy is shared with the app's route below.
   #
   # Because this host is exact (no wildcard), Pomerium also answers the
   # OAuth discovery for it: /.well-known/oauth-authorization-server, and
@@ -68,12 +68,11 @@ routes:
     mcp:
       server:
         max_request_bytes: 1048576
-    # Who may use the app at all: these email addresses, nobody else.
+    # Anyone who signs in may use the app; the backend checks session ownership.
     policy: &allowed
       - allow:
-          or:
-            - email:
-                is: someone@example.com
+          and:
+            - authenticated_user: true
     pass_identity_headers: true
     preserve_host_header: true
 

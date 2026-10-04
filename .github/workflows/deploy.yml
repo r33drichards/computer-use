@@ -98,7 +98,12 @@ jobs:
         env:
           CONFIRM: ${{ inputs.confirm }}
           REF: ${{ github.ref }}
+          ARGOCD_ENABLED: ${{ vars.ARGOCD_ENABLED }}
         run: |
+          if [ "$ARGOCD_ENABLED" = true ]; then
+            echo "::error::Argo CD owns production; change the production Git branch instead."
+            exit 1
+          fi
           if [ "$REF" != "refs/heads/main" ]; then
             echo "::error::deploy runs only on refs/heads/main, not $REF"
             exit 1
@@ -412,13 +417,31 @@ jobs:
             echo "\`$CANARY_DIGESTS\`, before anything is applied."
             echo
           } >> "$GITHUB_STEP_SUMMARY"
-          if ! SUMMARY="$GITHUB_STEP_SUMMARY" test/canary.py; then
+          if ! EXPECT_MCP_CAPABILITIES=0 SUMMARY="$GITHUB_STEP_SUMMARY" test/canary.py; then
             echo "::error::The new session images failed on a canary session. Nothing was applied: the warm pool, the running sessions and the backend are untouched."
             echo "**Stopped here. Nothing was applied.**" >> "$GITHUB_STEP_SUMMARY"
             kubectl -n "$NS" get pods -l app=browserjs-session -o wide || true
             kubectl -n "$NS" get events --sort-by=.lastTimestamp | tail -30 || true
             exit 1
           fi
+
+      - name: Bootstrap the main-only preview deployer RBAC
+        if: vars.PREVIEW_DEPLOY_SA != ''
+        env:
+          PREVIEW_DEPLOY_SA: ${{ vars.PREVIEW_DEPLOY_SA }}
+        run: |
+          # As for the production deployer: GKE IAM is backed by an explicit
+          # cluster binding for custom-resource and RBAC operations. This is
+          # a cloud identity, never a ServiceAccount mounted in a preview pod.
+          [ "$PREVIEW_DEPLOY_SA" = "preview-deployer@browserjs-sessions.iam.gserviceaccount.com" ]
+          kubectl create clusterrolebinding browserjs-preview-deployer --clusterrole=cluster-admin \
+            --user="$PREVIEW_DEPLOY_SA" --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Preserve live PR preview routes in the rendered edge config
+        if: vars.PREVIEWS_ENABLED == 'true'
+        run: |
+          python3 -m pip install PyYAML==6.0.3
+          python3 hack/preview.py prepare-edge
 
       - name: Apply
         id: apply
@@ -610,13 +633,19 @@ jobs:
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"
           printf '\nThe canary, on what was rolled back to (session images as that release pinned them):\n\n' >> "$GITHUB_STEP_SUMMARY"
-          if SUMMARY="$GITHUB_STEP_SUMMARY" test/canary.py; then
+          if EXPECT_MCP_CAPABILITIES=0 SUMMARY="$GITHUB_STEP_SUMMARY" test/canary.py; then
             echo "**Rolled back to \`$PREVIOUS\`, and the canary passes on it.** This run still fails: the release did not happen." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::error::Rolled back to $PREVIOUS and the canary STILL FAILS: the product is broken and needs a person now."
             echo "**Rolled back to \`$PREVIOUS\`, and the canary still fails: the product needs a person now.**" >> "$GITHUB_STEP_SUMMARY"
           fi
           exit 1
+
+      # Historical rollback manifests predate the preview routes. Reconcile
+      # against the ConfigMap the restored StatefulSet actually mounts.
+      - name: Restore preview routes after deployment or rollback
+        if: ${{ !cancelled() && vars.PREVIEWS_ENABLED == 'true' && steps.apply.conclusion != '' && steps.apply.conclusion != 'skipped' }}
+        run: python3 hack/preview.py sync-edge
 
       # Only a release the canary passed becomes the one to go back to.
       - name: "Release: record"

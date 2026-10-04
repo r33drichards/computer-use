@@ -11,6 +11,7 @@ import { useMe } from "../auth/MeProvider"
 import { signedOutHandled } from "../auth/signedOut"
 import { BlockedWake, DrainingNote, SessionState, useWakeBlock } from "../billing/SessionBilling"
 import { LifecycleActions, stateSentence } from "../components/SessionLifecycle"
+import { SessionDisk } from "../components/SessionDisk"
 import { SessionSize } from "../components/SessionSize"
 import { VncPane } from "../components/VncPane"
 import type { PolicySession as Session } from "../policyApi"
@@ -19,6 +20,7 @@ import { Shell, api } from "../shell"
 import { HIDDEN_POLL_MS, usePolling } from "../usePolling"
 
 // Only a deployment with policies shows the tab, so only it loads the code.
+const WebhookTab = lazy(() => import("../components/WebhookTab").then(m => ({ default: m.WebhookTab })))
 const PolicyTab = lazy(() => import("../components/PolicyTab").then(m => ({ default: m.PolicyTab })))
 
 // Mounted with key={id}, so every piece of state below starts fresh per session.
@@ -160,6 +162,7 @@ export function SessionDetail({ id }: { id: string }) {
                 <SessionState session={session} />
                 <span>created {new Date(session.created).toLocaleString()}</span>
                 <SessionSize session={session} run={actAndReload} />
+                <SessionDisk session={session} run={actAndReload} />
                 {/* Only an admin looking at someone else's session needs telling whose it is. */}
                 {session.owner !== me.email && <span className="wf-mono">{session.owner}</span>}
                 {/* The title row is the summary that stays in view on every tab. */}
@@ -196,10 +199,11 @@ export function SessionDetail({ id }: { id: string }) {
         {session.policy ? (
           <Tabs
             ariaLabel="Session"
-            activeTabId={params.get("tab") === "policy" ? "policy" : "browser"}
-            onChange={e => setParams(e.detail.activeTabId === "policy" ? { tab: "policy" } : {}, { replace: true })}
+            activeTabId={["policy", "webhook"].includes(params.get("tab") ?? "") ? params.get("tab")! : "browser"}
+            onChange={e => setParams(e.detail.activeTabId !== "browser" ? { tab: e.detail.activeTabId } : {}, { replace: true })}
             tabs={[
               { id: "browser", label: "Browser", content: browser },
+              { id: "webhook", label: "Webhook", content: <Suspense fallback="Loading the webhook"><WebhookTab sessionId={session.id} /></Suspense> },
               {
                 id: "policy",
                 label: "Policy",

@@ -50,9 +50,11 @@ setsid/double-fork descendants. There is no atomic close-admission epoch plus
 positive all-descendants-complete certificate. Therefore Begin remains blocked;
 no invented endpoint is called and no host OAuth secret is placed in a guest.
 
-## Next coherent provider/CSI increments (not reviewed implementation)
+## Historical provider sketch — SUPERSEDED, not an implementation plan
 
-Investigate a pinned mcp-exec patch carried initially inside this fork worktree,
+The unprivileged subreaper-authority sketch below is SUPERSEDED by the selected protected reference design at the end. It is retained only as rejected historical context. Do not implement it as authority.
+
+Previously proposed: investigate a pinned mcp-exec patch carried initially inside this fork worktree,
 not edits to another repository: an unprivileged per-execution Linux subreaper
 supervisor remains alive until waitpid establishes ECHILD for all descendants.
 Admission must close atomically at a backend-authenticated operation/epoch and
@@ -69,7 +71,7 @@ SecretService shutdown plus real volume detach/unmount remain separate obligatio
 
 A durable operation resource must use a dedicated CRD or separate least-privilege
 controller/namespace, NOT a broad namespace ConfigMap journal grant (sensitive
-Dex/Pomerium configuration exists). Backend baseline intentionally lacks pod/PVC/
+Dex/Pomerium configuration exists). Pre-main6ebb baseline intentionally lacked pod/PVC/
 snapshot/ConfigMap/Secret rights. No RBAC changes here. Parent baseline identifies
 browserjs-zonal CSI pd.csi.storage.gke.io/pd-balanced, WaitForFirstConsumer/Delete;
 no configured VolumeSnapshotClass in non-vendor deploy manifests. Actual live
@@ -251,7 +253,7 @@ Runtime Begin remains ErrQuiescenceUnsupported and public APIs remain disabled.
 * Preventing arbitrary same-node writer Pods requires an independently reviewed
   admission/controller integration for PVC ownership/restart fencing. This and
   strong CRI/mount observer privileges remain unavailable/unauthorized here.
-  Current backendRole has NO CM/Secret/PVC/pod/snapshot rights and is unchanged.
+  Pre-main6ebb backendRole lacked CM/Secret/PVC/pod/snapshot rights. Selected main adds source PVC expansion and capacity lease rights; no fork observer/CM/Secret grant or live application is made here.
 
 ### Durable invariants and smallest next slices
 
@@ -294,3 +296,207 @@ WaitForFirstConsumer/Delete, RWO5Gi. No vetted snapshot class or live CSI restor
 node/runtime/storage certificate or isolation/fencing test has been established.
 Formal28 historical outcomes are separate bounded abstractions, not refinement
 or production proof of this proposed authority or current P2 code.
+
+
+## Selected concrete reference mechanism after main55ba20b integration
+
+Selection is SOURCE DESIGN ONLY: no implementation, deployment, trust grant or
+GKE eligibility. It supersedes the historical subreaper-authority proposal.
+The concrete source audit is REFERENCE-SOURCES-main55ba20b.json: immutable public
+commits, full-file SHA256 and extracted interface/implementation evidence.
+Older MECHANISM-SOURCE-20261005.json is explicitly historical comparison, NOT
+selected versions. These are API/source observations, not deployment certification.
+
+Selected custom-built isolated reference node: kind0.33.0, Kubernetes1.37.1,
+containerd2.4.1/runc1.5.2, CSI1.11.0 interfaces, external-snapshotter8.6.0 and
+csi-driver-host-path1.18.0. Full commits in the audit artifact pin this selection;
+we do NOT assert an off-the-shelf kind node image contains this combination.
+A future operator builds/reviews the image, records kernel/OCI/cgroup2 settings
+and image digest, and verifies version/security compatibility before tests.
+Host-path CreateSnapshot is explicitly a tar-directory fixture in audited source:
+it tests idempotency and independent restore DATA only. It is NOT a PD snapshot,
+block flush guarantee, cross-node fencing or production whole-PVC consistency.
+
+### New protected components and concrete interfaces they must implement
+
+None of the following new source components exists yet. Proposed locations in
+THIS fork, after independent approval: backend/internal/forkcontrol (authority,
+CRD clients/controller/protocol), images/fork-guard (root node adapter/CRI+CSI
+frontdoors), and a protected tools gateway independent of guest-writable modules.
+These paths are responsibilities, not existing API names or deployed guarantees.
+
+1. **Authority**: a distinct control-namespace service owns a namespaced
+   SourceControl and DiskForkOperation CRD. SourceControl is the single durable
+   CAS record for accepted desired intent sequence, owner billing revision,
+   immutable sourceUID, admission epoch, broker incarnation, issued permit IDs,
+   writer-Pod/container inventory and pending effect receipts. Operation stores
+   owner/request-hash idempotency, shared create/fork reservation and all child/
+   storage UIDs. Separate actors serialize each source and the owner's capacity/
+   billing reservations; no broad ConfigMap journal. All user/billing/delete
+   changes enter this authority before they are accepted for physical action.
+2. **Tools gateway**: JS/V8 module authority, browser control and file/network/
+   exec/VNC admission stay outside the hostile exec guest. Private modules/control
+   are not guest-writable. Arbitrary exec runs only in separate guest containers,
+   not the trusted browser/V8 gateway namespace. Every async task, timer, stream
+   and upgrade has a durable permit/lifetime; HTTP closure does not release it.
+   Existing pinned mcp-exec parent-done contract cannot supply this API; it needs
+   an independently reviewed gateway/shim patch in this fork, not a renamed ACK.
+3. **Node guard**: a NEW authenticated CRI frontdoor between kubelet and the
+   raw containerd socket. The raw socket is runtime-administrator authority even
+   if mounted read-only. Only the operator-controlled root guard can open it.
+   Frontdoor gRPC method dispatch must enforce identities AND method allowlists;
+   no generic proxy/dial/exec input. Kubelet gets its own authenticated channel;
+   controller gets only RegisterWriter/InstallGate/StopBound/ObserveBound methods.
+   Guest cannot connect. RunPodSandbox, CreateContainer, StartContainer, ExecSync,
+   Exec/Attach and equivalent direct paths for protected sources are checked at
+   effect time against the installed sourceUID/epoch/intent and permit inventory.
+   Exact CRI paths come from audited runtime/v1/api.proto, not invented kubelet
+   certificates. Uncontrolled alternate runtime endpoints make fork unsupported.
+4. **CSI frontdoor**: a NEW guarded driver socket registered instead of the raw
+   source driver endpoint. It intercepts NodePublish/Unpublish/Unstage and
+   ControllerPublish/Unpublish/Expand/CreateSnapshot for protected handles; validates
+   identities, source/PVC/PV bindings and current effect ticket before dispatch.
+   It records exact trusted request/response plus mount inventory. Caller never
+   supplies arbitrary host paths: paths are bound to trusted kubelet publish
+   records, PodUID and PV/volumeHandle. No open gRPC passthrough to guest.
+   Existing CSI RPCs do not themselves implement this admission or evidence log.
+
+### Private bootstrap, wire authentication and restart algorithm
+
+Operator installs a control CA/public trust anchor and scoped workload identities
+in the separate control namespace/node-root mount, before any guest code. Signing
+keys are in private root/controller memory/secret mounts NEVER projected into
+source PVC, guest env, inherited FDs, shared proc/mount namespace or endpoint URLs.
+A node guard does not fork a guest with signer memory: containerd/runc is a
+separate launch boundary. Private Unix sockets are root0600/SO_PEERCRED checked;
+network links use mTLS with exact controller/node UID identities and server name.
+A method/owner/node allowlist rejects a valid certificate for the wrong role.
+Guest network policy and mounts exclude these endpoints; that isolation needs
+adversarial deployment tests, not trust in a port number or dumpable flag.
+
+Every custom request carries operationUID, sourceUID, epoch, acceptedIntentSeq,
+nodeUID, brokerBootID, nonce, expected PodUID/containerID/createdAt and volume
+identity set. Canonical protobuf bytes/signature and mTLS identity bind these
+fields; receiver rejects unknown fields affecting meaning, wrong role/owner,
+replayed nonce, old incarnation and mismatched durable request digest. Nonces and
+results are journalled before ACK; lost response replays the SAME result, not a
+second action. Keys rotate only with durable incarnation/epoch rollover.
+
+On broker/guard restart: default CLOSED, mark previously active scopes UNKNOWN,
+read the durable inventory, reconcile actual runtime/mount incarnations, reject
+old response nonces, and reinstall deny gates on ALL nodes before permitting
+new admission. A process memory cache or fresh empty ledger cannot reopen it.
+Partition or missing journal/observer denies effects. No lease expiry proves
+execution completion. Root observer writes observation records; controller signs
+an eligibility decision only after validating all records, never guest telemetry.
+
+### Concrete stop and storage evidence, not abstract termination oracles
+
+Audited CRI StopContainer is idempotent and forces kill after timeout; current
+containerd stop code sends SIGKILL to its task and waits. That alone is NOT a
+successful graceful drain. Audited runc Signal comments tie descendant SIGKILL
+to own PID namespace/init semantics; this does NOT transfer automatically to
+GKE runsc/gVisor. Reference guest must have private PID namespace, no hostPID,
+shared namespace, privileged escape or writable ancestor cgroup/runtime socket.
+Guard binds CRI ContainerStatus metadata, sandboxID, containerID/createdAt to
+registered PodUID, root-owned cgroup inode/generation and namespace identity.
+Status is cross-checked with containerd task wait/state and root namespace/cgroup
+observations; proc scans/status alone are rejected. Kernel cgroup2 ownership and
+no migration/alternate launch paths are REQUIRED; not an inference from EXITED.
+
+For a future per-exec shim, root-owned sub-cgroups and atomic pre-exec placement
+(e.g. audited clone3 CLONE_INTO_CGROUP/runtime integration) track descendants;
+only a CLOSED scope with no further launch capability and verified empty kernel
+scope can release its permit. Guest subreaper reports remain telemetry. This
+runtime integration is missing and must be audited before code approval. All
+long-lived writer service scopes must also drain/close; per-exec emptiness is
+insufficient while Chrome/V8/VNC or file/network service permits remain issued.
+Abnormal death/SIGKILL/restart yields aborted/UNKNOWN work, not successful ACK.
+If graceful service completion cannot be independently established, abort fork.
+
+The authority first CAS-closes admission, then gets installed-gate receipts from
+all controlled nodes and driver frontdoors. API admission denies new/adopted Pods
+using the protected PVC, but CRI and CSI frontdoors ALSO check at effect time to
+cover already-admitted kubelet restarts and NodePublish. RWO same-node other Pods
+are writers, not excluded by the access mode. Inventory must include all of them;
+a foreign/uncontrolled writer aborts, never silently kills somebody else's Pod.
+
+After actual drain/stop, root observer correlates kubelet-requested successful
+NodeUnpublish/NodeUnstage with the actual target/staging mount namespaces and
+open writer scope inventory, PVCUID/PVUID/volumeHandle and node/attachment epoch.
+Root-owned source filesystem syncfs before unpublish, successful driver semantics
+and absence of live holder namespaces/FDs are separate evidence obligations.
+The directory fixture does not prove block-device flush. If storage requires
+ControllerUnpublish/detach, bind VolumeAttachment UID/generation and fresh driver
+backend fencing receipt to the SAME handle/epoch. API deletion of that object is
+not proof. Node partition/forceDelete cannot make a missing receipt successful.
+No snapshot after uncertain mounts, old writer, stale CID or unobserved stop.
+
+### Accepted intent and cross-resource effects
+
+Root effect application is serialized with acceptance by the authority/guard
+actor, not merely a precheck followed by IO. Each effect ticket is durable and
+one-shot, with expected acceptedIntentSeq/billing revision; issuing a ticket does
+NOT let it survive a newer accepted stop/delete. A new intent invalidates permits
+at guards and settles/cancels in-flight conflicting effects before its accepted
+ACK; if an effect outcome/guard is unreachable, record Pending/UNKNOWN, not an
+accepted action plus a stale resume. This acceptance semantics must be explicitly
+approved for API/billing integration; current refused-intent audit and current
+billing webhook queue do not already implement it. Global owner billing changes
+must install deny barriers on affected sources before authoritative acceptance;
+if product semantics cannot support that ordering, resume stays unsupported.
+No claim of an atomic Kubernetes/Stripe/PD transaction is made.
+
+Every shared reservation/idempotency and latest accepted desired action is checked
+in this authority, not guest fields. Snapshot creation, independent restore PVC,
+child policy/identity and durable access commit reconcile lost responses using
+immutable request/owner/UID digests. Cleanup is pre/post-commit aware, uses observed
+UID/generation preconditions and cannot delete a committed child after restart.
+Source delete/new accepted intent supersedes resume; child write/delete and source
+removal independence must be demonstrated, never assume name-owner equivalence.
+
+### Minimum authority and production transition decisions
+
+Existing baseline claims above are historical: selected main adds PVC expansion
+and capacity-lease source/RBAC work, preserved in this source-only merge. It is
+NOT live-applied here and supplies no fork observer/CRI/CSI/Secret/CM authority.
+New controller needs only named operation/SourceControl CRUD/status/finalizers,
+UID-conditional relevant Sandbox/Pod/PVC/VolumeSnapshot lifecycle and read-only
+PV/VolumeAttachment/class/node inventory. Observer root-runtime/mount rights are
+explicitly STRONG node administrator trust, isolated from backend and guest;
+not 'least privilege' by a readonly socket mount. No broad CM/Secret/node-proxy
+journal grant. Admission/ownership enforcement must constrain RBAC's broad verbs.
+
+Production GKE/gVisor remains MANDATORY, UNSUPPORTED until: (1) select and pin
+actual GKE/runsc/PD CSI versions and audited runtime/CSI interfaces; (2) obtain
+operator decisions for a managed node observer or separately audited root guard
+and exclusive frontdoors/all restart/mount paths; (3) prove runsc sandbox/sentry/
+gofer teardown and writer handle closure, not runc assumptions; (4) vet a real PD
+VolumeSnapshotClass and flush/unpublish/detach/fencing semantics under partition;
+(5) review bootstrap/CRDs/accepted-intent/billing and all-path integration; (6) run
+isolated node-offline/forced-delete/replay/guest-spoof/crash/restart/same-node writer
+and independent restore/write/delete/cleanup tests against actual versions.
+If managed GKE cannot expose required authority, select an operator-approved
+supported node/control architecture; do not manufacture a certificate or abandon
+production goal in favour of tar-copy reference results. No component/privilege
+implementation or physical enablement is authorized by this source selection.
+
+Integration note: main disk growth now refuses an installed fence before PVC access, patches the observed PVC UID/RV and binds final source CAS to original UID. This does not make the source check/PVC effect atomic. Main capacity lease, tool-event recording and webhook policy work are retained, not treated as execution completion or fork reservation proof.
+
+Selected wire/identity details for the NEW implementation: Go TLS1.3 mutual TLS
+plus crypto/ed25519 response signing; crypto/rand32-byte challenges, never a guest
+seed. URI SAN role identities spiffe://fork-control/controller/<controlUID> and
+spiffe://fork-control/node/<nodeUID> are exact allowlist entries, not wildcard
+trusted clients. Operator offline control CA provisions server/node certificates
+and node signing-key/public-key bindings before guest launch. Root node key files
+live in node-private /var/lib/fork-guard with root0600/no guest mount; broker keys
+are private control-namespace mounts, service-account automount disabled for guest.
+No generic backend Secret read is required; any automated issuer is a separately
+reviewed replacement, not implicitly Kubernetes' kubelet-client signer.
+Signature input is domain 'disk-fork-observation-v1' plus method/direction and
+length-delimited deterministic protobuf payload, rejecting unknown fields, over
+all identity/epoch/nonce/intent/volume fields. Trusted receiver durably records
+nonce-use/result before ACK; replay may retrieve identical prior result, never
+execute a second effect. Rebuilt nodeUID/key/brokerBootID invalidates old sessions.
+Actual custom protocol/issuer/proxy source is not yet written or reviewed; these
+selected details are falsifiable implementation requirements, not existing APIs.

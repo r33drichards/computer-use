@@ -1,6 +1,6 @@
 # Everything in the browser except running script in the page or replacing
 # its content. No desktop control and no shell.
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

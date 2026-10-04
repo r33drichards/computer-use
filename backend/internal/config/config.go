@@ -40,8 +40,10 @@ type Config struct {
 	// SizesPath is the sizes of session other than small (sizes.yaml,
 	// beside the blueprint unless SIZES_PATH says otherwise). It need not
 	// be there: every session is then small.
-	SizesPath string
-	WebDir    string // built UI to serve
+	SizesPath        string
+	FeatureFlagsPath string
+	WarmCapacity     bool
+	WebDir           string // built UI to serve
 
 	// Passed through to the UI in /config.js.
 	SignOutURL string
@@ -67,18 +69,14 @@ type Config struct {
 	WarmPool     string
 	WarmPoolWait time.Duration
 
-	// A digest of the skills-enabled mcp-js image, selected only for these
-	// authenticated users by the OpenFeature mcp-skills flag. Empty is off.
-	SkillsImageDigest string
-	SkillsEmails      []string
-
 	// APIURL is the base URL of the API host, where API tokens are the
 	// credential (https://api.<domain>; the API is under /v1). "" for none:
 	// there are then no API tokens at all.
 	APIURL string
 	// AllowedEmails is who may use the product: the same addresses as the
 	// policy of Pomerium's routes, which is not consulted on the API host.
-	// Empty: nobody may make a token, and the API host refuses every one.
+	// "*": any authenticated user. Empty: nobody may make a token,
+	// and the API host refuses every one.
 	AllowedEmails []string
 	// APISigningKey signs the access tokens API tokens are exchanged for.
 	// Empty: a key made at start, so access tokens end with the process.
@@ -124,29 +122,21 @@ func FromEnv(get func(string) string) (Config, error) {
 		return def
 	}
 	c := Config{
-		Addr:            or("ADDR", ":8080"),
-		MetricsAddr:     or("METRICS_ADDR", ":9090"),
-		ActiveFile:      get("ACTIVE_FILE"),
-		Namespace:       or("NAMESPACE", "browserjs-sessions"),
-		PublicURL:       strings.TrimRight(get("PUBLIC_URL"), "/"),
-		PomeriumJWKSURL: get("POMERIUM_JWKS_URL"),
-		BlueprintPath:   or("BLUEPRINT_PATH", "/etc/browserjs/blueprint.yaml"),
-		WebDir:          or("WEB_DIR", "/srv/web"),
-		SignOutURL:      or("SIGN_OUT_URL", "/.pomerium/sign_out"),
-		WarmPool:        get("WARM_POOL"),
+		Addr:             or("ADDR", ":8080"),
+		MetricsAddr:      or("METRICS_ADDR", ":9090"),
+		ActiveFile:       get("ACTIVE_FILE"),
+		Namespace:        or("NAMESPACE", "browserjs-sessions"),
+		PublicURL:        strings.TrimRight(get("PUBLIC_URL"), "/"),
+		PomeriumJWKSURL:  get("POMERIUM_JWKS_URL"),
+		BlueprintPath:    or("BLUEPRINT_PATH", "/etc/browserjs/blueprint.yaml"),
+		WebDir:           or("WEB_DIR", "/srv/web"),
+		SignOutURL:       or("SIGN_OUT_URL", "/.pomerium/sign_out"),
+		WarmPool:         get("WARM_POOL"),
+		FeatureFlagsPath: get("FEATURE_FLAGS_PATH"),
+		WarmCapacity:     get("WARM_CAPACITY") == "true",
 	}
 	c.SizesPath = or("SIZES_PATH", filepath.Join(filepath.Dir(c.BlueprintPath), "sizes.yaml"))
-	c.SkillsImageDigest = strings.TrimSpace(get("MCP_SKILLS_IMAGE_DIGEST"))
-	if c.SkillsImageDigest != "" {
-		if err := sessions.CheckImageDigests(map[string]string{"mcp-js": c.SkillsImageDigest}); err != nil {
-			return Config{}, fmt.Errorf("MCP_SKILLS_IMAGE_DIGEST: %w", err)
-		}
-	}
-	for _, email := range strings.Split(get("MCP_SKILLS_EMAILS"), ",") {
-		if email = strings.ToLower(strings.TrimSpace(email)); email != "" {
-			c.SkillsEmails = append(c.SkillsEmails, email)
-		}
-	}
+
 	template := get("SESSION_URL_TEMPLATE")
 	for _, req := range []struct{ name, value string }{
 		{"PUBLIC_URL", c.PublicURL}, {"SESSION_URL_TEMPLATE", template}, {"POMERIUM_JWKS_URL", c.PomeriumJWKSURL},

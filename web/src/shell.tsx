@@ -6,6 +6,8 @@ import { useMe } from "./auth/MeProvider"
 import { BillingBanners, BillingNav } from "./billing/BillingChrome"
 import { tokensAvailable } from "./policyApi"
 
+import { getThemePreference, setThemePreference, type ThemePreference } from "./theme"
+
 export { api } from "./api"
 
 declare global {
@@ -47,6 +49,12 @@ export function Shell({ children, breadcrumbs }: ShellProps) {
 
 export function ShellHeader() {
   const me = useMe()
+  const [theme, setTheme] = useState(getThemePreference)
+  useEffect(() => {
+    const update = () => setTheme(getThemePreference())
+    window.addEventListener("themechange", update)
+    return () => window.removeEventListener("themechange", update)
+  }, [])
   const [tokens, setTokens] = useState(false)
 
   // The link to the tokens page appears only where the backend has tokens.
@@ -64,6 +72,17 @@ export function ShellHeader() {
         <Link to="/">Computer Use sessions</Link>
       </h1>
       <span>
+        <label className="wf-theme">Theme{" "}
+          <select aria-label="Theme" value={theme} onChange={event => {
+            const value = event.target.value as ThemePreference
+            setTheme(value)
+            setThemePreference(value)
+          }}>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="system">System</option>
+          </select>
+        </label>{" · "}
         <BillingNav />
         {tokens && (
           <>

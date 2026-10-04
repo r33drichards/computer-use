@@ -37,15 +37,15 @@ def test_every_case_of_every_example_through_real_opa(cfg, tmp_path, name):
     assert wrong == []
 
 
-def test_all_264_cases_are_run():
+def test_all_285_cases_are_run():
     assert EXAMPLES == ["browser-only", "form-filling", "no-scripting", "observe-only", "one-site", "read-only-shell", "unrestricted"]
-    assert sum(len(cases(n)) for n in EXAMPLES) == 264
+    assert sum(len(cases(n)) for n in EXAMPLES) == 285
 
 
 def test_examples_begin_with_what_they_are(cfg):
     # The backend takes a preset's description from its first comment.
     for name in EXAMPLES:
-        first, rest = example(name, "rego").split("package browserjs.policy\n", 1)
+        first, rest = example(name, "rego").split("package computeruse.policy\n", 1)
         assert first.startswith("# ") and all(l.startswith("# ") for l in first.splitlines()), name
 
 
@@ -55,7 +55,7 @@ def test_example_rego_as_kind_rego(cfg, name):
     assert v.ok, v.errors
     assert v.rego == example(name, "rego")
     assert v.tenant_module == example(name, "rego").replace(
-        "package browserjs.policy\n", 'package browserjs.tenant["s-abcdefghij"]\n')
+        "package computeruse.policy\n", 'package browserjs.tenant["s-abcdefghij"]\n')
 
 
 def test_hash_is_of_the_module_before_the_rewrite(cfg):
@@ -75,9 +75,10 @@ def test_to_api_shape(cfg):
 
 # spike/tenant-guard.py's corpus, and more.
 REFUSED = {
+    "old public package": "package browserjs.policy\nimport rego.v1\nallow_tool_call := true\n",
     "data ref": H + 'allow_tool_call if data.browserjs.tenant["s-other"].allow_tool_call\n',
     "data alias": H + "allow_tool_call if { d := data; d.browserjs }\n",
-    "import data": "package browserjs.policy\nimport rego.v1\nimport data.browserjs.tenant as t\nallow_tool_call if t\n",
+    "import data": "package computeruse.policy\nimport rego.v1\nimport data.browserjs.tenant as t\nallow_tool_call if t\n",
     "with": H + 'allow_tool_call if { helper with input as {"tool": "x"} }\nhelper if input.tool == "x"\n',
     "with data": H + "allow_tool_call if { helper with data.x as 1 }\nhelper := true\n",
     "wrong package": 'package browserjs.decision["s-other"].mcp_tools\nimport rego.v1\nallow := true\n',
@@ -104,9 +105,9 @@ REFUSED = {
     "data in a call of a call": H + "allow_tool_call if { object.get(object.get(data, \"browserjs\", {}), \"loaded\", 1) }\n",
     "data bracket ref": H + 'allow_tool_call if data["browserjs"]\n',
     "data in a template-less string call": H + 'allow_tool_call if json.marshal(data) != ""\n',
-    "import of data root": "package browserjs.policy\nimport rego.v1\nimport data\nallow_tool_call if data\n",
-    "import of another root": "package browserjs.policy\nimport rego.v1\nimport other.x\nallow_tool_call := true\n",
-    "sub-package": "package browserjs.policy.sub\nimport rego.v1\nallow_tool_call := true\n",
+    "import of data root": "package computeruse.policy\nimport rego.v1\nimport data\nallow_tool_call if data\n",
+    "import of another root": "package computeruse.policy\nimport rego.v1\nimport other.x\nallow_tool_call := true\n",
+    "sub-package": "package computeruse.policy.sub\nimport rego.v1\nallow_tool_call := true\n",
     "parent package": "package browserjs\nimport rego.v1\nallow_tool_call := true\n",
     "no entry rule": H + "allow := true\n",
     "entry rule only as a ref head": H + "allow_tool_call.x := true\n",
@@ -136,11 +137,11 @@ ACCEPTED = {
     "helper in its own package": H + 'allow_tool_call if { helper(input.tool) }\nhelper(t) if t == "browser_execute"\n',
     "data as a string key": H + 'allow_tool_call if input["data"] == 1\n',
     "data as a field name": H + "allow_tool_call if input.data.with == 1\n",
-    "future keywords": "package browserjs.policy\nimport future.keywords.if\nimport future.keywords.in\nallow_tool_call if 1 in [1]\n",
-    "import of input": "package browserjs.policy\nimport rego.v1\nimport input.arguments as args\nallow_tool_call if args.x\n",
+    "future keywords": "package computeruse.policy\nimport future.keywords.if\nimport future.keywords.in\nallow_tool_call if 1 in [1]\n",
+    "import of input": "package computeruse.policy\nimport rego.v1\nimport input.arguments as args\nallow_tool_call if args.x\n",
     "reserved names": H + "allow_tool_call := true\nallow_fetch := true\nallow_module := true\n",
-    "comment before package": "# mine\n\n  package browserjs.policy\n\nimport rego.v1\nallow_tool_call := true\n",
-    "non-ascii before and after": "# é𝄞\npackage browserjs.policy\nimport rego.v1\nallow_tool_call if input.x == \"é𝄞\"\n",
+    "comment before package": "# mine\n\n  package computeruse.policy\n\nimport rego.v1\nallow_tool_call := true\n",
+    "non-ascii before and after": "# é𝄞\npackage computeruse.policy\nimport rego.v1\nallow_tool_call if input.x == \"é𝄞\"\n",
     "the word data in a string and a comment": H + '# data.browserjs with\nallow_tool_call if input.x == "data.x with y"\n',
     "unused variable (not strict)": H + "allow_tool_call if { x := 1 }\n",
 }
@@ -152,12 +153,12 @@ def test_legitimate_modules_are_accepted(cfg, name):
     v = check(cfg, "rego", src, "s-ab2cd")
     assert v.ok, v.errors
     assert v.rego == src
-    assert v.tenant_module == src.replace("package browserjs.policy", 'package browserjs.tenant["s-ab2cd"]', 1)
+    assert v.tenant_module == src.replace("package computeruse.policy", 'package browserjs.tenant["s-ab2cd"]', 1)
     assert opa.check(cfg.opa_bin, cfg.capabilities, v.tenant_module) == []
 
 
 def test_bracketed_package_is_rewritten_whole(cfg):
-    v = check(cfg, "rego", 'package browserjs["policy"]\nimport rego.v1\nallow_tool_call := true\n', "s-ab2cd")
+    v = check(cfg, "rego", 'package computeruse["policy"]\nimport rego.v1\nallow_tool_call := true\n', "s-ab2cd")
     assert v.ok, v.errors
     assert v.tenant_module == 'package browserjs.tenant["s-ab2cd"]\nimport rego.v1\nallow_tool_call := true\n'
 
@@ -166,7 +167,7 @@ def test_guard_errors_carry_codes_and_locations(cfg):
     v = check(cfg, "rego", H + "allow_tool_call if {\n\tinput.x\n\tdata.y\n}\n")
     assert v.errors == [{"row": 5, "col": 2, "code": "policy_guard_error", "message": "a policy must not refer to data"}]
     v = check(cfg, "rego", "package system.authz\nallow_tool_call := true\n")
-    assert v.errors == [{"row": 1, "col": 1, "code": "policy_guard_error", "message": "the package must be browserjs.policy"}]
+    assert v.errors == [{"row": 1, "col": 1, "code": "policy_guard_error", "message": "the package must be computeruse.policy"}]
     v = check(cfg, "rego", H + "allow := true\n")
     assert v.errors == [{"code": "policy_guard_error", "message": "the policy must define allow_tool_call"}]
     v = check(cfg, "rego", H + "allow_tool_call if { helper with input as 1 }\nhelper := true\n")
@@ -330,3 +331,36 @@ def test_evaluate_timeout(cfg):
 def test_a_name_that_is_not_a_session_id_is_refused(cfg, name):
     v = check(cfg, "rego", H + "allow_tool_call := true\n", name)
     assert not v.ok and v.errors == [{"code": "policy_guard_error", "message": "the policy is not named after a session"}]
+
+
+@pytest.mark.parametrize("scheme,host,method,allowed", [
+    ("https", "api.example.com", "GET", True),
+    ("https", "other.example.org", "GET", False),
+    ("https", "api.example.com", "POST", False),
+    ("http", "api.example.com", "GET", False),
+    ("file", "api.example.com", "GET", False),
+])
+def test_fetch_policy_matches_session_and_editor(cfg, tmp_path, scheme, host, method, allowed):
+    source = H + '''allow_tool_call if {
+        input.operation == "fetch"
+        input.url_parsed.scheme == "https"
+        input.url_parsed.host == "api.example.com"
+        input.method == "GET"
+    }
+'''
+    call = {"operation": "fetch", "url": f"{scheme}://{host}/v1/data", "method": method,
+            "headers": {}, "url_parsed": {"scheme": scheme, "host": host, "port": None,
+                                           "path": "/v1/data", "query": ""}}
+    v = check(cfg, "rego", source, "s-ab2cd")
+    assert v.ok, v.errors
+    assert decide(cfg, tmp_path, v, "s-ab2cd", call) is allowed
+    assert evaluate(cfg, "rego", source, call) == {"ok": True, "allow": allowed, "errors": []}
+
+
+def test_unrestricted_fetch_still_requires_http_scheme(cfg, tmp_path):
+    source = H + "allow_tool_call := true\n"
+    v = check(cfg, "rego", source, "s-ab2cd")
+    for call in [{"operation": "fetch"}, {"operation": "fetch", "url_parsed": None},
+                 {"operation": "fetch", "url_parsed": {"scheme": "file"}}]:
+        assert decide(cfg, tmp_path, v, "s-ab2cd", call) is False
+        assert evaluate(cfg, "rego", source, call)["allow"] is False

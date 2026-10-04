@@ -22,7 +22,7 @@ import (
 
 // PolicyEnv is the value of mcp-js's MCP_V8_POLICIES_JSON in a session that
 // asks OPA for decisions, as docs/contracts/policy/deploy.md has it.
-const PolicyEnv = `{"mcp_tools":{"mode":"all","policies":[{"url":"file:///etc/mcp/mcp_tools.rego"},{"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/{{ .ID }}/mcp_tools"}]},"filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]}}`
+const PolicyEnv = `{"mcp_tools":{"pre":[{"url":"http://policy-operator.browserjs-sessions.svc:8080","policy_path":"browserjs/hooks/{{ .ID }}/mcp_tools/pre"}],"mode":"all","policies":[{"url":"file:///etc/mcp/mcp_tools.rego"},{"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/{{ .ID }}/mcp_tools"}]},"filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]},"fetch":{"mode":"all","policies":[{"url":"file:///etc/mcp/fetch.rego"},{"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/{{ .ID }}/mcp_tools"}]}}`
 
 // PolicyBlueprint is Blueprint as it is once policies are deployed.
 var PolicyBlueprint = strings.Replace(Blueprint, `            value: "{{ .SessionURL }}"
@@ -33,7 +33,7 @@ var PolicyBlueprint = strings.Replace(Blueprint, `            value: "{{ .Sessio
 
 // Unrestricted is the policy the fake deployment gives a session that asked
 // for none.
-var Unrestricted = sessions.PolicySpec{Kind: "rego", Source: "package browserjs.policy\n\nimport rego.v1\n\nallow_tool_call := true\n"}
+var Unrestricted = sessions.PolicySpec{Kind: "rego", Source: "package computeruse.policy\n\nimport rego.v1\n\nallow_tool_call := true\n"}
 
 // NewWithPolicies is New with policies enabled on the store and a blueprint
 // whose sessions ask OPA.
@@ -215,7 +215,7 @@ func PolicyReady(generation int64) map[string]any {
 	return map[string]any{
 		"observedGeneration": generation,
 		"hash":               "sha256:0f0f",
-		"rego":               "package browserjs.policy\n\nallow_tool_call := true\n",
+		"rego":               "package computeruse.policy\n\nallow_tool_call := true\n",
 		"regoGeneration":     generation,
 		"warnings":           []any{map[string]any{"code": "unknown_operation", "message": "nothing in version 1 is called that"}},
 		"loaded":             map[string]any{"replicas": int64(2), "total": int64(2), "revision": "17"},

@@ -16,15 +16,15 @@ CONTRACT = (CONTRACTS / "catalogue.yaml").read_text(encoding="utf-8")
 # --- catalogue ------------------------------------------------------------------
 
 def test_the_contracts_catalogue():
-    assert parse(CONTRACT).session_disk_gb == 5
+    assert parse(CONTRACT).session_disk_gb == 32
     assert parse(CONTRACT).sizes == {"medium", "large"}   # the sizes with a rate of their own
 
 
 @pytest.mark.parametrize("change,message", [
     (("version: 1", "version: 2"), "version"),
-    (("sessionDiskGB: 5", "sessionDiskGB: 0"), "sessionDiskGB"),
-    (("sessionDiskGB: 5", "sessionDiskGB: 2.5"), "sessionDiskGB"),
-    (("sessionDiskGB: 5", "sessionDiskGB: true"), "sessionDiskGB"),
+    (("sessionDiskGB: 32", "sessionDiskGB: 0"), "sessionDiskGB"),
+    (("sessionDiskGB: 32", "sessionDiskGB: 2.5"), "sessionDiskGB"),
+    (("sessionDiskGB: 32", "sessionDiskGB: true"), "sessionDiskGB"),
 ])
 def test_a_catalogue_that_is_wrong_is_refused(change, message):
     assert change[0] in CONTRACT
@@ -43,8 +43,8 @@ def test_the_file_is_read_again_when_it_changes_and_a_bad_one_keeps_the_last_goo
     path.write_text(CONTRACT)
     f = CatalogueFile(path)
     first = f.current()
-    assert first.session_disk_gb == 5 and f.current() is first
-    path.write_text(CONTRACT.replace("sessionDiskGB: 5", "sessionDiskGB: 8"))
+    assert first.session_disk_gb == 32 and f.current() is first
+    path.write_text(CONTRACT.replace("sessionDiskGB: 32", "sessionDiskGB: 8"))
     assert f.current().session_disk_gb == 8
     with caplog.at_level(logging.ERROR, logger="billing_operator"):
         path.write_text("version: 7")
@@ -53,7 +53,7 @@ def test_the_file_is_read_again_when_it_changes_and_a_bad_one_keeps_the_last_goo
         assert f.current().session_disk_gb == 8 and f.current().session_disk_gb == 8
     assert caplog.text.count("does not parse") == 1 and caplog.text.count("cannot be read") == 1
     path.write_text(CONTRACT)
-    assert f.current().session_disk_gb == 5
+    assert f.current().session_disk_gb == 32
 
 
 def test_no_catalogue_at_all_is_none(tmp_path):
@@ -66,13 +66,13 @@ def test_no_catalogue_at_all_is_none(tmp_path):
 def test_a_configmap_swapped_through_its_symlink_is_seen(tmp_path):
     """How the kubelet updates a mounted ConfigMap: a new directory, and the
     ..data symlink moved to it."""
-    for name, gb in (("v1", 5), ("v2", 8)):
+    for name, gb in (("v1", 32), ("v2", 8)):
         (tmp_path / name).mkdir()
-        (tmp_path / name / "catalogue.yaml").write_text(CONTRACT.replace("sessionDiskGB: 5", f"sessionDiskGB: {gb}"))
+        (tmp_path / name / "catalogue.yaml").write_text(CONTRACT.replace("sessionDiskGB: 32", f"sessionDiskGB: {gb}"))
     (tmp_path / "..data").symlink_to("v1")
     (tmp_path / "catalogue.yaml").symlink_to("..data/catalogue.yaml")
     f = CatalogueFile(tmp_path / "catalogue.yaml")
-    assert f.current().session_disk_gb == 5
+    assert f.current().session_disk_gb == 32
     (tmp_path / "..data_tmp").symlink_to("v2")
     (tmp_path / "..data_tmp").rename(tmp_path / "..data")
     assert f.current().session_disk_gb == 8
@@ -201,3 +201,14 @@ def test_a_warm_pod_is_awake_for_its_owner_from_when_it_was_taken():
     assert observe([sb], 5)[owner_hash()]["s-warm1"]["readySince"] == "2026-10-02T11:00:00Z"
     sb["metadata"]["annotations"]["browserjs.dev/created"] = "not a time"
     assert observe([sb], 5)[owner_hash()]["s-warm1"]["readySince"] == "2026-10-02T11:00:00Z"
+
+
+def test_disk_capacity_is_independent_of_compute_size():
+    small, large = sandbox("s-small"), sandbox("s-large")
+    small["spec"]["volumeClaimTemplates"] = [{"metadata": {"name": "data"}, "spec": {"resources": {"requests": {"storage": "128Gi"}}}}]
+    large["spec"]["volumeClaimTemplates"] = [{"metadata": {"name": "data"}, "spec": {"resources": {"requests": {"storage": "32Gi"}}}}]
+    large["metadata"].setdefault("annotations", {})["browserjs.dev/size"] = "large"
+    seen = observe([small, large], 32, frozenset({"large"}))[owner_hash()]
+    assert seen["s-small"]["diskGB"] == 128
+    assert seen["s-large"]["diskGB"] == 32
+    assert seen["s-large"]["size"] == "large"

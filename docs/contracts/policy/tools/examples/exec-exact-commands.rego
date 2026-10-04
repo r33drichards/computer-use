@@ -4,7 +4,7 @@
 #
 # The strongest policy on `exec`, and the one to start from: a call is on
 # the list or it is not.
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

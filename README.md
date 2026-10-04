@@ -37,7 +37,7 @@ were. Policies written in Rego decide what an agent's tool calls may do.
 | `images/` | the two session images (`browser`, `mcp-js`) and the two operators (`policy-operator`, `billing-operator`) |
 | `deploy/` | kustomize: `base`, `local` (kind) and `gke` (the hosted service) |
 | `infra/` | OpenTofu for the Google Cloud project: cluster, registry, DNS, snapshots bucket |
-| `terraform-provider-browserjs/` | a Terraform/OpenTofu provider for sessions and their policies |
+| `terraform-provider-computeruse/` | a Terraform/OpenTofu provider for sessions and their policies |
 | `site/` | the public documentation site (VitePress) |
 | `hack/`, `test/` | scripts for the local cluster and for operations; end-to-end tests |
 
@@ -84,7 +84,7 @@ allowed e-mail addresses in them are ours.
 nix develop                                  # Go, Node, kubectl, kind, kustomize
 (cd backend && go test ./...)
 (cd web && npm ci && npm test)
-(cd terraform-provider-browserjs && go test ./...)
+(cd terraform-provider-computeruse && go test ./...)
 (cd infra/main && nix shell nixpkgs#opentofu -c sh -c 'tofu init -backend=false && tofu test')
 ```
 
@@ -100,3 +100,5 @@ Please report vulnerabilities privately: [`SECURITY.md`](SECURITY.md).
 [Apache License 2.0](LICENSE). The container images bundle other people's
 software under its own licences, some of it copyleft:
 [`THIRD_PARTY.md`](THIRD_PARTY.md).
+
+Production releases: [Argo CD, canaries, rollback and failure emails](docs/gitops-deployment.md).

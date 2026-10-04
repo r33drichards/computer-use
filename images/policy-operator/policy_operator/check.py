@@ -18,7 +18,7 @@ from . import opa
 from .config import EVAL_DEADLINE_SECONDS, MAX_DIAGNOSTICS, MAX_SOURCE_BYTES, Config
 
 GUARD = "policy_guard_error"
-POLICY_PACKAGE = ["data", "browserjs", "policy"]
+POLICY_PACKAGE = ["data", "computeruse", "policy"]
 # The session a module is rewritten for when nobody asked for one (validate):
 # the rewrite is part of the verdict, so it always runs.
 PLACEHOLDER_SESSION = "s-aaaaa"
@@ -33,7 +33,7 @@ class Validation:
     ok: bool
     errors: list[dict] = field(default_factory=list)
     warnings: list[dict] = field(default_factory=list)
-    # When ok: the module with package browserjs.policy, and its hash.
+    # When ok: the module with package computeruse.policy, and its hash.
     rego: str | None = None
     hash: str | None = None
     # When ok: the module as it goes into the bundle for `session_id`.
@@ -98,7 +98,7 @@ def _guard(ast: dict) -> list[dict]:
     package = ast.get("package") or {}
     path = [t.get("value") for t in package.get("path") or []]
     if path != POLICY_PACKAGE:
-        add("the package must be browserjs.policy", package)
+        add("the package must be computeruse.policy", package)
 
     # 2. Imports.
     for imp in ast.get("imports") or []:
@@ -172,7 +172,7 @@ def rewrite_package(cfg: Config, source: str, ast: dict, session_id: str) -> str
         return None
     if data[start:start + 7] != b"package" or data[end - len(text):end] != text:
         return None
-    if data[end:end + 1] == b"]":  # package browserjs["policy"]
+    if data[end:end + 1] == b"]":  # package computeruse["policy"]
         end += 1
     clause = f'package browserjs.tenant["{session_id}"]'.encode()
     rewritten = (data[:start] + clause + data[end:]).decode("utf-8")
@@ -323,7 +323,7 @@ def _check(cfg: Config, kind: str, source: str, session_id: str | None, warn: bo
     sid = session_id or PLACEHOLDER_SESSION
     tenant = rewrite_package(cfg, rego, ast, sid)
     if tenant is None:
-        return _fail([diagnostic(GUARD, "the package clause must be written as: package browserjs.policy", *_loc(ast["package"]))])
+        return _fail([diagnostic(GUARD, "the package clause must be written as: package computeruse.policy", *_loc(ast["package"]))])
     return Validation(ok=True, warnings=lint(cfg, rego) if warn else [], rego=rego, hash=policy_hash(rego),
                       tenant_module=tenant, session_id=sid)
 
@@ -338,6 +338,9 @@ KNOWN_TOOLS = {
 def _known(input_doc) -> bool:
     if not isinstance(input_doc, dict):
         return False
+    if input_doc.get("operation") == "fetch":
+        parsed = input_doc.get("url_parsed")
+        return isinstance(parsed, dict) and parsed.get("scheme") in ("http", "https")
     server, tool = input_doc.get("server"), input_doc.get("tool")
     return isinstance(server, str) and isinstance(tool, str) and tool in KNOWN_TOOLS.get(server, ())
 
@@ -345,7 +348,7 @@ def _known(input_doc) -> bool:
 def evaluate(cfg: Config, kind: str, source: str, input_doc) -> dict:
     """POST /v1/evaluate: {ok, allow?, errors}. What a session would be
     answered: the policy's allow_tool_call, behind the decision module's
-    refusal of servers and tools it does not know."""
+    refusal of unknown servers/tools and non-HTTP(S) fetch requests."""
     v = check(cfg, kind, source, warn=False)
     if not v.ok:
         return {"ok": False, "errors": v.errors}

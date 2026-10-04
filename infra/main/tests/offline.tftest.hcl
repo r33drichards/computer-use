@@ -45,6 +45,7 @@ mock_provider "google" {
 variables {
   project_id           = "browserjs-sessions-test"
   github_repository_id = "424242"
+  enable_previews      = false
 }
 
 run "defaults_pomerium_nlb" {
@@ -423,4 +424,58 @@ run "rejects_unknown_edge_mode" {
   }
 
   expect_failures = [var.edge_mode]
+}
+
+run "preview_environments" {
+  command = plan
+
+  variables {
+    enable_previews = true
+  }
+
+  assert {
+    condition     = google_artifact_registry_repository.previews[0].repository_id == "browserjs-previews"
+    error_message = "Previews must use a separate image repository."
+  }
+
+  assert {
+    condition     = local.public_names.previews == "*.preview.computeruse.site"
+    error_message = "Preview app, site, API and session hosts must share the preview wildcard."
+  }
+
+  assert {
+    condition     = endswith(google_service_account_iam_member.preview_github["deployer"].member, "@refs/heads/main") && endswith(google_service_account_iam_member.preview_github["publisher"].member, "@refs/heads/main")
+    error_message = "PR build jobs must not acquire publisher or deployer credentials."
+  }
+
+  assert {
+    condition     = toset(google_project_iam_custom_role.preview_tag_cleanup[0].permissions) == toset(["artifactregistry.tags.get", "artifactregistry.tags.list", "artifactregistry.tags.delete"])
+    error_message = "Cleanup may inspect/delete tags, never publish or delete image versions."
+  }
+
+  assert {
+    condition     = one(google_artifact_registry_repository.previews[0].cleanup_policies).condition[0].older_than == "1209600s" && one(google_artifact_registry_repository.previews[0].cleanup_policies).condition[0].tag_state == "UNTAGGED"
+    error_message = "Only untagged preview images may expire after 14 days."
+  }
+}
+
+run "keeps_warm_session_node_without_spending_ssd_quota_on_boot" {
+  command = plan
+
+  variables {
+    session_max_nodes              = 1
+    session_fallback_machine_types = { n2d-standard-4 = null }
+    session_fallback_min_nodes     = { n2d-standard-4 = 1 }
+    session_disk_type              = "pd-standard"
+  }
+
+  assert {
+    condition     = google_container_node_pool.sessions_fallback["n2d-standard-4"].autoscaling[0].min_node_count == 1 && google_container_node_pool.sessions_fallback["n2d-standard-4"].autoscaling[0].max_node_count == 1
+    error_message = "The warm-pool controller needs exactly one available session node."
+  }
+
+  assert {
+    condition     = google_container_node_pool.sessions_fallback["n2d-standard-4"].node_config[0].disk_type == "pd-standard"
+    error_message = "Node boot storage must leave balanced disk quota for session data."
+  }
 }

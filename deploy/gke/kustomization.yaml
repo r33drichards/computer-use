@@ -15,6 +15,7 @@ resources:
   - session.yaml
   - snapshots.yaml
   - warmpool.yaml
+  - session-slots.yaml
   - certificate.yaml
   - site.yaml
   # The Accounts' daily backup; suspended until billing is enforced.
@@ -60,6 +61,12 @@ images:
     digest: sha256:d1a7a021f622487174854376c616b6bf7d070f62c19233ed4f2ecd9129c1d839
 
 configMapGenerator:
+  - name: feature-flags
+    files:
+      - flags.json=feature-flags.json
+  - name: session-slot-controller
+    files:
+      - session-slots.py
   - name: session-blueprint
     behavior: replace
     files:

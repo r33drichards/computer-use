@@ -3,6 +3,7 @@ package api_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -95,6 +96,19 @@ func (o *operator) serve(w http.ResponseWriter, r *http.Request) {
 		Source string          `json:"source"`
 		Input  json.RawMessage `json:"input"`
 	}
+	if r.URL.Path == "/v1/webhooks/validate" {
+		var settings map[string]any
+		if json.Unmarshal(body, &settings) != nil {
+			reply(400, map[string]string{"error": "invalid"})
+			return
+		}
+		if strings.Contains(fmt.Sprint(settings["filter"]), "INVALID") {
+			reply(200, map[string]any{"ok": false, "errors": []any{map[string]any{"code": "rego_parse_error", "message": "invalid filter"}}})
+		} else {
+			reply(200, map[string]any{"ok": true, "errors": []any{}})
+		}
+		return
+	}
 	if r.Method == http.MethodPost {
 		if err := json.Unmarshal(body, &req); err != nil || req.Kind == "" || req.Source == "" || strings.Contains(req.Source, "MALFORMED") {
 			reply(http.StatusBadRequest, map[string]string{"error": "the request is not JSON of the right shape"})
@@ -111,7 +125,7 @@ func (o *operator) serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		reply(http.StatusOK, map[string]any{
-			"ok": true, "rego": "package browserjs.policy\n\nallow_tool_call := true\n", "hash": "sha256:0f0f",
+			"ok": true, "rego": "package computeruse.policy\n\nallow_tool_call := true\n", "hash": "sha256:0f0f",
 			"errors": []any{}, "warnings": []any{},
 		})
 	case "POST /v1/evaluate":
@@ -218,6 +232,7 @@ type (
 		Message string         `json:"message"`
 		Created time.Time      `json:"created"`
 		Size    string         `json:"size"`
+		DiskGB  int            `json:"diskGB"`
 		MCPURL  string         `json:"mcp_url"`
 		Policy  *policySummary `json:"policy"`
 	}
@@ -270,9 +285,9 @@ func strict[T any](t *testing.T, rec *httptest.ResponseRecorder) T {
 
 const (
 	unrestrictedSource = `{"version": 1, "allow": {"operations": ["*"]}}`
-	noScripting        = "package browserjs.policy\n\nimport rego.v1\n\nallow_tool_call if input.tool == \"browser_execute\"\n"
-	observeOnly        = "package browserjs.policy\n\nimport rego.v1\n\nallow_tool_call if input.arguments.operations == [{\"type\": \"screenshot\"}]\n"
-	regoSource         = "package browserjs.policy\n\nallow_tool_call := false\n"
+	noScripting        = "package computeruse.policy\n\nimport rego.v1\n\nallow_tool_call if input.tool == \"browser_execute\"\n"
+	observeOnly        = "package computeruse.policy\n\nimport rego.v1\n\nallow_tool_call if input.arguments.operations == [{\"type\": \"screenshot\"}]\n"
+	regoSource         = "package computeruse.policy\n\nallow_tool_call := false\n"
 	managedURL         = "https://git.example.com/infra/policies"
 )
 
@@ -614,7 +629,7 @@ func TestGetPolicy(t *testing.T) {
 	sessionstest.SetPolicyStatus(t, f.client, id, sessionstest.PolicyReady(1))
 	p = f.get(id)
 	applied := time.Date(2026, 10, 2, 12, 1, 7, 0, time.UTC)
-	if p.State != "ready" || p.Hash != "sha256:0f0f" || !strings.HasPrefix(p.Rego, "package browserjs.policy") ||
+	if p.State != "ready" || p.Hash != "sha256:0f0f" || !strings.HasPrefix(p.Rego, "package computeruse.policy") ||
 		p.Loaded == nil || p.Loaded.Replicas != 2 || p.Loaded.Total != 2 || p.Updated == nil || !p.Updated.Equal(applied) ||
 		len(p.Warnings) != 1 || p.Warnings[0].Code != "unknown_operation" || len(p.Errors) != 0 {
 		t.Errorf("ready: %+v", p)
@@ -956,7 +971,7 @@ func policyRoutes(t *testing.T, id string) []route {
 		{"DELETE", "/api/sessions/" + id + "/policy", "", 200, "policies:write"},
 		// Not about a session: any token.
 		{"POST", "/api/policies/validate", policyBody(t, "rego", noScripting, nil), 200, ""},
-		{"POST", "/api/policies/evaluate", `{"kind":"rego","source":"package browserjs.policy","input":{"operation":"mcp_call_tool"}}`, 200, ""},
+		{"POST", "/api/policies/evaluate", `{"kind":"rego","source":"package computeruse.policy","input":{"operation":"mcp_call_tool"}}`, 200, ""},
 		{"GET", "/api/policy-presets", "", 200, ""},
 	}
 }
@@ -1161,7 +1176,7 @@ func TestValidateEvaluateSchemaAndPresets(t *testing.T) {
 
 	rec := f.do(alice, "POST", "/api/policies/validate", policyBody(t, "rego", noScripting, nil))
 	v := strict[validation](t, rec)
-	if rec.Code != 200 || v.OK == nil || !*v.OK || v.Errors == nil || v.Warnings == nil || v.Hash != "sha256:0f0f" || !strings.HasPrefix(v.Rego, "package browserjs.policy") {
+	if rec.Code != 200 || v.OK == nil || !*v.OK || v.Errors == nil || v.Warnings == nil || v.Hash != "sha256:0f0f" || !strings.HasPrefix(v.Rego, "package computeruse.policy") {
 		t.Errorf("valid: %d %s", rec.Code, rec.Body)
 	}
 	// An invalid policy is a 200 with ok false.
@@ -1171,13 +1186,13 @@ func TestValidateEvaluateSchemaAndPresets(t *testing.T) {
 		t.Errorf("invalid: %d %s", rec.Code, rec.Body)
 	}
 	// Only the policy goes to the operator, whatever else was sent.
-	f.do(alice, "POST", "/api/policies/validate", `{"kind":"rego","source":"package browserjs.policy","management":{"mode":"iac"},"session_id":"s-aaaaa"}`)
-	if sent := f.operator.sent("/v1/validate"); len(sent) != 2 || sent["kind"] != "rego" || sent["source"] != "package browserjs.policy" {
+	f.do(alice, "POST", "/api/policies/validate", `{"kind":"rego","source":"package computeruse.policy","management":{"mode":"iac"},"session_id":"s-aaaaa"}`)
+	if sent := f.operator.sent("/v1/validate"); len(sent) != 2 || sent["kind"] != "rego" || sent["source"] != "package computeruse.policy" {
 		t.Errorf("the operator was sent %v", sent)
 	}
 
 	input := `{"operation":"mcp_call_tool","server":"browser","tool":"browser_execute","arguments":{"operations":[{"type":"evaluate"}]}}`
-	for source, allow := range map[string]bool{noScripting: true, "package browserjs.policy # DENY": false} {
+	for source, allow := range map[string]bool{noScripting: true, "package computeruse.policy # DENY": false} {
 		kind := "rego"
 		if !allow {
 			kind = "rego"
@@ -1205,7 +1220,7 @@ func TestValidateEvaluateSchemaAndPresets(t *testing.T) {
 		{"/api/policies/validate", `{"kind":"rego","source":"MALFORMED"}`, 400}, // the operator's own 400
 		{"/api/policies/validate", `{"kind":"rego","source":"` + strings.Repeat("x", 130<<10) + `"}`, 413},
 		{"/api/policies/evaluate", `{`, 400},
-		{"/api/policies/evaluate", `{"kind":"rego","source":"package browserjs.policy"}`, 400},
+		{"/api/policies/evaluate", `{"kind":"rego","source":"package computeruse.policy"}`, 400},
 		{"/api/policies/evaluate", `{"kind":"toml","source":"{}","input":{}}`, 400},
 	} {
 		rec := f.do(alice, "POST", c.path, c.body)
@@ -1226,7 +1241,7 @@ func TestValidateEvaluateSchemaAndPresets(t *testing.T) {
 		}
 	}
 	// A policy that names no kind is Rego.
-	if rec = f.do(alice, "POST", "/api/policies/validate", `{"source":"package browserjs.policy"}`); rec.Code != http.StatusOK {
+	if rec = f.do(alice, "POST", "/api/policies/validate", `{"source":"package computeruse.policy"}`); rec.Code != http.StatusOK {
 		t.Errorf("validate without a kind: %d %s", rec.Code, rec.Body)
 	}
 
@@ -1236,7 +1251,7 @@ func TestValidateEvaluateSchemaAndPresets(t *testing.T) {
 		t.Fatalf("presets: %d %s", rec.Code, rec.Body)
 	}
 	for _, p := range presets {
-		if p.ID == "" || p.Title == "" || p.Description == "" || p.Kind != "rego" || !strings.Contains(p.Source, "package browserjs.policy\n") {
+		if p.ID == "" || p.Title == "" || p.Description == "" || p.Kind != "rego" || !strings.Contains(p.Source, "package computeruse.policy\n") {
 			t.Errorf("preset %+v", p)
 		}
 	}

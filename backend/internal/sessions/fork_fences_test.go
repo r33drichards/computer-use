@@ -44,6 +44,7 @@ func TestForkFenceLifecycleIntentAndNoPauseCapability(t *testing.T) {
 		func() error { return store.Delete(t.Context(), src.ID) },
 		func() error { return store.Resume(t.Context(), src.ID) },
 		func() error { return store.AdmitForward(t.Context(), src.ID) },
+		func() error { return store.GrowDisk(t.Context(), src.ID, 8) },
 	} {
 		if err := call(); !errors.Is(err, diskfork.ErrGated) {
 			t.Fatal(err)

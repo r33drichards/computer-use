@@ -26,6 +26,11 @@ session, or write your own. The ready-made ones:
 
 Each is a short Rego module with comments. Pick the closest and edit it.
 
+Fetch uses the same policy. The default Unrestricted preset allows HTTP(S)
+requests; all other presets deny them until a rule is added. See
+[Fetch requests](/reference/policy#fetch-requests) for host/path/method rules
+and how to test permission edits.
+
 ## Write one
 
 1. Open the session's **Policy** tab and choose **Edit**.
@@ -33,7 +38,7 @@ Each is a short Rego module with comments. Pick the closest and edit it.
    that only speaks of the browser refuses desktop control and the shell.
 
 ```txt
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 
@@ -57,7 +62,7 @@ and its arguments, already separate, so a rule can name them. This policy
 allows `git`, with two subcommands, and reading the output:
 
 ```txt
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

@@ -10,7 +10,7 @@
 # fails when the two drift apart, and hack/pin-images.sh writes the image
 # lines of both.
 #
-# A warm Sandbox has everything a session has, its 5Gi disk included. The
+# A warm Sandbox has everything a session has, its 32Gi disk included. The
 # pool is sized in nodes (replicas, below); what that costs and how the
 # cluster grows and shrinks around it is docs/warm-pool.md.
 apiVersion: extensions.agents.x-k8s.io/v1beta1
@@ -20,26 +20,9 @@ metadata:
   # "<pool>-<5 characters>": this name is why they are "s-…".
   name: s
 spec:
-  # THE SIZE OF THE POOL: replicas = overhead nodes x 7.
-  #
-  #   overhead nodes   replicas   what is kept ready
-  #         0              0      nothing (and nothing is paid for)
-  #         1              7      one node of warm sessions   <- now
-  #         2             14      two
-  #
-  # Why 7 a node. A session pod requests 200m CPU and 1280Mi (browser 150m +
-  # 1Gi, mcp-js 50m + 256Mi). A 4-vCPU, 16 GB session node, as "cluster info"
-  # showed it (run 36961294377, n2-standard-4):
-  #
-  #   allocatable                      3920m    13273Mi
-  #   GKE's own pods on the node (11)   707m     1176Mi
-  #   left for sessions                3213m    12097Mi
-  #
-  # Memory decides: 12097 / 1280 = 9 session pods a node (CPU would allow 16).
-  # Two of the nine are left free, so 7: a sleeping session that wakes, or a
-  # session started cold, finds room on the node that is already there, and
-  # the pool by itself never needs a second node.
-  replicas: 7
+  # Bootstrap at zero; session-slot-controller owns replicas dynamically.
+  # Three slots total: two claimed sessions leave one warm spare.
+  replicas: 0
   sandboxTemplateRef:
     name: session
   # New images replace the waiting Sandboxes at once, rather than being
@@ -66,6 +49,7 @@ spec:
       runtimeClassName: gvisor
       nodeSelector:
         sandbox.gke.io/runtime: gvisor
+        cloud.google.com/gke-nodepool: sessions-n2d-standard-4
       tolerations:
         - key: sandbox.gke.io/runtime
           operator: Equal
@@ -129,8 +113,8 @@ spec:
           # sessions on a 16 GB node.
           resources:
             requests:
-              cpu: 150m
-              memory: 1Gi
+              cpu: 850m
+              memory: 2Gi
             limits:
               cpu: 1500m
               memory: 2Gi
@@ -160,14 +144,17 @@ spec:
                   fieldPath: metadata.name
             - name: MCP_V8_PUBLIC_URL
               value: "https://sessions.computeruse.site/$(SESSION_ID)"
-            # Session policy: every browser call is also put to the shared OPA, at
+            # Native pre hook records attempts; existing policies authorize every call.
+            # Session policy: every tool call and fetch request is also put to the shared OPA, at
             # this session's own path. Written by hack/policy-stage.sh.
             - name: MCP_V8_POLICIES_JSON
               value: >-
-                {"mcp_tools":{"mode":"all","policies":[
+                {"mcp_tools":{"pre":[
+                {"url":"http://policy-operator.browserjs-sessions.svc:8080","policy_path":"browserjs/hooks/$(SESSION_ID)/mcp_tools/pre"}],
+                "mode":"all","policies":[
                 {"url":"file:///etc/mcp/mcp_tools.rego"},
                 {"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/$(SESSION_ID)/mcp_tools"}]},
-                "filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]}}
+                "filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]},"fetch":{"mode":"all","policies":[{"url":"file:///etc/mcp/fetch.rego"},{"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/$(SESSION_ID)/mcp_tools"}]}}
           ports:
             - name: mcp
               containerPort: 8080
@@ -186,8 +173,8 @@ spec:
             failureThreshold: 6
           resources:
             requests:
-              cpu: 50m
-              memory: 256Mi
+              cpu: 150m
+              memory: 512Mi
             limits:
               cpu: 500m
               memory: 1Gi
@@ -208,7 +195,7 @@ spec:
         name: data
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: browserjs-zonal
+        storageClassName: browserjs-session-hdd
         resources:
           requests:
-            storage: 5Gi
+            storage: 32Gi
