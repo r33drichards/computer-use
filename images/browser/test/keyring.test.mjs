@@ -68,3 +68,16 @@ test('default image packages unprivileged daemon, libsecret, UI and D-Bus prompt
  assert.ok(startup.indexOf('bash "$KEYRING_SERVER"') < startup.indexOf('browser-mcp &'));
  assert.match(startup, /org.freedesktop.secrets/);
 });
+
+test('encrypted smoke seeds before export and exercises locked runtime twice', () => {
+ const smoke = readFileSync(new URL('./keyring-smoke.sh', import.meta.url), 'utf8');
+ assert.match(smoke, /--foreground --unlock --components=secrets/);
+ // The fixture daemon must exit before testing the production helper locked.
+ assert.match(smoke, /pid=\$!\nwait_service\nwait_unlocked\nstop\nstart\nlocked/);
+ assert.equal((smoke.match(/^locked$/gm) || []).length, 2);
+ assert.match(smoke, /secret-tool store/);
+ assert.match(smoke, /Secret appeared unencrypted on disk/);
+ assert.equal((smoke.match(/secret-tool lookup/g) || []).length, 2);
+ const runtime = readFileSync(helper, 'utf8');
+ assert.doesNotMatch(runtime, /--unlock|--login/);
+});

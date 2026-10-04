@@ -21,6 +21,9 @@ has_service() {
 start() {
   bash "$KEYRING_SERVER" >"$TMPDIR/keyring-daemon.log" 2>&1 &
   pid=$!
+  wait_service
+}
+wait_service() {
   for _ in $(seq 1 100); do
     if has_service; then return; fi
     kill -0 "$pid"
@@ -28,6 +31,17 @@ start() {
   done
   cat "$TMPDIR/keyring-daemon.log" >&2
   echo "Secret Service did not acquire its bus name" >&2
+  exit 1
+}
+stop() {
+  kill "$pid"
+  wait "$pid" || true
+  pid=""
+  for _ in $(seq 1 100); do
+    if ! has_service; then return; fi
+    sleep 0.1
+  done
+  echo "Secret Service did not release its bus name" >&2
   exit 1
 }
 collection() {
@@ -71,7 +85,24 @@ start
 # Starting the runtime must not seed a plaintext/empty-password collection.
 [ "$(collection)" = / ]
 [ -z "$(find "$HOME/.local/share/keyrings" -name '*.keyring' -type f -print -quit)" ]
-# Test fixture only: GNOME Keyring reads a password from stdin, never argv.
+stop
+# Test fixture only. GNOME 50's control-socket unlock creates a PKCS11
+# collection but does not export a new Secret Service collection skeleton.
+# gkd-main.c creates the stdin login keyring BEFORE initializing secrets when
+# --unlock starts a fresh daemon; use that ordering, not a readiness sleep.
+# See GNOME/gnome-keyring 50.0 daemon/gkd-main.c, daemon/login/gkd-login.c,
+# daemon/control/gkd-control-server.c and daemon/dbus/gkd-secret-objects.c.
+# No password is supplied to KEYRING_SERVER, including either cold start.
+printf %s 'keyring-smoke-password' | gnome-keyring-daemon \
+  --foreground --unlock --components=secrets \
+  --control-directory="$GNOME_KEYRING_CONTROL" >"$TMPDIR/keyring-daemon.log" 2>&1 &
+pid=$!
+wait_service
+wait_unlocked
+stop
+start
+locked
+# Explicitly unlock the existing encrypted collection via the control socket.
 printf %s 'keyring-smoke-password' | gnome-keyring-daemon --unlock \
   --control-directory="$GNOME_KEYRING_CONTROL" >/dev/null
 wait_unlocked
@@ -84,9 +115,7 @@ if grep -R -a -q 'keyring-smoke-secret' "$HOME/.local/share/keyrings"; then
   exit 1
 fi
 
-kill "$pid"
-wait "$pid" || true
-pid=""
+stop
 start
 # The files survived, but memory did not: startup must not unlock them.
 [ -n "$(find "$HOME/.local/share/keyrings" -type f -print -quit)" ]
