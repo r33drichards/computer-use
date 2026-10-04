@@ -174,6 +174,4 @@ would plan a change). The acceptance tests are the check:
 deployment.
 
 Resource types are `session` and `session_policy`; data-source types are `session`
-and `sessions`. Every HCL block must set `provider = browserjs`. Existing prefixed
-state requires removal and re-import using the same session IDs; see the
-[migration guide](https://computeruse.site/reference/terraform#migrate-from-prefixed-types).
+and `sessions`. Every HCL block must set `provider = browserjs`.

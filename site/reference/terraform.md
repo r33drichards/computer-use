@@ -18,44 +18,6 @@ There are no resources for API tokens, sleep/wake actions, or network rules
 in this provider. Create tokens in the app and use the API or app for session
 actions. A data source reads a session; it does not create or delete it.
 
-## Migrate from prefixed types
-
-This is a breaking type-name change. The provider source remains
-`r33drichards/browserjs`. Rename resource and data blocks and their references,
-and add `provider = browserjs` to every block:
-
-| Previous type | Current type |
-| --- | --- |
-| Resource `browserjs_session` | Resource `session` |
-| Resource `browserjs_session_policy` | Resource `session_policy` |
-| Data source `browserjs_session` | Data source `session` |
-| Data source `browserjs_sessions` | Data source `sessions` |
-
-For existing state, pause automated applies and record each session ID before
-upgrading. Back up state, install the updated provider, and update configuration.
-Then forget the old addresses and import the same remote objects at the new
-addresses. These commands do not delete the sessions or change their policies:
-
-```sh
-terraform state pull > terraform-state-before-type-rename.json
-terraform state rm browserjs_session_policy.research browserjs_session.research
-terraform import session.research s-ab2cd
-terraform import session_policy.research s-ab2cd
-terraform plan
-```
-
-Use your actual addresses and session IDs; repeat for every instance, including
-modules and `for_each` keys. Remove old data-source addresses from state with
-`terraform state rm data.browserjs_session.research data.browserjs_sessions.account`
-if present; the next plan reads the renamed data sources. OpenTofu users can
-replace `terraform` with `tofu`. Keep the state backup private because it can
-contain sensitive values. Do not apply until all imports succeed and the plan
-shows no unintended replacements or policy changes.
-
-`terraform state mv` cannot change resource types. See the Terraform references
-for [state removal](https://developer.hashicorp.com/terraform/cli/commands/state/rm)
-and [import](https://developer.hashicorp.com/terraform/cli/commands/import).
-
 ## Install and authenticate
 
 ::: warning Not yet published
