@@ -458,3 +458,24 @@ run "preview_environments" {
     error_message = "Only untagged preview images may expire after 14 days."
   }
 }
+
+run "keeps_warm_session_node_without_spending_ssd_quota_on_boot" {
+  command = plan
+
+  variables {
+    session_max_nodes              = 1
+    session_fallback_machine_types = { n2d-standard-4 = null }
+    session_fallback_min_nodes     = { n2d-standard-4 = 1 }
+    session_disk_type              = "pd-standard"
+  }
+
+  assert {
+    condition     = google_container_node_pool.sessions_fallback["n2d-standard-4"].autoscaling[0].min_node_count == 1 && google_container_node_pool.sessions_fallback["n2d-standard-4"].autoscaling[0].max_node_count == 1
+    error_message = "The warm-pool controller needs exactly one available session node."
+  }
+
+  assert {
+    condition     = google_container_node_pool.sessions_fallback["n2d-standard-4"].node_config[0].disk_type == "pd-standard"
+    error_message = "Node boot storage must leave balanced disk quota for session data."
+  }
+}
