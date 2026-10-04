@@ -13,7 +13,7 @@ it, so they behave alike.
 | Language | Package | Runs on |
 | --- | --- | --- |
 | Rust | `computeruse-sdk` on crates.io. The library is `computeruse` | Any target of `reqwest` and `tokio` |
-| Python | `computeruse` on PyPI | Python 3.9 or newer |
+| Python | `computeruse-native-sdk` on PyPI | Python 3.9 or newer |
 | JavaScript, TypeScript | `computeruse` on npm | Node 20 or newer. Not browsers |
 | Go | `github.com/r33drichards/computer-use/sdk/go` | Go 1.22 or newer, with cgo |
 

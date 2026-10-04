@@ -1,0 +1,45 @@
+# Local-only Copybara export for r33drichards/terraform-provider-computeruse.
+# Parent selects final immutable source and controls authenticated synchronization.
+core.workflow(
+    name = "provider_local",
+    origin = git.origin(
+        url = "https://github.com/r33drichards/computer-use.git",
+        ref = "@@SOURCE_SHA@@",
+    ),
+    destination = folder.destination(),
+    origin_files = glob([
+        "terraform-provider-computeruse/**",
+        "sdk/Cargo.toml", "sdk/Cargo.lock", "sdk/LICENSE", "sdk/README.md",
+        "sdk/crates/**", "sdk/go/**",
+        "docs/contracts/policy/examples/**", "docs/contracts/policy/backend-api.yaml",
+        "docs/contracts/policy/terraform-provider.md", "docs/contracts/policy/rego-contract.md",
+        "docs/terraform-provider.md", "LICENSE", "THIRD_PARTY.md",
+    ], exclude = ["**/.lib/**", "**/dist/**", "**/__pycache__/**"]),
+    # Fallback taken from the actual source commit author, not a signing identity.
+    authoring = authoring.pass_thru("r33drichards <rwendt1337@gmail.com>"),
+    mode = "SQUASH",
+    transformations = [
+        core.move("docs/contracts/policy", "contracts/policy"),
+        core.move("docs/terraform-provider.md", "contracts/terraform-provider.md"),
+        core.move("terraform-provider-computeruse", ""),
+        core.replace(
+            before = "github.com/r33drichards/computer-use/terraform-provider-computeruse",
+            after = "github.com/r33drichards/terraform-provider-computeruse",
+            paths = glob(["*.go", "**/*.go", "go.mod"]),
+        ),
+        core.replace(before = "=> ../sdk/go", after = "=> ./sdk/go", paths = glob(["go.mod"])),
+        core.replace(before = "$$(CURDIR)/../sdk", after = "$$(CURDIR)/sdk", paths = glob(["GNUmakefile"])),
+        core.replace(
+            before = 'filepath.Join("..", "..", "..", "docs", "contracts", "policy", "examples")',
+            after = 'filepath.Join("..", "..", "contracts", "policy", "examples")',
+            paths = glob(["internal/provider/examples_test.go", "internal/fakeapi/fakeapi_test.go"]),
+        ),
+        core.replace(before = "../docs/contracts/policy", after = "contracts/policy", paths = glob(["README.md"])),
+        core.replace(before = "../docs/terraform-provider.md", after = "contracts/terraform-provider.md", paths = glob(["README.md"])),
+        core.replace(before = "docs/contracts/policy/backend-api.yaml", after = "contracts/policy/backend-api.yaml", paths = glob(["README.md"])),
+        core.replace(before = "../sdk", after = "sdk", paths = glob(["README.md"])),
+        core.replace(before = "nix develop ..#sdk -c ", after = "", paths = glob(["README.md", "GNUmakefile"])),
+        core.replace(before = "nix shell nixpkgs#opentofu -c ", after = "", paths = glob(["README.md"])),
+        core.replace(before = "repository's `sdk` dev shell (`nix develop ..#sdk`, from this directory).", after = "a native toolchain on PATH (Go 1.26.8, Rust 1.91+, and a C compiler); see `release/README.md`.", paths = glob(["README.md"])),
+    ],
+)

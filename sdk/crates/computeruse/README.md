@@ -35,7 +35,7 @@ client exchanges it for a short-lived access token, refreshes that, retries
 each documented answer to a variant of `ComputerUseError`. TLS is rustls
 with the platform's trust roots; there is no OpenSSL.
 
-The same client is published for Python (`computeruse` on PyPI), JavaScript
+The same client is published for Python (`computeruse-native-sdk` on PyPI), JavaScript
 (`computeruse` on npm) and Go through UniFFI; see the
 [SDK reference](https://computeruse.site/reference/sdk).
 

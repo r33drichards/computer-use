@@ -8,7 +8,7 @@ JavaScript and Go get the same client through
 | Language | Package | Install |
 | --- | --- | --- |
 | Rust | [`computeruse-sdk`](crates/computeruse) on crates.io (the library is `computeruse`) | `cargo add computeruse-sdk` |
-| Python | [`computeruse`](python) on PyPI | `pip install computeruse` |
+| Python | [`computeruse-native-sdk`](python) on PyPI | `pip install computeruse-native-sdk` |
 | JavaScript, TypeScript | [`computeruse`](js) on npm, for Node 20+ | `npm install computeruse` |
 | Go | [`sdk/go`](go), a module in this repository; needs cgo and a prebuilt library | `go get github.com/r33drichards/computer-use/sdk/go` |
 
@@ -222,39 +222,46 @@ three together.
 ## Publishing
 
 `.github/workflows/sdk-release.yml` builds for Linux x86_64 and aarch64
-(glibc 2.35 and newer) and macOS arm64 and x86_64, and publishes when a tag
-`sdk-v<version>` is pushed. Run by hand it only builds, unless `publish` is
-ticked. It has not been run: nothing is published and no name is reserved.
+(glibc 2.35 and newer) and macOS arm64 and x86_64. This preparation is manual
+build-only: tag triggers are disabled and requesting publication fails closed.
+The parent must integrate reviewed patches into an immutable final commit,
+validate its native artifacts, and obtain exact release approval before a separate
+reviewed change enables publishing. See [release safety](release/README.md).
+Local offline guard tests/TypeScript builds do not prove native readiness.
 
 Names, checked on 2026-10-02:
 
 | Registry | Name | State |
 | --- | --- | --- |
 | crates.io | `computeruse-sdk`, `computeruse-sdk-macros` | free. `computeruse` is taken by an unrelated placeholder (0.0.1), which is why the crate has a suffix and the library does not |
-| PyPI | `computeruse` | free |
+| PyPI | `computeruse-native-sdk` | pending trusted publisher registered; publication not yet validated |
 | npm | `computeruse` | free |
 | Go | `github.com/r33drichards/computer-use/sdk/go` | the repository's path; nothing to reserve |
 
-Before the first release, once:
+After exact release approval, parent-owned authorization prerequisites:
 
 1. **crates.io**: sign in, make an API token with the scope `publish-new`
    and `publish-update`, and save it as the repository secret
    `CARGO_REGISTRY_TOKEN`.
 2. **PyPI**: on <https://pypi.org/manage/account/publishing/> add a pending
-   trusted publisher: project `computeruse`, owner `r33drichards`, repository
+   trusted publisher: project `computeruse-native-sdk`, owner `r33drichards`, repository
    `computer-use`, workflow
    `sdk-release.yml`, environment `pypi`. No secret is needed. To use a token
    instead, save it as `PYPI_API_TOKEN`.
-3. **npm**: make a granular access token that may publish, and save it as
-   `NPM_TOKEN`.
+3. **npm**: 2FA and token issuance are deferred until exact release approval.
+   Bootstrap authorization is not assumed. After authorized package creation,
+   configure and verify its Trusted Publisher; npm >=11.5.1 and Node >=22.14.0
+   are required for OIDC. The currently disabled bootstrap job is token-based;
+   see the release safety document before replacing it with OIDC.
 
-Then, for each release:
+For a future approved release (not executable preparation instructions):
 
 1. Set the version in `sdk/Cargo.toml` (`[workspace.package]`), in the
    `computeruse-sdk-macros` dependency of `sdk/crates/computeruse/Cargo.toml`
    and in `sdk/js/package.json`; run `cargo check` so `Cargo.lock` follows.
    Merge.
-2. `git tag sdk-v<version> && git push origin sdk-v<version>`.
+2. Obtain approval for the exact final commit and artifact hashes before enabling
+   publication or creating/pushing any release tag.
 
 The workflow refuses a tag that is not the tree's version. It publishes the
 two crates (the macros first), the four wheels, and one npm package that
@@ -262,9 +269,13 @@ holds all four libraries; it makes the GitHub release `sdk-v<version>` with
 the Go archives, and pushes the tag `sdk/go/v<version>`, which is what
 `go get` resolves a module in a subdirectory by.
 
-A release that fails part-way can be run again for npm and the GitHub
-release. crates.io and PyPI refuse a version that exists: fix forward with a
-new version.
+All public writes share a fail-closed preflight. Existing registry versions or
+GitHub releases abort for manual reconciliation; no release assets are clobbered.
+Both SDK and Go tags must resolve to the exact commit. The retained Go guard
+accepts only that same commit and never moves a conflicting tag. Publication is
+not transactional: a race/failure after preflight can still leave partial success.
+Do not blindly rerun; reconcile published source/digests and obtain an explicit
+recovery plan or approved new version. Successful publication cannot be rolled back.
 
 ### If the repository is renamed again
 

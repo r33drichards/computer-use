@@ -4,8 +4,8 @@ name: sdk release
 # them: the crates to crates.io, the wheels to PyPI, the package to npm, and
 # the Go libraries to a GitHub release.
 #
-#   - Pushing a tag `sdk-v<version>` builds and publishes.
-#   - Running it by hand builds only, unless `publish` is ticked.
+#   - Publication disabled pending final immutable commit approval.
+#   - Manual runs build only; requesting publication fails closed.
 #
 # It never runs on a pull request: four platforms, two of them macOS, are
 # too dear for that.
@@ -26,8 +26,6 @@ name: sdk release
 # the runner's own C library (glibc 2.35 on Linux, the macOS SDK on macOS).
 
 on:
-  push:
-    tags: ["sdk-v*"]
   workflow_dispatch:
     inputs:
       publish:
@@ -84,6 +82,7 @@ jobs:
           elif [ "$PUBLISH_INPUT" = true ]; then
             publish=true
           fi
+          [ "$publish" = false ] || { echo "::error::Publication disabled pending final immutable commit approval"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "publish=$publish" >> "$GITHUB_OUTPUT"
           echo "SDK $version; publish: $publish" >> "$GITHUB_STEP_SUMMARY"
@@ -126,6 +125,12 @@ jobs:
 
       # One cargo build makes the shared library (the wheel, npm) and the
       # static one (Go).
+      - name: Rust tests and package source inventory
+        working-directory: sdk
+        run: |
+          cargo test --locked --workspace
+          python3 release/verify-crates.py --sdk . --output "$RUNNER_TEMP/verified-crates"
+
       - name: Build the library
         working-directory: sdk
         run: cargo build --release --locked -p computeruse-sdk
@@ -140,7 +145,7 @@ jobs:
       - name: Smoke-test the wheel
         run: |
           python -m venv "$RUNNER_TEMP/venv"
-          "$RUNNER_TEMP/venv/bin/pip" install --quiet --no-index --find-links dist/wheels computeruse
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet --no-index --find-links dist/wheels computeruse-native-sdk
           cd sdk/python/tests && "$RUNNER_TEMP/venv/bin/python" -m unittest -v test_smoke
 
       - name: Collect the libraries
@@ -207,6 +212,13 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/dist/npm"
           npm pack --pack-destination "$GITHUB_WORKSPACE/dist/npm"
           tar -tzf "$GITHUB_WORKSPACE"/dist/npm/*.tgz
+          mkdir "$RUNNER_TEMP/packed-smoke"
+          cd "$RUNNER_TEMP/packed-smoke"
+          npm init -y
+          npm install --no-audit --no-fund "$GITHUB_WORKSPACE"/dist/npm/*.tgz
+          cp "$GITHUB_WORKSPACE/sdk/js/test/smoke.test.mjs" smoke.test.mjs
+          sed -i 's|"../dist/index.js"|"computeruse"|g' smoke.test.mjs
+          node --test smoke.test.mjs
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -214,9 +226,22 @@ jobs:
           path: dist/npm
           if-no-files-found: error
 
+  publication-preflight:
+    name: refuse existing public versions and releases
+    needs: [version, build, npm]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Fail closed before any public write
+        run: python3 sdk/release/preflight.py --version "${{ needs.version.outputs.version }}" --sha "$GITHUB_SHA"
+
   publish-crates:
     name: publish to crates.io
-    needs: [version, build, npm]
+    needs: [version, build, npm, publication-preflight]
     if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -237,12 +262,13 @@ jobs:
         run: |
           set -euo pipefail
           [ -n "$CARGO_REGISTRY_TOKEN" ] || { echo "::error::the secret CARGO_REGISTRY_TOKEN is not set"; exit 1; }
+          python3 release/verify-crates.py --sdk . --output "$RUNNER_TEMP/publication-crates"
           cargo publish --locked -p computeruse-sdk-macros
           cargo publish --locked -p computeruse-sdk
 
   publish-pypi:
     name: publish to PyPI
-    needs: [version, build, npm]
+    needs: [version, build, npm, publication-preflight]
     if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -263,7 +289,7 @@ jobs:
 
   publish-npm:
     name: publish to npm
-    needs: [version, build, npm]
+    needs: [version, build, npm, publication-preflight]
     if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -289,7 +315,7 @@ jobs:
 
   github-release:
     name: GitHub release (Go libraries)
-    needs: [version, build, npm]
+    needs: [version, build, npm, publication-preflight]
     if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -311,11 +337,25 @@ jobs:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
-          (cd dist/go && shasum -a 256 *.tar.gz > SHA256SUMS)
-          if ! gh release view "sdk-v$VERSION" > /dev/null 2>&1; then
-            gh release create "sdk-v$VERSION" --target "$GITHUB_SHA" --title "SDK $VERSION" \
-              --notes "Computer Use SDK $VERSION: the crate \`computeruse-sdk\`, \`computeruse\` on PyPI and npm, and the Go module \`sdk/go\`. The archives here hold \`libcomputeruse.a\` for the Go module; see sdk/go/README.md."
+          # Accept an existing remote Go tag only for this exact commit.
+          go_tag="sdk/go/v$VERSION"
+          if git ls-remote --exit-code --refs origin "refs/tags/$go_tag"; then
+            git fetch --no-tags origin "refs/tags/$go_tag"
+            [ "$(git rev-parse 'FETCH_HEAD^{commit}')" = "$GITHUB_SHA" ] || {
+              echo "::error::$go_tag already points to another commit; refusing to move it"
+              exit 1
+            }
+            go_tag_exists=true
+          else
+            status=$?
+            [ "$status" -eq 2 ] || exit "$status" # only 2 means no matching tag
+            go_tag_exists=false
           fi
-          gh release upload "sdk-v$VERSION" dist/go/*.tar.gz dist/go/SHA256SUMS dist/wheels/*.whl dist/npm/*.tgz --clobber
-          git tag "sdk/go/v$VERSION" "$GITHUB_SHA"
-          git push origin "sdk/go/v$VERSION"
+          (cd dist/go && shasum -a 256 *.tar.gz > SHA256SUMS)
+            gh release create "sdk-v$VERSION" --target "$GITHUB_SHA" --title "SDK $VERSION" \
+              --notes "Computer Use SDK $VERSION: the crate \`computeruse-sdk\`, \`computeruse\` on npm, \`computeruse-native-sdk\` on PyPI, and the Go module \`sdk/go\`. The archives here hold \`libcomputeruse.a\` for the Go module; see sdk/go/README.md."
+          gh release upload "sdk-v$VERSION" dist/go/*.tar.gz dist/go/SHA256SUMS dist/wheels/*.whl dist/npm/*.tgz
+          if [ "$go_tag_exists" = false ]; then
+            git tag "$go_tag" "$GITHUB_SHA"
+            git push origin "refs/tags/$go_tag"
+          fi

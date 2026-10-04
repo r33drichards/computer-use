@@ -4,7 +4,7 @@ Python client for [Computer Use](https://computeruse.site): serverless,
 resumable desktop containers that an agent drives with one tool, `run_js`.
 
 ```bash
-pip install computeruse
+pip install computeruse-native-sdk
 ```
 
 ```python

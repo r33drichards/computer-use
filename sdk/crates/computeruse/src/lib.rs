@@ -55,7 +55,7 @@
 //! # Other languages
 //!
 //! The same surface is exported through [UniFFI](https://mozilla.github.io/uniffi-rs/)
-//! to Python (`pip install computeruse`), JavaScript (`npm install
+//! to Python (`pip install computeruse-native-sdk`), JavaScript (`npm install
 //! computeruse`) and Go. The exported methods take owned records, each
 //! with a generated builder ([`CreateSessionRequestBuilder`] and so on);
 //! in Rust the borrowing builders of [`Client::builder`] and
