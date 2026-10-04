@@ -29,7 +29,9 @@ RUN mcp-v8 --version
 COPY images/mcp-js/mcp_tools.rego images/mcp-js/filesystem.rego images/mcp-js/fetch.rego images/mcp-js/mcp-servers.json images/mcp-js/mcp-servers.no-exec.json images/mcp-js/run_js.md images/mcp-js/instructions.md /etc/mcp/
 COPY --chmod=755 images/mcp-js/start.sh /usr/local/bin/start.sh
 COPY --from=documentation /skills/ /etc/mcp/skills/
-ENV MCP_V8_HTTP_PORT=8080 \
+ENV PORT=8080 \
+    MCP_V8_HTTP_PORT=8080 \
+    MCP_V8_ALLOWED_HOSTS=* \
     MCP_V8_HEAP_STORE=none \
     MCP_V8_MCP_CONFIG=/etc/mcp/mcp-servers.json \
     MCP_V8_POLICIES_JSON='{"mcp_tools":{"policies":[{"url":"file:///etc/mcp/mcp_tools.rego"}]},"filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]},"fetch":{"policies":[{"url":"file:///etc/mcp/fetch.rego"}]}}' \
@@ -40,3 +42,4 @@ ENV MCP_V8_HTTP_PORT=8080 \
 USER mcpuser
 EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/start.sh"]
+CMD []
