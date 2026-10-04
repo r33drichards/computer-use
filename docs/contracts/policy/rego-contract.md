@@ -9,7 +9,7 @@ reference for someone writing a policy.
 
 One Rego module (Rego v1 syntax), at most 65536 bytes, which:
 
-- declares exactly `package browserjs.policy`;
+- declares exactly `package computeruse.policy`;
 - defines `allow_tool_call`. The call is allowed only when it evaluates to
   `true`; undefined, `false`, or any other value denies;
 - may define any other rules and functions in that package for its own use.
@@ -18,15 +18,19 @@ It is `spec.source` of the session's `SessionPolicy` as written (`spec.kind`
 is `rego`, the only kind), after the checks below.
 
 `allow_tool_call` is asked for **every tool call** the agent's code makes
-from `run_js`, on every server. Deny by default follows from Rego: a call no
-rule allows is refused. So a policy that speaks only of `browser_execute`
-refuses desktop control and the shell, and one that says
+from `run_js`, on every server, and for every JavaScript `fetch()` request.
+Deny by default follows from Rego: a call no rule allows is refused. So a policy that speaks only of `browser_execute`
+refuses desktop control, the shell, and fetch, and one that says
 `allow_tool_call := true` allows them all.
 
 Reserved rule names, which a policy may define but nothing reads:
 `allow_fetch`, `allow_module`.
 
 ## The input
+
+Tool calls use the fields below. Fetch requests use the HTTP request input
+documented in [Fetch permissions](fetch.md); both are evaluated through
+`allow_tool_call`.
 
 mcp-js v0.21.0-rc.4 builds it in `server/src/engine/mcp_client.rs`
 (`McpToolPolicyInput`), for each `mcp.callTool(server, tool, arguments)` made
@@ -216,7 +220,7 @@ so the request is
 | Document | Owner | Content |
 |---|---|---|
 | `data.browserjs.tenant["<session id>"]` | generated from the tenant's module | the module, with its package clause replaced |
-| `data.browserjs.decision["<session id>"].mcp_tools` | platform | `decision-module.rego.tmpl` with `{{SESSION_ID}}` replaced; its `allow` is what mcp-js reads: true only for a server and tool of the table above for which the tenant's `allow_tool_call` is `true` |
+| `data.browserjs.decision["<session id>"].mcp_tools` | platform | `decision-module.rego.tmpl` with `{{SESSION_ID}}` replaced; its `allow` is what mcp-js reads: true only for a known server/tool or an HTTP(S) fetch request for which the tenant's `allow_tool_call` is `true` |
 | `data.browserjs.loaded` | platform | an object: session ID to the policy's hash (`"sha256:<hex>"`), for every session in the bundle |
 | `data.system.authz` | platform | `system-authz.rego`, loaded from a file at start, not from the bundle |
 
@@ -232,8 +236,8 @@ so they appear in package clauses in the bracketed form,
 In this order; the first three use the AST from
 `opa parse --format json --json-include locations`.
 
-1. **Package**: the package path is exactly `data.browserjs.policy`.
-   Otherwise `policy_guard_error`, "the package must be browserjs.policy".
+1. **Package**: the package path is exactly `data.computeruse.policy`.
+   Otherwise `policy_guard_error`, "the package must be computeruse.policy".
 2. **Imports**: each import's path starts with `rego`, `future` or `input`.
    Otherwise `policy_guard_error`.
 3. **No `data`, no `with`**: no term of type `var` with value `data` occurs

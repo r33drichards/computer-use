@@ -1,0 +1,46 @@
+{ pkgs }:
+let
+  inherit (import ./packages.nix { inherit pkgs; }) source python opa mcpjs;
+  backend = pkgs.buildGoModule {
+    pname = "webhooks-backend"; version = "test";
+    src = source + "/backend";
+    vendorHash = "sha256-ilWHEgJ50TZU6XhIUFuq6RcsmMgoYsYv0b/OJ+pRfdI=";
+    subPackages = [ "cmd/server" ];
+    env.CGO_ENABLED = "0";
+    doCheck = false;
+  };
+  image = name: contents: config: pkgs.dockerTools.buildLayeredImage {
+    inherit name contents config;
+    tag = "test";
+    extraCommands = ''mkdir -p tmp; chmod 1777 tmp'';
+  };
+in {
+  sandbox = pkgs.dockerTools.pullImage {
+    imageName = "registry.k8s.io/agent-sandbox/agent-sandbox-controller";
+    imageDigest = "sha256:c241245d7ff0068784ec0423f35efeb77c70ab08592533ca5b0cd7c36f8b2020";
+    sha256 = "sha256-Iqm2pOqN1ASLZoqBitSkdAjFrAdeQV8uObKvzgZ71Hs=";
+    finalImageTag = "v1.0.4";
+    os = "linux"; arch = "amd64";
+  };
+  backend = image "webhooks/backend" [ backend pkgs.cacert ] {
+    Entrypoint = [ "${backend}/bin/server" ];
+    User = "65532:65532";
+  };
+  operator = image "webhooks/operator" [ python opa source pkgs.cacert ] {
+    Env = [ "PATH=${python}/bin:${opa}/bin" "PYTHONPATH=${source}/images/policy-operator"
+      "POLICY_CONTRACT_DIR=${source}/docs/contracts/policy" "OPA_BIN=${opa}/bin/opa" ];
+  };
+  opa = image "webhooks/opa" [ opa ] { Entrypoint = [ "${opa}/bin/opa" ]; };
+  # The same pinned Redis image as deploy/base/webhook-redis.yaml.
+  redis = pkgs.dockerTools.pullImage {
+    imageName = "redis";
+    imageDigest = "sha256:b51665e66f00759be7c3152ad5ac3c66fb2f619c13ef62dea7cc1f9914524635";
+    sha256 = "sha256-5vDB+bJMQHG11LqaqSiqxxZuPgE2s43cXYstOlPQb7c=";
+    finalImageTag = "8.2-alpine";
+    os = "linux"; arch = "amd64";
+  };
+  mcpjs = image "webhooks/mcpjs" [ mcpjs python source ] {
+    Entrypoint = [ "${mcpjs}/bin/mcp-v8" ];
+    Env = [ "PATH=${python}/bin:${mcpjs}/bin" ];
+  };
+}

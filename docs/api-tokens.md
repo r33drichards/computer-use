@@ -65,13 +65,15 @@ it must be the `from` of the `api` routes in the overlay's
 `pomerium-config.yaml`. An overlay that has the routes must set it: otherwise
 the backend would take requests to that host for the app's.
 
-`ALLOWED_EMAILS` is who may use the product, comma-separated: **the same
-addresses as the `policy` in `pomerium-config.yaml`**. Pomerium is not asked
-on the API host, so the backend has to know the list itself. It is checked
-on every request, so taking a user off both lists ends their API access with
-the backend's restart, not when their tokens expire. A test
-(`backend/internal/auth/deploy_test.go`) fails when the two lists of an
-overlay differ. Change both in one commit.
+`ALLOWED_EMAILS` controls who may create and use API tokens. Set it to `*`
+for open signup, matching Pomerium's `authenticated_user` policy. Production
+and local overlays use this setting. Requests still require a valid token;
+session ownership, scopes and admin checks continue to apply.
+
+For a restricted deployment, use comma-separated email addresses matching
+Pomerium's email policy. Removing a user from both lists ends their API
+access after the backend restarts. The deployment test checks that the
+backend and Pomerium policies agree.
 
 `API_SIGNING_KEY` signs access tokens: 32 random bytes in base64, read from
 the Secret `api-tokens`, key `signing-key`, if there is one:
@@ -241,7 +243,7 @@ A token with `policies:write` is the owner's authority over their sessions'
 policies. One pasted into a web page, into `/data/memory`, or into the
 prompt of the agent the policy bounds hands that agent the policy. Keep
 tokens in the CI system's secret store or the environment of the tool that
-uses them (`BROWSERJS_TOKEN`).
+uses them (`COMPUTERUSE_TOKEN`).
 
 ## Local
 

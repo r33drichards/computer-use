@@ -1,28 +1,28 @@
 # Terraform provider contract
 
-Provider type `browserjs`; source address `r33drichards/browserjs`. Go,
+Provider type `computeruse`; source address `r33drichards/computeruse`. Go,
 `terraform-plugin-framework`, protocol version 6. Source in
-`terraform-provider-browserjs/` in this repository, a Go module of its own.
+`terraform-provider-computeruse/` in this repository, a Go module of its own.
 It speaks only the API of `backend-api.yaml`, on the API host.
 
 ## Provider configuration
 
 ```hcl
-provider "browserjs" {
-  endpoint = "https://api.computeruse.site"   # or BROWSERJS_ENDPOINT
-  token    = var.browserjs_token           # or BROWSERJS_TOKEN; sensitive
+provider "computeruse" {
+  endpoint = "https://api.computeruse.site" # or COMPUTERUSE_ENDPOINT
+  token    = var.computeruse_token            # or COMPUTERUSE_TOKEN; sensitive
 }
 ```
 
 | Attribute | Type | | Notes |
 |---|---|---|---|
-| `endpoint` | string | optional | Base URL of the API host, without `/v1`. Env `BROWSERJS_ENDPOINT`. Default `https://api.computeruse.site`. |
-| `token` | string, sensitive | optional | Env `BROWSERJS_TOKEN`. Configuring fails when neither is set. |
+| `endpoint` | string | optional | Base URL of the API host, without `/v1`. Env `COMPUTERUSE_ENDPOINT`. Default `https://api.computeruse.site`. |
+| `token` | string, sensitive | optional | Env `COMPUTERUSE_TOKEN`. Configuring fails when neither is set. |
 
 Every request sends `Authorization: Bearer <token>` and
-`User-Agent: terraform-provider-browserjs/<version>`.
+`User-Agent: terraform-provider-computeruse/<version>`.
 
-## `browserjs_session`
+## `session`
 
 | Attribute | Type | | Notes |
 |---|---|---|---|
@@ -41,7 +41,7 @@ Every request sends `Authorization: Bearer <token>` and
   `lifecycle { prevent_destroy = true }`.
 - Requires token scopes `sessions:read`, `sessions:write`.
 
-## `browserjs_session_policy`
+## `session_policy`
 
 The policy of one session, managed as code. Creating the resource puts the
 policy in `iac` mode; destroying it resets the session to the unrestricted
@@ -51,7 +51,7 @@ policy in `editor` mode.
 |---|---|---|---|
 | `id` | string | computed | Equal to `session_id`. Import by it. |
 | `session_id` | string | required, forces replacement | |
-| `rego` | string | required | The policy: a Rego module, package `browserjs.policy`, at most 65536 bytes. Compared as text. |
+| `rego` | string | required | The policy: a Rego module, package `computeruse.policy`, at most 65536 bytes. Compared as text. |
 | `managed_url` | string | required | `https` URL of where this configuration lives; shown in the UI. |
 | `wait_for_ready` | bool | optional, default true | Whether apply waits for the policy to be in force. |
 | `version` | number | computed | |
@@ -87,7 +87,7 @@ for the shell), and the provider shows it.
   drift by reading `managed_url` as empty, so the next plan shows an update
   that takes the policy back.
 - Delete: `DELETE /sessions/{id}/policy`.
-- Import: `terraform import browserjs_session_policy.x s-ab2cd`; the first
+- Import: `terraform import session_policy.x s-ab2cd`; the first
   apply puts the policy in `iac` mode if it was not.
 - Requires token scopes `policies:read`, `policies:write`.
 
@@ -95,23 +95,26 @@ for the shell), and the provider shows it.
 
 | Name | Arguments | Attributes |
 |---|---|---|
-| `browserjs_session` | `id` or `name` (exactly one; `name` must match one session) | as the resource |
-| `browserjs_sessions` | none | `sessions`: list of objects as the resource |
+| `session` | `id` or `name` (exactly one; `name` must match one session) | as the resource |
+| `sessions` | none | `sessions`: list of objects as the resource |
 
 There is no data source that builds a policy: a policy is Rego text.
 
 ## Local installation (before any registry)
 
-`go build -o terraform-provider-browserjs` in the provider directory, then
+`go build -o terraform-provider-computeruse` in the provider directory, then
 in `~/.terraformrc` (or `~/.tofurc`):
 
 ```hcl
 provider_installation {
   dev_overrides {
-    "r33drichards/browserjs" = "/path/to/computer-use/terraform-provider-browserjs"
+    "r33drichards/computeruse" = "/path/to/computer-use/terraform-provider-computeruse"
   }
   direct {}
 }
 ```
 
 With `dev_overrides`, `terraform init` is skipped for this provider.
+
+Resource types are `session` and `session_policy`; data-source types are `session`
+and `sessions`. Every HCL block must set `provider = computeruse`.

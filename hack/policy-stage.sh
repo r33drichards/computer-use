@@ -56,14 +56,17 @@ session_id() { # file
 # file policy and OPA must both allow.
 env_block() { # session id
   cat <<BLOCK
-# Session policy: every browser call is also put to the shared OPA, at
+# Native pre hook records attempts; existing policies authorize every call.
+# Session policy: every tool call and fetch request is also put to the shared OPA, at
 # this session's own path. Written by hack/policy-stage.sh.
 - name: MCP_V8_POLICIES_JSON
   value: >-
-    {"mcp_tools":{"mode":"all","policies":[
+    {"mcp_tools":{"pre":[
+    {"url":"http://policy-operator.browserjs-sessions.svc:8080","policy_path":"browserjs/hooks/$1/mcp_tools/pre"}],
+    "mode":"all","policies":[
     {"url":"file:///etc/mcp/mcp_tools.rego"},
     {"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/$1/mcp_tools"}]},
-    "filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]}}
+    "filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]},"fetch":{"mode":"all","policies":[{"url":"file:///etc/mcp/fetch.rego"},{"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/$1/mcp_tools"}]}}
 BLOCK
 }
 

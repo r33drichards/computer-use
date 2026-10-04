@@ -104,13 +104,15 @@ type Session struct {
 	// Size is the size the session runs at (sizes.go). PendingSize is one
 	// asked for while it was awake: it has it from its next start, which is
 	// a fresh one.
+	DiskGB      int    `json:"diskGB,omitempty"`
 	Size        string `json:"size"`
 	PendingSize string `json:"pendingSize,omitempty"`
 	PodIP       string `json:"-"`
 	Node        string `json:"-"` // the node its pod is scheduled to, if any
 	// PolicyCapable is whether the session's mcp-js asks OPA for decisions,
 	// and so whether the session can have a policy (see policy.go).
-	PolicyCapable bool `json:"-"`
+	PolicyCapable  bool `json:"-"`
+	WebhookCapable bool `json:"-"`
 	// StoppedBy is why a suspended session is suspended (StoppedBy*), ""
 	// for one that is not. Draining is the reason a running session is
 	// being drained for, and DrainingSince when that began. Shown by the
@@ -151,14 +153,17 @@ func conditions(obj *unstructured.Unstructured) map[string]condition {
 
 // FromSandbox derives the API view of a session from its Sandbox.
 func FromSandbox(obj *unstructured.Unstructured) Session {
+	spec, _ := obj.Object["spec"].(map[string]any)
 	s := Session{
 		ID:      obj.GetName(),
 		Name:    obj.GetAnnotations()[AnnName],
 		Owner:   obj.GetAnnotations()[AnnOwner],
 		Created: obj.GetCreationTimestamp().Time,
 
-		PolicyCapable: PolicyCapable(obj),
-		Size:          sizeOf(obj),
+		PolicyCapable:  PolicyCapable(obj),
+		WebhookCapable: WebhookCapable(obj),
+		Size:           sizeOf(obj),
+		DiskGB:         diskGBOf(spec),
 	}
 	if to := obj.GetAnnotations()[AnnResizeTo]; to != s.Size {
 		s.PendingSize = to

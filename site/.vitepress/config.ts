@@ -1,8 +1,8 @@
 import { defineConfig } from "vitepress"
 
 // Where the site is served.
-const origin = "https://computeruse.site"
-const app = "https://app.computeruse.site"
+const origin = process.env.VITEPRESS_SITE_ORIGIN || "https://computeruse.site"
+const app = process.env.VITEPRESS_APP_URL || "https://app.computeruse.site"
 
 const tutorials = [
   { text: "Create a desktop and connect an agent", link: "/tutorials/first-desktop" },
@@ -14,6 +14,7 @@ const guides = [
   { text: "Watch and take over", link: "/guides/take-over" },
   { text: "Move files and the clipboard", link: "/guides/files-and-clipboard" },
   { text: "Write a policy", link: "/guides/write-a-policy" },
+  { text: "Export tool calls", link: "/guides/tool-call-webhooks" },
   { text: "Use it from code", link: "/guides/use-from-code" },
 ]
 
@@ -51,9 +52,10 @@ export default defineConfig({
   cleanUrls: true,
   srcExclude: ["README.md"],
   lastUpdated: false,
-  // Black on white only, like the app.
-  appearance: false,
+  // Follow the device until the visitor chooses a theme.
+  appearance: true,
   sitemap: { hostname: origin },
+  head: process.env.VITEPRESS_PREVIEW === "true" ? [["meta", { name: "robots", content: "noindex, nofollow" }]] : [],
   // Each page names its one address.
   transformPageData(pageData) {
     const path = pageData.relativePath.replace(/(^|\/)index\.md$/, "$1").replace(/\.md$/, "")

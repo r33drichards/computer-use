@@ -1,0 +1,47 @@
+[
+  {
+    "name": "backend",
+    "context": ".",
+    "timeout": 30,
+    "cache": true,
+    "free_disk": false
+  },
+  {
+    "name": "mcp-js",
+    "context": ".",
+    "file": "images/mcp-js/Dockerfile",
+    "timeout": 90,
+    "cache": true,
+    "free_disk": true
+  },
+  {
+    "name": "browser",
+    "context": "images/browser",
+    "timeout": 120,
+    "cache": false,
+    "free_disk": true
+  },
+  {
+    "name": "site",
+    "context": "site",
+    "timeout": 15,
+    "cache": true,
+    "free_disk": false
+  },
+  {
+    "name": "policy-operator",
+    "context": ".",
+    "file": "images/policy-operator/Dockerfile",
+    "timeout": 15,
+    "cache": true,
+    "free_disk": false
+  },
+  {
+    "name": "billing-operator",
+    "context": ".",
+    "file": "images/billing-operator/Dockerfile",
+    "timeout": 15,
+    "cache": true,
+    "free_disk": false
+  }
+]

@@ -14,7 +14,7 @@ tmpl = open(os.path.join(d, "decision-module.rego.tmpl")).read()
 def guard(path):
     ast = json.loads(subprocess.run([opa, "parse", "--format", "json", "--json-include", "locations", path], check=True, capture_output=True, text=True).stdout)
     errs = []
-    if [t["value"] for t in ast["package"]["path"]] != ["data", "browserjs", "policy"]: errs.append("the package must be browserjs.policy")
+    if [t["value"] for t in ast["package"]["path"]] != ["data", "computeruse", "policy"]: errs.append("the package must be computeruse.policy")
     for imp in ast.get("imports", []):
         if imp["path"]["value"][0]["value"] not in ("rego", "future", "input"): errs.append("import not allowed")
     def walk(n):
@@ -34,13 +34,13 @@ for cases in sorted(glob.glob(os.path.join(d, "tools", "examples", "*.cases.json
     src = os.path.join(d, "tools", "examples", name + ".rego")
     rego = open(src).read()
     assert len(rego.encode()) <= 65536
-    assert rego.count("package browserjs.policy\n") == 1
+    assert rego.count("package computeruse.policy\n") == 1
     errs = guard(src)
     assert not errs, (name, errs)
     subprocess.run([opa, "check", "--capabilities", caps, src], check=True)
     n = 0; failed = 0
     with tempfile.TemporaryDirectory() as t:
-        open(t + "/tenant.rego", "w").write(rego.replace("package browserjs.policy\n", f'package browserjs.tenant["{sid}"]\n'))
+        open(t + "/tenant.rego", "w").write(rego.replace("package computeruse.policy\n", f'package browserjs.tenant["{sid}"]\n'))
         open(t + "/decision.rego", "w").write(tmpl.replace("{{SESSION_ID}}", sid))
         subprocess.run([opa, "check", "--strict", "--capabilities", caps, t], check=True)
         for c in json.load(open(cases)):

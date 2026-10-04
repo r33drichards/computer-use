@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+from decimal import Decimal, InvalidOperation
 
 from .meter import ts
 
@@ -48,6 +49,19 @@ def ready_since(sandbox: dict) -> str | None:
         return ready
 
 
+def disk_capacity(sandbox: dict, fallback: int) -> int:
+    for claim in (sandbox.get("spec") or {}).get("volumeClaimTemplates") or []:
+        if (claim.get("metadata") or {}).get("name") != "data":
+            continue
+        raw = str((((claim.get("spec") or {}).get("resources") or {}).get("requests") or {}).get("storage", ""))
+        try:
+            if raw.endswith("Gi"):
+                return int(Decimal(raw[:-2]).to_integral_value(rounding="ROUND_CEILING"))
+        except InvalidOperation:
+            pass
+    return fallback
+
+
 def observe(sandboxes: list[dict], disk_gb: int, sizes: frozenset[str] = frozenset()) -> dict[str, dict[str, dict]]:
     """{owner hash: {session ID: {"awake", "readySince", "diskGB", "size"}}}
     for every Sandbox that has an owner and is not being deleted. A
@@ -68,7 +82,7 @@ def observe(sandboxes: list[dict], disk_gb: int, sizes: frozenset[str] = frozens
         out.setdefault(owner_hash, {})[meta["name"]] = {
             "awake": is_awake,
             "readySince": ready_since(sandbox) if is_awake else None,
-            "diskGB": disk_gb,
+            "diskGB": disk_capacity(sandbox, disk_gb),
             "size": size if (size := (meta.get("annotations") or {}).get(ANN_SIZE)) in sizes else SMALL,
         }
     return out

@@ -8,9 +8,9 @@ tmpl = open(os.path.join(d, "decision-module.rego.tmpl")).read()
 for cases in sorted(glob.glob(os.path.join(d, "examples", "*.cases.json"))):
     name = os.path.basename(cases)[:-len(".cases.json")]
     rego = open(os.path.join(d, "examples", name + ".rego")).read()
-    assert rego.count("package browserjs.policy\n") == 1
+    assert rego.count("package computeruse.policy\n") == 1
     with tempfile.TemporaryDirectory() as t:
-        open(t + "/tenant.rego", "w").write(rego.replace("package browserjs.policy\n", f'package browserjs.tenant["{sid}"]\n'))
+        open(t + "/tenant.rego", "w").write(rego.replace("package computeruse.policy\n", f'package browserjs.tenant["{sid}"]\n'))
         open(t + "/decision.rego", "w").write(tmpl.replace("{{SESSION_ID}}", sid))
         subprocess.run([opa, "check", "--strict", "--capabilities", d + "/capabilities.json", t], check=True)
         for c in json.load(open(cases)):

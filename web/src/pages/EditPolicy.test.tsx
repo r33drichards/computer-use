@@ -62,7 +62,7 @@ describe("edit policy", () => {
 
   it("keeps the user on the page with the errors of a policy that does not validate", async () => {
     const { writes } = await open("research")
-    fireEvent.change(await editor(), { target: { value: "package browserjs.policy\n\nallow_tool_call if http.send({})\n" } })
+    fireEvent.change(await editor(), { target: { value: "package computeruse.policy\n\nallow_tool_call if http.send({})\n" } })
     save()
     expect(await screen.findByText("The policy does not validate. Nothing was saved.")).toBeTruthy()
     expect(writes()).toHaveLength(1)

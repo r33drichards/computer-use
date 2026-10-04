@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { problemLine, toMarker, toMarkers } from "./markers"
 import { REGO_TEMPLATE, regoKeywords, regoMonarch } from "./rego"
 
-const source = 'package browserjs.policy\n\nallow_tool_call if {\n\tinput.tool == "browser_execute"\n}\n'
+const source = 'package computeruse.policy\n\nallow_tool_call if {\n\tinput.tool == "browser_execute"\n}\n'
 
 describe("markers", () => {
   it("ends a marker at the end of the token the server pointed at", () => {
@@ -54,7 +54,7 @@ describe("rego grammar", () => {
   })
 
   it("starts a new policy from a module that says what is refused and what can be walked around", () => {
-    expect(REGO_TEMPLATE).toMatch(/^package browserjs\.policy$/m)
+    expect(REGO_TEMPLATE).toMatch(/^package computeruse\.policy$/m)
     expect(REGO_TEMPLATE).toContain("allow_tool_call if {")
     expect(REGO_TEMPLATE).toMatch(/desktop_execute and the exec server's tools[^]*refused until a rule here allows them/)
     expect(REGO_TEMPLATE).toMatch(/can be\n# walked around/)

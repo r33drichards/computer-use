@@ -4,14 +4,14 @@
 > needs cgo and the SDK's library: see "It is built on the SDK" in the
 > provider's README for what that does to building and releasing it.
 
-`terraform-provider-browserjs/` is a provider for Terraform and OpenTofu that
+`terraform-provider-computeruse/` is a provider for Terraform and OpenTofu that
 creates sessions and manages their policies as code. It is built in this
 repository and installed locally; it is in no registry yet.
 
 - Installing it, and trying it against a fake API:
-  [`terraform-provider-browserjs/README.md`](../terraform-provider-browserjs/README.md).
+  [`terraform-provider-computeruse/README.md`](../terraform-provider-computeruse/README.md).
 - Every argument and attribute:
-  [`terraform-provider-browserjs/docs/`](../terraform-provider-browserjs/docs/index.md).
+  [`terraform-provider-computeruse/docs/`](../terraform-provider-computeruse/docs/index.md).
 - The contract: [`contracts/policy/terraform-provider.md`](contracts/policy/terraform-provider.md),
   over the API of [`contracts/policy/backend-api.yaml`](contracts/policy/backend-api.yaml).
 - The design: section 8 of
@@ -22,15 +22,17 @@ repository and installed locally; it is in no registry yet.
 ```hcl
 terraform {
   required_providers {
-    browserjs = { source = "r33drichards/browserjs" }
+    computeruse = { source = "r33drichards/computeruse" }
   }
 }
 
-provider "browserjs" {
-  # endpoint and token from BROWSERJS_ENDPOINT / BROWSERJS_TOKEN
+provider "computeruse" {
+  # endpoint and token from COMPUTERUSE_ENDPOINT / COMPUTERUSE_TOKEN
 }
 
-resource "browserjs_session" "research" {
+resource "session" "research" {
+  provider = computeruse
+
   name = "research"
 
   lifecycle {
@@ -38,19 +40,21 @@ resource "browserjs_session" "research" {
   }
 }
 
-resource "browserjs_session_policy" "research" {
-  session_id  = browserjs_session.research.id
-  managed_url = "https://github.com/r33drichards/infra/tree/main/browserjs"
+resource "session_policy" "research" {
+  provider = computeruse
+
+  session_id  = session.research.id
+  managed_url = "https://github.com/r33drichards/infra/tree/main/computeruse"
   rego        = file("${path.module}/no-scripting.rego")
 }
 ```
 
 The whole example, with another policy on two more sessions, is
-[`examples/session-policies/`](../terraform-provider-browserjs/examples/session-policies/main.tf).
+[`examples/session-policies/`](../terraform-provider-computeruse/examples/session-policies/main.tf).
 
 ## Writing a policy
 
-A policy is a Rego module of package `browserjs.policy` that defines
+A policy is a Rego module of package `computeruse.policy` that defines
 `allow_tool_call`. Rego is the only kind: there is no JSON format. The
 platform asks the policy about every tool call an agent makes, with
 `input.server`, `input.tool` and `input.arguments`: `browser_execute` and
@@ -77,10 +81,10 @@ The provider talks to the API host (`https://api.<domain>`, paths under
 `/v1`) with an API token: `Authorization: Bearer bjs_…`. Tokens are created on
 the Tokens page of the UI and need the scopes `sessions:read`,
 `sessions:write`, `policies:read` and `policies:write` (the first two for
-`browserjs_session`, the last two for `browserjs_session_policy`).
+`session`, the last two for `session_policy`).
 
-`endpoint` and `token` are provider arguments; `BROWSERJS_ENDPOINT` and
-`BROWSERJS_TOKEN` are used when they are left out, and an argument wins over
+`endpoint` and `token` are provider arguments; `COMPUTERUSE_ENDPOINT` and
+`COMPUTERUSE_TOKEN` are used when they are left out, and an argument wins over
 its variable. With no token at all, configuring fails. The token is marked
 sensitive, is sent only in the `Authorization` header, and appears in no log
 line and no error message. An `http` endpoint that is not on loopback gets a
@@ -88,7 +92,7 @@ warning, since the token would cross the network in the clear.
 
 ## What the resources do
 
-**`browserjs_session`** creates a session and waits until its policy is
+**`session`** creates a session and waits until its policy is
 `ready` (the unrestricted policy, which allows the browser, desktop control
 and the shell, is loaded), for at most `timeouts.create`,
 5 minutes by default. The session is written to the state before the wait, so
@@ -96,7 +100,7 @@ one that never becomes ready is tainted rather than lost. A rename is an
 update in place. Destroying a session deletes its disk and the browser's
 logins: use `prevent_destroy`.
 
-**`browserjs_session_policy`** is the policy of one session. The resource
+**`session_policy`** is the policy of one session. The resource
 existing is what "managed as code" means:
 
 - **create and update** send the policy with `management: {mode: "iac",
@@ -131,23 +135,23 @@ Destroying the resource when the policy is already back in `editor` mode
 leaves the policy as it is, with a warning. The API refuses a token's reset
 in that mode, and what somebody wrote in the UI is theirs.
 
-**Import** both by session ID: `tofu import browserjs_session_policy.x s-ab2cd`.
+**Import** both by session ID: `tofu import session_policy.x s-ab2cd`.
 A policy imported from `editor` mode reads `managed_url` as `""`, so the
 first apply puts it in `iac` mode.
 
 ## Data sources
 
-- `browserjs_session`: one session by `id` or by `name` (which must match
+- `session`: one session by `id` or by `name` (which must match
   exactly one). The way to manage the policy of a session made in the UI
   without importing the session.
-- `browserjs_sessions`: all of the token owner's sessions.
+- `sessions`: all of the token owner's sessions.
 
 There is no data source that builds a policy: a policy is a `.rego` file,
 read with `file()`, or a heredoc.
 
 ## Where the contract was silent
 
-- `timeouts.create` exists on `browserjs_session_policy` beside the
+- `timeouts.create` exists on `session_policy` beside the
   contract's `timeouts.update`, with the same default.
 - A read that finds a policy of a kind other than `rego` is an error. The
   API has no other kind; the provider does not guess at one.
@@ -166,5 +170,8 @@ deployed, nothing has run against the real API: token authentication on the
 real policy takes to be `ready`, and whether the API returns `source` byte
 for byte as it was sent (`rego` is compared as text, so a reformatted one
 would plan a change). The acceptance tests are the check:
-`BROWSERJS_ENDPOINT=… BROWSERJS_TOKEN=… make testacc` against a local
+`COMPUTERUSE_ENDPOINT=… COMPUTERUSE_TOKEN=… make testacc` against a local
 deployment.
+
+Resource types are `session` and `session_policy`; data-source types are `session`
+and `sessions`. Every HCL block must set `provider = computeruse`.

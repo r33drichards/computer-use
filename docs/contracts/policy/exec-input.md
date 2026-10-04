@@ -1,7 +1,7 @@
 # The `exec` server (mcp-exec): what a policy sees
 
 For someone writing a session policy in Rego (`rego-contract.md`: package
-`browserjs.policy`, entry rule `allow_tool_call`) that allows, denies or
+`computeruse.policy`, entry rule `allow_tool_call`) that allows, denies or
 constrains the programs an agent runs.
 
 Commands are run by [mcp-exec](https://github.com/r33drichards/mcp-exec),

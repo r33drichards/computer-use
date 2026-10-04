@@ -1,0 +1,8 @@
+# Argo CD excludes Leases by default. Apply this bootstrap resource before
+# enabling the backend/DaemonSet capacity handshake; controllers own its spec.
+apiVersion: coordination.k8s.io/v1
+kind: Lease
+metadata:
+  name: session-capacity
+  namespace: browserjs-sessions
+spec: {}

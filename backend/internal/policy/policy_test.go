@@ -177,21 +177,21 @@ func TestOperatorClient(t *testing.T) {
 	op := NewOperator(server.URL+"/", "secret")
 
 	answer = func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte(`{"ok":true,"rego":"package browserjs.policy\n","hash":"sha256:ab","errors":[],"warnings":[{"code":"unknown_operation","message":"m"}]}`))
+		_, _ = w.Write([]byte(`{"ok":true,"rego":"package computeruse.policy\n","hash":"sha256:ab","errors":[],"warnings":[{"code":"unknown_operation","message":"m"}]}`))
 	}
-	v, err := op.Validate(t.Context(), "rego", "package browserjs.policy")
+	v, err := op.Validate(t.Context(), "rego", "package computeruse.policy")
 	if err != nil || !v.OK || v.Hash != "sha256:ab" || v.Rego == "" || len(v.Warnings) != 1 {
 		t.Fatalf("Validate = %+v, %v", v, err)
 	}
 	if seen.Method != "POST" || seen.URL.Path != "/v1/validate" || seen.Header.Get("Authorization") != "Bearer secret" ||
-		seen.Header.Get("Content-Type") != "application/json" || len(body) != 2 || body["kind"] != "rego" || body["source"] != "package browserjs.policy" {
+		seen.Header.Get("Content-Type") != "application/json" || len(body) != 2 || body["kind"] != "rego" || body["source"] != "package computeruse.policy" {
 		t.Errorf("request: %s %s, %v, body %v", seen.Method, seen.URL.Path, seen.Header, body)
 	}
 
 	answer = func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"ok":false,"errors":[{"row":1,"col":2,"code":"schema_error","message":"m"}],"warnings":[]}`))
 	}
-	v, err = op.Validate(t.Context(), "rego", "package browserjs.policy")
+	v, err = op.Validate(t.Context(), "rego", "package computeruse.policy")
 	if err != nil || v.OK || len(v.Errors) != 1 || v.Errors[0] != (Diagnostic{Row: 1, Col: 2, Code: "schema_error", Message: "m"}) {
 		t.Errorf("an invalid policy: %+v, %v", v, err)
 	}
@@ -208,12 +208,12 @@ func TestOperatorClient(t *testing.T) {
 		},
 	} {
 		answer = a
-		if v, err := op.Validate(t.Context(), "rego", "package browserjs.policy"); !errors.Is(err, ErrOperatorUnavailable) || v.OK {
+		if v, err := op.Validate(t.Context(), "rego", "package computeruse.policy"); !errors.Is(err, ErrOperatorUnavailable) || v.OK {
 			t.Errorf("%s: %+v, %v", name, v, err)
 		}
 	}
 	server.Close()
-	if _, err := op.Validate(t.Context(), "rego", "package browserjs.policy"); !errors.Is(err, ErrOperatorUnavailable) {
+	if _, err := op.Validate(t.Context(), "rego", "package computeruse.policy"); !errors.Is(err, ErrOperatorUnavailable) {
 		t.Errorf("no operator: %v", err)
 	}
 }

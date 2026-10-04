@@ -22,13 +22,13 @@ test('source receipt binds exact clean commit/tree and rejects mismatches or dir
   writeFileSync(join(dir, 'canary'), 'changed'); assert.notEqual(run(sha).status, 0);
  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
-test('only nonpublishing builds/canary bind PR head; filter and publish remain unchanged', () => {
+test('only nonpublishing builds/canary bind PR head; filter binds the same head and publish remains unchanged', () => {
  const images = readFileSync(new URL('../.github/workflows/images.yml', import.meta.url), 'utf8');
  const build = images.slice(images.indexOf('  build:'), images.indexOf('  publish:'));
  const filter = images.slice(0, images.indexOf('  build:')); const publish = images.slice(images.indexOf('  publish:'));
  const canary = readFileSync(new URL('../.github/workflows/canary-kind.yml', import.meta.url), 'utf8');
  const ref = 'ref: $' + '{{ github.event.pull_request.head.sha || github.sha }}';
- assert.ok(build.includes(ref)); assert.ok(canary.includes(ref)); assert.ok(!filter.includes(ref)); assert.ok(!publish.includes(ref));
+ assert.ok(build.includes(ref)); assert.ok(canary.includes(ref)); assert.ok(filter.includes(ref)); assert.ok(filter.includes('cat .github/image-build-matrix.json')); assert.ok(!publish.includes(ref));
  assert.ok(build.includes('org.opencontainers.image.revision=$' + '{{ steps.source.outputs.sha }}'));
  for (const workflow of [build, canary]) { assert.ok(workflow.includes('persist-credentials: false')); assert.ok(workflow.includes('bash test/ci-source-binding.sh')); }
  assert.ok(publish.includes("github.ref == 'refs/heads/main'")); assert.ok(publish.includes("github.event_name != 'pull_request'"));

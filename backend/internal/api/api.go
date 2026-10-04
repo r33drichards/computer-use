@@ -40,11 +40,12 @@ type Sizer interface {
 }
 
 type API struct {
-	store Store
-	sizer Sizer // nil: small only
-	authz authz.Checker
-	urls  *sessions.URLTemplate
-	cap   int
+	store     Store
+	sizer     Sizer // nil: small only
+	diskFlags DiskFlagClient
+	authz     authz.Checker
+	urls      *sessions.URLTemplate
+	cap       int
 
 	// The lock is per user, and this replica's: it keeps the same user's
 	// creates here from interleaving. A create on another replica is
@@ -59,8 +60,6 @@ type API struct {
 
 	// Who may ask for a canary session (see SetCanary). Empty: nobody.
 	canary map[string]bool
-	// Evaluated with the verified caller's identity, never request JSON.
-	skillsImage func(context.Context, string) string
 
 	onCreated func(id string) // nil: nothing (see OnCreated)
 }
@@ -76,12 +75,6 @@ func (a *API) SetCanary(emails []string) {
 	for _, email := range emails {
 		a.canary[email] = true
 	}
-}
-
-// SetSkillsImage selects a digest for new sessions; empty leaves the blueprint
-// and warm pool unchanged. An explicitly authorized canary takes precedence.
-func (a *API) SetSkillsImage(selectImage func(context.Context, string) string) {
-	a.skillsImage = selectImage
 }
 
 // OnCreated has f called with the ID of each session this API creates or
@@ -219,6 +212,8 @@ func (a *API) storeError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, sessions.ErrNotFound):
 		writeError(w, http.StatusNotFound, "session not found")
+	case errors.Is(err, sessions.ErrInvalidDisk):
+		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, sessions.ErrInvalidName), errors.Is(err, sessions.ErrInvalidAction), errors.Is(err, sessions.ErrCanary), errors.Is(err, sessions.ErrInvalidSize):
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, sessions.ErrNoCapacity):
@@ -265,8 +260,8 @@ func (a *API) offered() []sessions.SizeInfo {
 // sizes lists the sizes a session can have: what each gives the desktop
 // (the limits of the pod's browser container). What each costs, where
 // billing is on, is the catalogue's (GET /api/billing/catalogue).
-func (a *API) sizes(w http.ResponseWriter, _ *http.Request, _ auth.User) {
-	writeJSON(w, http.StatusOK, map[string]any{"default": sessions.DefaultSize, "sizes": a.offered()})
+func (a *API) sizes(w http.ResponseWriter, r *http.Request, u auth.User) {
+	writeJSON(w, http.StatusOK, map[string]any{"default": sessions.DefaultSize, "sizes": a.offered(), "storage": map[string]any{"defaultGB": 32, "minGB": 10, "maxGB": a.diskLimit(r.Context(), u.Subject)}})
 }
 
 // checkSize is the size asked for, as the store names it ("" is small), or
@@ -312,6 +307,7 @@ func (a *API) create(w http.ResponseWriter, r *http.Request, u auth.User) {
 	var body struct {
 		Name   string        `json:"name"`
 		Size   string        `json:"size"`
+		DiskGB int           `json:"diskGB"`
 		Policy *policy.Input `json:"policy"`
 		// Container name to image digest: see SetCanary.
 		Canary map[string]string `json:"canary"`
@@ -327,6 +323,17 @@ func (a *API) create(w http.ResponseWriter, r *http.Request, u auth.User) {
 		return
 	}
 	ctx := r.Context()
+	if body.DiskGB != 0 {
+		if err := a.checkDisk(ctx, u.Subject, body.DiskGB); err != nil {
+			a.storeError(w, err)
+			return
+		}
+		if _, ok := a.store.(DiskSizer); !ok {
+			writeError(w, http.StatusBadRequest, "custom disk capacity is unavailable")
+			return
+		}
+		ctx = sessions.WithDiskGB(ctx, body.DiskGB)
+	}
 	if body.Canary != nil {
 		if !a.canary[u.Subject] {
 			writeError(w, http.StatusForbidden, "canary sessions are for the deployment's admins")
@@ -337,17 +344,8 @@ func (a *API) create(w http.ResponseWriter, r *http.Request, u auth.User) {
 			return
 		}
 		ctx = sessions.WithImageDigests(ctx, body.Canary)
-	} else if a.skillsImage != nil {
-		if digest := a.skillsImage(ctx, u.Subject); digest != "" {
-			digests := map[string]string{"mcp-js": digest}
-			if err := sessions.CheckImageDigests(digests); err != nil {
-				slog.Error("skills image flag returned an invalid digest", "err", err)
-				writeError(w, http.StatusServiceUnavailable, "skills image is not configured correctly")
-				return
-			}
-			ctx = sessions.WithImageDigests(ctx, digests)
-		}
 	}
+
 	// Checked before anything is created: an invalid policy creates nothing.
 	asked, ok := a.policyFor(w, r, u, body.Policy)
 	if !ok {
@@ -475,6 +473,7 @@ func (a *API) patch(w http.ResponseWriter, r *http.Request, id string) {
 		Name   *string `json:"name"`
 		Action string  `json:"action"`
 		Size   *string `json:"size"`
+		DiskGB *int    `json:"diskGB"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "body must be JSON")
@@ -483,6 +482,44 @@ func (a *API) patch(w http.ResponseWriter, r *http.Request, id string) {
 	if err := a.mayResume(r.Context(), id, body.Action); err != nil {
 		a.refused(w, err)
 		return
+	}
+	if body.DiskGB != nil {
+		current, err := a.store.Get(r.Context(), id)
+		if err == nil {
+			err = a.checkDisk(r.Context(), current.Owner, *body.DiskGB)
+		}
+		if err == nil && *body.DiskGB < current.DiskGB {
+			err = sessions.ErrInvalidDisk
+		}
+		if err == nil && body.Action != "" && body.Action != sessions.ActionStop && body.Action != sessions.ActionResume {
+			err = sessions.ErrInvalidAction
+		}
+		if err == nil && body.Name != nil {
+			err = sessions.CheckName(*body.Name)
+		}
+		if err == nil && body.Size != nil {
+			var size string
+			size, err = a.checkSize(*body.Size)
+			if err == nil && *body.Size == "" {
+				_, err = a.checkSize("(none)")
+			}
+			if err == nil {
+				err = a.maySize(r.Context(), current.Owner, size)
+			}
+		}
+		if err != nil {
+			a.storeError(w, err)
+			return
+		}
+		disks, ok := a.store.(DiskSizer)
+		if !ok {
+			writeError(w, http.StatusBadRequest, "disk expansion is unavailable")
+			return
+		}
+		if err := disks.GrowDisk(r.Context(), id, *body.DiskGB); err != nil {
+			a.storeError(w, err)
+			return
+		}
 	}
 	// The size first: a resume in the same request starts at the new size.
 	// Everything of the request is checked before any of it is done.

@@ -1,6 +1,6 @@
 # Fill in forms on two sites: printable text only, a few keys, sane viewport
 # sizes, no script. No desktop control and no shell.
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

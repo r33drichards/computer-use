@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: session-disk-migration
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: session-disk-migration
+rules:
+  - apiGroups: [""]
+    resources: [persistentvolumeclaims]
+    verbs: [get, list, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: session-disk-migration
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: session-disk-migration
+subjects:
+  - kind: ServiceAccount
+    name: session-disk-migration
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: session-disks-32gib
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 1200
+  template:
+    spec:
+      serviceAccountName: session-disk-migration
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: python:3.12-alpine
+          command: [python3, /migration/migrate.py]
+          env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          resources:
+            requests: {cpu: 50m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: script
+              mountPath: /migration
+              readOnly: true
+      volumes:
+        - name: script
+          configMap:
+            name: session-disk-migration

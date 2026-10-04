@@ -1,6 +1,6 @@
 # Look, do not touch: open https pages, wait, and take screenshots. No
 # desktop control and no shell.
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

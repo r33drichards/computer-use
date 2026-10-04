@@ -1,0 +1,95 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: computer-use
+  namespace: argocd
+spec:
+  sourceRepos:
+  - https://github.com/r33drichards/computer-use.git
+  destinations:
+  - namespace: browserjs-sessions
+    server: https://kubernetes.default.svc
+  clusterResourceBlacklist:
+  - group: '*'
+    kind: '*'
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: computer-use-production
+  namespace: argocd
+spec:
+  project: computer-use
+  source:
+    repoURL: https://github.com/r33drichards/computer-use.git
+    targetRevision: production
+    path: production
+    directory:
+      include: manifests.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: browserjs-sessions
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - ApplyOutOfSyncOnly=true
+    - RespectIgnoreDifferences=true
+    retry:
+      limit: 2
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 1m
+  ignoreDifferences:
+  - group: coordination.k8s.io
+    kind: Lease
+    name: session-capacity
+    namespace: browserjs-sessions
+    jsonPointers:
+    - /spec
+    - /metadata/annotations/browserjs.dev~1capacity-cpu
+    - /metadata/annotations/browserjs.dev~1capacity-memory
+    - /metadata/annotations/browserjs.dev~1capacity-exclude
+    - /metadata/annotations/browserjs.dev~1capacity-new-slot
+  - group: apps
+    kind: DaemonSet
+    name: session-slot-controller
+    namespace: browserjs-sessions
+    jqPathExpressions:
+    - '.spec.template.spec.containers[] | select(.name == "controller") | .env[] | select(.name == "RESERVED_SLOTS")'
+  - group: extensions.agents.x-k8s.io
+    kind: SandboxWarmPool
+    name: s
+    namespace: browserjs-sessions
+    jsonPointers:
+    - /spec/replicas
+  - group: ''
+    kind: Service
+    name: backend
+    namespace: browserjs-sessions
+    jqPathExpressions:
+    - .spec.selector["rollouts-pod-template-hash"]
+  - group: ''
+    kind: Service
+    name: backend-preview
+    namespace: browserjs-sessions
+    jqPathExpressions:
+    - .spec.selector["rollouts-pod-template-hash"]
+  - group: ''
+    kind: Service
+    name: site
+    namespace: browserjs-sessions
+    jqPathExpressions:
+    - .spec.selector["rollouts-pod-template-hash"]
+  - group: ''
+    kind: Service
+    name: site-canary
+    namespace: browserjs-sessions
+    jqPathExpressions:
+    - .spec.selector["rollouts-pod-template-hash"]

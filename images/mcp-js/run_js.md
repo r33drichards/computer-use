@@ -80,13 +80,45 @@ artifact("chart", "image/png", png);
 
 ## Importing Packages
 
-You can import npm packages, JSR packages, and URL modules using ES module `import` syntax. Packages are fetched from esm.sh at runtime — no installation needed.
+External ES module imports are enabled in this deployment with
+`--allow-external-modules` in the shared startup script. Use static `import`
+or dynamic `await import()`; no package installation is needed.
 
 - **npm**: `import { camelCase } from "npm:lodash-es@4.17.21";`
-- **jsr**: `import { camelCase } from "jsr:@luca/cases@1.0.0";`
-- **URL**: `import { pascalCase } from "https://deno.land/x/case/mod.ts";`
+- **JSR**: `import { camelCase } from "jsr:@luca/cases@1.0.0";`
+- **HTTPS URL**: `import { camelCase } from "https://esm.sh/lodash-es@4.17.21";`
 
-Always pin versions for reproducible results. Dynamic `import()` is also supported with top-level `await`.
+```js
+const { camelCase } = await import("npm:lodash-es@4.17.21");
+console.log(camelCase("hello world")); // helloWorld
+```
+
+Pin package versions. `npm:` resolves through `https://esm.sh/`, and `jsr:`
+through `https://esm.sh/jsr/`; URL imports are fetched directly. Prefer HTTPS.
+Relative imports resolve against the importing module's URL. `file://`
+imports are unsupported; use `fs.readFile` for saved scripts as shown above.
+Modules are fetched again in each fresh execution, so allow time for downloads
+and import what you need in each call.
+
+The runtime provides a partial Node.js compatibility layer. `pngjs@7.0.0`
+supports synchronous and asynchronous PNG encoding and decoding:
+
+```js
+const { PNG } = await import("npm:pngjs@7.0.0");
+const png = new PNG({ width: 1, height: 1 });
+png.data.set([255, 0, 0, 255]);
+artifact("red-pixel", "image/png", PNG.sync.write(png));
+```
+
+Supported Node builtins can be imported with `node:` specifiers. Package
+compatibility varies; native addons and DOM APIs require an appropriate host.
+Use the exec MCP server for packages that need a full Node.js installation.
+
+Module loading is separate from the JavaScript `fetch` API. An operator can
+restrict imports with a `modules` policy in `MCP_V8_POLICIES_JSON`; a policy
+cannot enable imports when the startup flag is absent. If an import is denied,
+report the denial rather than trying another route.
+See [upstream module import documentation](https://r33drichards.github.io/mcp-js/concepts/module-imports/).
 
 ## Filesystem Access
 
@@ -110,7 +142,7 @@ All operations return Promises and are subject to Rego policy evaluation. Policy
 
 ## Limitations
 
-- **No `fetch` or network access by default**: When the server is started with fetch policies configured via `--policies-json`, a `fetch(url, opts?)` function becomes available. `fetch()` follows the web standard Fetch API — it returns a Promise that resolves to a Response object. Use `await` to get the response: `const resp = await fetch(url)`. The response object has `.ok`, `.status`, `.statusText`, `.url`, `.headers.get(name)`, `.text()`, and `.json()` methods (`.text()` and `.json()` also return Promises). Each request is checked against policy before execution. If the server is also configured with `--fetch-header` or `--fetch-header-config`, matching requests may receive static headers or dynamically acquired OAuth client-credentials bearer tokens before policy evaluation. Headers set directly in JavaScript still win. Without fetch policies, there is no network access.
+- **HTTP(S) fetch is enabled in this deployment**: A local fetch policy configured via `--policies-json` allows HTTP and HTTPS requests through `fetch(url, opts?)`. In enforcing deployments, each request must also be allowed by the session’s editable `allow_tool_call` rule, using `input.operation == "fetch"`, `input.url`, `input.method`, `input.headers`, and `input.url_parsed` (scheme, host, port, path, query). A browser-only policy denies fetch unless a fetch rule is added. Requests remain subject to the session pod’s network restrictions. `fetch()` follows the web standard Fetch API — it returns a Promise that resolves to a Response object. Use `await` to get the response: `const resp = await fetch(url)`. The response object has `.ok`, `.status`, `.statusText`, `.url`, `.headers.get(name)`, `.text()`, and `.json()` methods (`.text()` and `.json()` also return Promises). Each request is checked against policy before execution. If the server is also configured with `--fetch-header` or `--fetch-header-config`, matching requests may receive static headers or dynamically acquired OAuth client-credentials bearer tokens before policy evaluation. Headers set directly in JavaScript still win. Without fetch policies, JavaScript cannot use `fetch`; external module downloads are enabled separately as described above.
 - **No file system access by default**: Filesystem access requires server configuration with policies. See "Filesystem Access" above.
 - **No environment variables**: The runtime does not provide access to environment variables.
 - **Timers**: `setTimeout`, `clearTimeout`, `setInterval` and `clearInterval` are available.

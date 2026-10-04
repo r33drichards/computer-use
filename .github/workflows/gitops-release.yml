@@ -1,0 +1,170 @@
+name: production release
+
+on:
+  workflow_run:
+    workflows: [images]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+# One Git revision and its verdict at a time; never cancel a live release.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: vars.ARGOCD_ENABLED == 'true' && github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    environment: production
+    permissions:
+      contents: write
+      actions: read
+      checks: read
+      pull-requests: read
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+      NS: browserjs-sessions
+      PREVIEWS_ENABLED: ${{ vars.PREVIEWS_ENABLED }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Merged pull request checks
+        run: python3 hack/gitops/checks.py "$SOURCE_SHA"
+
+      - name: Canary must be configured
+        env:
+          CANARY: ${{ vars.CANARY }}
+          CANARY_API_TOKEN: ${{ secrets.CANARY_API_TOKEN }}
+        run: |
+          test "$CANARY" = on || { echo '::error::CANARY must be on'; exit 1; }
+          test -n "$CANARY_API_TOKEN" || { echo '::error::CANARY_API_TOKEN is required'; exit 1; }
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+          pattern: release-image-*
+          path: ${{ runner.temp }}/release-images
+
+      - name: Render dependencies
+        run: python3 -m pip install PyYAML==6.0.3
+
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_SA }}
+
+      - uses: azure/setup-kubectl@829323503d1be3d00ca8346e5391ca0b07a9ab0d # v5.1.0
+        with:
+          version: v1.36.5
+
+      - uses: google-github-actions/get-gke-credentials@3da1e46a907576cefaa90c484278bb5b259dd395 # v3
+        with:
+          cluster_name: browserjs
+          location: us-west1-a
+          use_dns_based_endpoint: true
+
+      - name: Bootstrap session capacity lease
+        # Argo CD excludes Leases, so this must precede the new backend.
+        run: kubectl apply -f deploy/gke/session-capacity.yaml
+
+      - name: Reserve a session slot for release checks
+        run: |
+          if kubectl -n "$NS" get daemonset session-slot-controller >/dev/null 2>&1; then
+            kubectl -n "$NS" set env daemonset/session-slot-controller RESERVED_SLOTS=1
+            kubectl -n "$NS" rollout status daemonset/session-slot-controller --timeout=120s
+            for attempt in $(seq 1 60); do
+              count=$(kubectl -n "$NS" get pvc -o json | python3 -c 'import json,sys; print(sum(p["metadata"]["name"].startswith("data-s-") for p in json.load(sys.stdin)["items"]))')
+              [ "$count" -le 2 ] && break
+              sleep 2
+            done
+            [ "$count" -le 2 ] || { echo '::error::Release needs one free session slot; all three are claimed or still deleting'; exit 1; }
+          fi
+
+      - name: Current production must pass before release
+        env:
+          EXPECT_MCP_CAPABILITIES: "0"
+          CANARY_API_TOKEN: ${{ secrets.CANARY_API_TOKEN }}
+        run: test/canary.py
+
+      - name: Publish Git's desired release
+        id: publish
+        run: hack/gitops/publish.sh "$SOURCE_SHA" "$RUNNER_TEMP/release-images"
+
+      - name: Argo CD sync and canary promotion
+        if: steps.publish.outputs.skipped != 'true'
+        env:
+          REVISION: ${{ steps.publish.outputs.revision }}
+        run: |
+          kubectl -n argocd annotate application computer-use-production argocd.argoproj.io/refresh=hard --overwrite
+          python3 hack/gitops/wait.py "$REVISION" 1200
+
+      - name: Wait for promoted backend traffic to settle
+        if: steps.publish.outputs.skipped != 'true'
+        run: |
+          # Healthy promotion precedes the blue-green scale-down delay.
+          # Wait for the old pod to disappear, then let edge connections drain.
+          ready=false
+          for attempt in $(seq 1 90); do
+            ready=$(kubectl -n "$NS" get pods -l app=backend -o json | python3 -c 'import json,sys; pods=json.load(sys.stdin)["items"]; print(str(len(pods)==1 and not pods[0]["metadata"].get("deletionTimestamp") and any(c.get("type")=="Ready" and c.get("status")=="True" for c in pods[0].get("status",{}).get("conditions",[]))).lower())')
+            [ "$ready" = true ] && break
+            sleep 2
+          done
+          [ "$ready" = true ] || { echo '::error::The previous backend did not drain'; exit 1; }
+          sleep 10
+
+      - name: Canary through the public edge
+        if: steps.publish.outputs.skipped != 'true'
+        env:
+          CANARY_API_TOKEN: ${{ secrets.CANARY_API_TOKEN }}
+        run: test/canary.py
+
+      - name: Record the healthy production revision
+        if: steps.publish.outputs.skipped != 'true'
+        env:
+          REVISION: ${{ steps.publish.outputs.revision }}
+        run: git push origin "$REVISION:refs/heads/production-stable"
+
+      - name: Failure alert
+        if: failure()
+        env:
+          REVISION: ${{ steps.publish.outputs.revision }}
+        run: |
+          gcloud logging write computeruse-deployments \
+            "$(jq -nc --arg revision "$REVISION" --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" '{event:"deployment_failed", application:"computer-use-production", revision:$revision, run:$run, message:"Production release failed; inspect the workflow for rollback status"}')" \
+            --payload-type=json --severity=ERROR --project=browserjs-sessions
+
+      - name: Restore the previous desired release in Git
+        if: failure() && steps.publish.outputs.revision != ''
+        env:
+          FAILED: ${{ steps.publish.outputs.revision }}
+          PREVIOUS: ${{ steps.publish.outputs.previous }}
+          CANARY_API_TOKEN: ${{ secrets.CANARY_API_TOKEN }}
+        run: |
+          hack/gitops/rollback.sh "$FAILED" "$PREVIOUS"
+          EXPECT_MCP_CAPABILITIES=0 test/canary.py
+
+      - name: Return the reserved slot to the warm pool
+        if: always()
+        run: |
+          if kubectl -n "$NS" get daemonset session-slot-controller >/dev/null 2>&1; then
+            kubectl -n "$NS" set env daemonset/session-slot-controller RESERVED_SLOTS=0
+            kubectl -n "$NS" rollout status daemonset/session-slot-controller --timeout=120s
+          fi
+
+      - name: Release summary
+        if: always()
+        env:
+          REVISION: ${{ steps.publish.outputs.revision }}
+        run: |
+          echo "Source: $SOURCE_SHA; desired revision: $REVISION" >> "$GITHUB_STEP_SUMMARY"
+          kubectl -n argocd get application computer-use-production -o wide >> "$GITHUB_STEP_SUMMARY" || true

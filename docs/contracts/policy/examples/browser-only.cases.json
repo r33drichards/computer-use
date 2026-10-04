@@ -383,5 +383,56 @@
       }
     },
     "allow": false
+  },
+  {
+    "name": "Fetch API data (GET)",
+    "input": {
+      "operation": "fetch",
+      "url": "https://api.example.com/v1/data",
+      "method": "GET",
+      "headers": {},
+      "url_parsed": {
+        "scheme": "https",
+        "host": "api.example.com",
+        "port": null,
+        "path": "/v1/data",
+        "query": ""
+      }
+    },
+    "allow": false
+  },
+  {
+    "name": "Send API data (POST)",
+    "input": {
+      "operation": "fetch",
+      "url": "https://api.example.com/v1/data",
+      "method": "POST",
+      "headers": {},
+      "url_parsed": {
+        "scheme": "https",
+        "host": "api.example.com",
+        "port": null,
+        "path": "/v1/data",
+        "query": ""
+      }
+    },
+    "allow": false
+  },
+  {
+    "name": "Fetch from another host",
+    "input": {
+      "operation": "fetch",
+      "url": "https://other.example.org/v1/data",
+      "method": "GET",
+      "headers": {},
+      "url_parsed": {
+        "scheme": "https",
+        "host": "other.example.org",
+        "port": null,
+        "path": "/v1/data",
+        "query": ""
+      }
+    },
+    "allow": false
   }
 ]

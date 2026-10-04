@@ -311,7 +311,7 @@ func TestBillingOffIsToday(t *testing.T) {
 	}
 
 	// Create: a user with no account of any kind creates a session.
-	const starting = `{"id":"s-ID","name":"brave-otter","owner":"alice@example.com","state":"starting","created":"T","size":"small","mcp_url":"https://sessions.example.com/s-ID/mcp"}`
+	const starting = `{"id":"s-ID","name":"brave-otter","owner":"alice@example.com","state":"starting","created":"T","diskGB":5,"size":"small","mcp_url":"https://sessions.example.com/s-ID/mcp"}`
 	rec := do("POST", app0, "/api/sessions", `{}`)
 	same("create", rec, http.StatusCreated, starting)
 	var created session
@@ -329,7 +329,7 @@ func TestBillingOffIsToday(t *testing.T) {
 	}
 	sessionstest.SetStatus(t, client, id, sessionstest.Suspended())
 	same("a stopped session", do("GET", app0, "/api/sessions/"+id, ""), http.StatusOK,
-		`{"id":"s-ID","name":"brave-otter","owner":"alice@example.com","state":"stopped","created":"T","size":"small","mcp_url":"https://sessions.example.com/s-ID/mcp"}`)
+		`{"id":"s-ID","name":"brave-otter","owner":"alice@example.com","state":"stopped","created":"T","diskGB":5,"size":"small","mcp_url":"https://sessions.example.com/s-ID/mcp"}`)
 	// The fake cluster leaves the old Suspended condition behind, so a
 	// resumed session reads as starting, with the condition's message.
 	rec = do("PATCH", app0, "/api/sessions/"+id, `{"action":"resume"}`)
@@ -344,7 +344,7 @@ func TestBillingOffIsToday(t *testing.T) {
 	}
 	sessionstest.SetStatus(t, client, id, sessionstest.Suspended())
 	same("an asleep session", do("GET", app0, "/api/sessions/"+id, ""), http.StatusOK,
-		`{"id":"s-ID","name":"brave-otter","owner":"alice@example.com","state":"asleep","created":"T","size":"small","mcp_url":"https://sessions.example.com/s-ID/mcp"}`)
+		`{"id":"s-ID","name":"brave-otter","owner":"alice@example.com","state":"asleep","created":"T","diskGB":5,"size":"small","mcp_url":"https://sessions.example.com/s-ID/mcp"}`)
 	rec = do("POST", sessions0, "/"+id+"/mcp", `{"jsonrpc":"2.0","id":1,"method":"tools/list"}`)
 	same("wake", rec, http.StatusGatewayTimeout, "session is waking up; retry shortly")
 	if rec.Header().Get("Retry-After") != "10" {

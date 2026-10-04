@@ -183,3 +183,18 @@ output "dns_records" {
     }],
   )
 }
+
+output "preview_registry_url" {
+  description = "Repository variable PREVIEW_REGISTRY."
+  value       = var.enable_previews ? "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.previews[0].repository_id}" : null
+}
+
+output "preview_publisher_service_account_email" {
+  description = "Repository variable PREVIEW_PUBLISH_SA."
+  value       = var.enable_previews ? google_service_account.preview_publisher[0].email : null
+}
+
+output "preview_deployer_service_account_email" {
+  description = "Repository variable PREVIEW_DEPLOY_SA."
+  value       = var.enable_previews ? google_service_account.preview_deployer[0].email : null
+}

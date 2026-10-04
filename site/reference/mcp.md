@@ -41,13 +41,68 @@ No state carries from one call to the next. The desktop and the disk do.
 | `fs` | Node-style file functions, for `/data/` and its subdirectories. |
 | `artifact(key, mime, bytes)` | Attaches an image or file to the result. Up to 16 MiB each. |
 | `artifact.get(key)`, `artifact.list()` | Reads stored artifacts and uploaded files. |
+| `fetch(url, options?)` | HTTP(S) requests, subject to the session policy. Returns a standard Fetch Response. |
 | top-level `await` | Supported. |
 
 ### Not available in the code
 
-`fetch` and any other network access, environment variables, DOM APIs,
-`child_process`. Timers (`setTimeout`, `setInterval`) are available.
+Environment variables, DOM APIs, and `child_process`. Timers (`setTimeout`, `setInterval`) are available.
 
+### Fetching HTTP data
+
+```js
+const response = await fetch("https://api.example.com/v1/data")
+if (!response.ok) throw new Error(`HTTP ${response.status}`)
+console.log(await response.json())
+```
+
+The default Unrestricted policy allows HTTP(S) fetch. Other presets deny
+fetch until a matching rule is added. [Fetch permissions](/reference/policy#fetch-requests)
+shows the request fields and how to allow a host, path, and method. Policy
+edits apply to subsequent requests without restarting the session.
+
+### Importing packages
+
+External ES module imports are enabled in this deployment with
+`--allow-external-modules` in the shared startup script. Use static `import`
+or dynamic `await import()`; no package installation is needed.
+
+- **npm**: `import { camelCase } from "npm:lodash-es@4.17.21";`
+- **JSR**: `import { camelCase } from "jsr:@luca/cases@1.0.0";`
+- **HTTPS URL**: `import { camelCase } from "https://esm.sh/lodash-es@4.17.21";`
+
+```js
+const { camelCase } = await import("npm:lodash-es@4.17.21");
+console.log(camelCase("hello world")); // helloWorld
+```
+
+Pin package versions. `npm:` resolves through `https://esm.sh/`, and `jsr:`
+through `https://esm.sh/jsr/`; URL imports are fetched directly. Prefer HTTPS.
+Relative imports resolve against the importing module's URL. `file://`
+imports are unsupported; read saved scripts with `fs.readFile` and execute
+their source with an async `eval` wrapper.
+Modules are fetched again in each fresh execution, so allow time for downloads
+and import what you need in each call.
+
+The runtime provides a partial Node.js compatibility layer. `pngjs@7.0.0`
+supports synchronous and asynchronous PNG encoding and decoding:
+
+```js
+const { PNG } = await import("npm:pngjs@7.0.0");
+const png = new PNG({ width: 1, height: 1 });
+png.data.set([255, 0, 0, 255]);
+artifact("red-pixel", "image/png", PNG.sync.write(png));
+```
+
+Supported Node builtins can be imported with `node:` specifiers. Package
+compatibility varies; native addons and DOM APIs require an appropriate host.
+Use the exec MCP server for packages that need a full Node.js installation.
+
+Module loading is separate from the JavaScript `fetch` API. An operator can
+restrict imports with a `modules` policy in `MCP_V8_POLICIES_JSON`; a policy
+cannot enable imports when the startup flag is absent. If an import is denied,
+report the denial rather than trying another route.
+See [upstream module import documentation](https://r33drichards.github.io/mcp-js/concepts/module-imports/).
 ### Running programs
 
 `mcp.callTool("exec", "exec", { bin: "ls", args: ["-la"], timeout: 60 })`

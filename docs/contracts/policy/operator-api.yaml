@@ -81,7 +81,7 @@ paths:
       summary: Evaluate a policy against one input, for the editor's Test.
       description: |
         Validates as `/v1/validate` does, then evaluates
-        `data.browserjs.policy.allow_tool_call` with `opa eval` under the
+        `data.computeruse.policy.allow_tool_call` with `opa eval` under the
         capabilities file and a 2 second deadline. `allow` is true only when
         the rule is `true`, as the decision module has it.
       security: [{apiToken: []}]
@@ -129,7 +129,7 @@ components:
         ok: {type: boolean}
         rego:
           type: string
-          description: Present when ok. The module, package browserjs.policy: the source.
+          description: Present when ok. The module, package computeruse.policy: the source.
         hash:
           type: string
           description: Present when ok. "sha256:" and the hex SHA-256 of `rego`.

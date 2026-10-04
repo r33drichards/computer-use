@@ -8,7 +8,7 @@ metadata:
 ---
 # Pomerium's and Dex's ConfigMaps and every Secret are in this namespace
 # too. The operator reads none of them: its rights name the policy resource,
-# events, and the EndpointSlices it finds OPA's replicas with.
+# events, session pod identities, and OPA EndpointSlices.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -20,6 +20,9 @@ rules:
   - apiGroups: ["browserjs.dev"]
     resources: ["sessionpolicies/status"]
     verbs: ["get", "patch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["create"]
@@ -105,6 +108,13 @@ spec:
             - -m
             - policy_operator
           env:
+            - name: WEBHOOK_REDIS_URL
+              value: redis://webhook-redis:6379/0
+            - name: WEBHOOK_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: policy-tokens
+                  key: operator-api-token
             # kopf asks who it runs as, and uid 65532 has no entry in the
             # image's /etc/passwd: without a name here it exits at start
             # (KeyError: getpwuid(): uid not found).

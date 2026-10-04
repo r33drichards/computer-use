@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/yaml"
@@ -35,11 +36,14 @@ var (
 )
 
 type Store struct {
-	client    dynamic.ResourceInterface
-	blueprint *template.Template
-	publicURL string
-	urls      *URLTemplate
-	snap      *snapshotter // nil: no Pod Snapshots (see EnableSnapshots)
+	client        dynamic.ResourceInterface
+	pvcs          dynamic.ResourceInterface
+	capacityLease dynamic.ResourceInterface
+	warmCapacity  bool
+	blueprint     *template.Template
+	publicURL     string
+	urls          *URLTemplate
+	snap          *snapshotter // nil: no Pod Snapshots (see EnableSnapshots)
 
 	// See sizes.go. small is the blueprint's own Sandbox spec; sizes is
 	// never nil, and holds small alone until EnableSizes.
@@ -68,11 +72,13 @@ func NewStore(client dynamic.Interface, namespace, blueprint, publicURL string, 
 		return nil, fmt.Errorf("blueprint: %w", err)
 	}
 	s := &Store{
-		client:    client.Resource(SandboxGVR).Namespace(namespace),
-		claims:    client.Resource(ClaimGVR).Namespace(namespace),
-		blueprint: tmpl,
-		publicURL: publicURL,
-		urls:      urls,
+		client:        client.Resource(SandboxGVR).Namespace(namespace),
+		pvcs:          client.Resource(schema.GroupVersionResource{Version: "v1", Resource: "persistentvolumeclaims"}).Namespace(namespace),
+		capacityLease: client.Resource(schema.GroupVersionResource{Group: "coordination.k8s.io", Version: "v1", Resource: "leases"}).Namespace(namespace),
+		claims:        client.Resource(ClaimGVR).Namespace(namespace),
+		blueprint:     tmpl,
+		publicURL:     publicURL,
+		urls:          urls,
 	}
 	// What small is: the blueprint's resources do not depend on the session.
 	// A blueprint that does not render is reported when a session is made.
@@ -166,7 +172,11 @@ func (s *Store) CreateSized(ctx context.Context, name, owner, size string, asked
 			return Session{}, err
 		}
 	}
-	if s.warmPool != "" && canary == nil && size == DefaultSize {
+	diskGB, _ := ctx.Value(diskContextKey{}).(int)
+	if diskGB < 0 {
+		return Session{}, ErrInvalidDisk
+	}
+	if s.warmPool != "" && canary == nil && size == DefaultSize && (diskGB == 0 || diskGB == diskGBOf(s.small)) {
 		warm, err := s.createWarm(ctx, name, owner, policy)
 		if err == nil {
 			return warm, nil
@@ -179,6 +189,11 @@ func (s *Store) CreateSized(ctx context.Context, name, owner, size string, asked
 	if err != nil {
 		return Session{}, err
 	}
+	if diskGB > 0 {
+		if err := setDiskGB(spec, diskGB); err != nil {
+			return Session{}, err
+		}
+	}
 	annotations := map[string]any{AnnName: name, AnnOwner: owner}
 	if size != DefaultSize {
 		if err := s.sizes.apply(spec, size); err != nil {
@@ -186,6 +201,11 @@ func (s *Store) CreateSized(ctx context.Context, name, owner, size string, asked
 		}
 		annotations[AnnSize] = size
 	}
+	release, err := s.prepareCapacity(ctx, size, spec, "")
+	if err != nil {
+		return Session{}, err
+	}
+	defer release()
 	if err := s.room(ctx, size, spec, ""); err != nil {
 		return Session{}, err
 	}
@@ -223,6 +243,9 @@ func (s *Store) CreateSized(ctx context.Context, name, owner, size string, asked
 	}}
 	created, err := s.client.Create(ctx, obj, metav1.CreateOptions{})
 	if err != nil {
+		if apierrors.IsForbidden(err) && strings.Contains(err.Error(), "exceeded quota") {
+			return Session{}, &NoCapacityError{Size: size}
+		}
 		return Session{}, err
 	}
 	if policy != nil {
@@ -313,6 +336,11 @@ func (s *Store) Update(ctx context.Context, id string, name *string, action stri
 		return nil
 	}
 	if action == ActionResume {
+		release, err := s.prepareStart(ctx, id)
+		if err != nil {
+			return err
+		}
+		defer release()
 		// A resize that was waiting for this start, and room to start in.
 		if _, err := s.start(ctx, id); err != nil {
 			return err
@@ -415,8 +443,13 @@ func (s *Store) Resume(ctx context.Context, id string) error {
 // on what was read, so one of them resumes the session and the others, on
 // reading again, find it awake and do nothing.
 func (s *Store) Wake(ctx context.Context, id string) error {
+	release, err := s.prepareStart(ctx, id)
+	if err != nil {
+		return err
+	}
+	defer release()
 	resized := false
-	err := s.modify(ctx, id, func(obj *unstructured.Unstructured) (bool, error) {
+	err = s.modify(ctx, id, func(obj *unstructured.Unstructured) (bool, error) {
 		resized = false
 		if operatingMode(obj) != "Suspended" {
 			return false, nil

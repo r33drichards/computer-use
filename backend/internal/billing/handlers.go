@@ -261,7 +261,11 @@ func (h *Handlers) viewOf(ctx context.Context, st standing) (BillingView, error)
 		if s.State == sessions.Running {
 			v.BurnMicrosPerHour += cat.AwakeRate(s.Size)
 		}
-		v.BurnMicrosPerHour += int64(cat.SessionDiskGB) * cat.Rates.DiskMicrosPerGBHour
+		diskGB := s.DiskGB
+		if diskGB == 0 {
+			diskGB = cat.SessionDiskGB
+		}
+		v.BurnMicrosPerHour += int64(diskGB) * cat.Rates.DiskMicrosPerGBHour
 	}
 
 	v.Plan = PlanView{Key: PlanPayg, Name: cat.Payg.Name}

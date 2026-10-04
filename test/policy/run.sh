@@ -71,7 +71,7 @@ build_bundle() {
   printf '{"roots": ["browserjs"]}\n' >"$dir/.manifest"
   for pair in "$@"; do
     id="${pair%%=*}" example="$contracts/examples/${pair#*=}.rego"
-    sed "s/^package browserjs\\.policy\$/package browserjs.tenant[\"$id\"]/" "$example" >"$dir/tenant/$id.rego"
+    sed "s/^package computeruse\\.policy\$/package browserjs.tenant[\"$id\"]/" "$example" >"$dir/tenant/$id.rego"
     sed "s/{{SESSION_ID}}/$id/g" "$contracts/decision-module.rego.tmpl" >"$dir/decision/$id.rego"
     loaded="$(jq -c --arg id "$id" --arg hash "sha256:$(sha256 <"$example")" '.[$id] = $hash' <<<"$loaded")"
   done
@@ -129,6 +129,7 @@ k create secret generic policy-tokens --dry-run=client -o yaml \
   --from-literal=operator-api-token="$(head -c 32 /dev/urandom | base64 | tr '+/' '-_' | tr -d '=\n')" |
   kubectl apply -f - >/dev/null
 kubectl apply -k test/policy >/dev/null || { echo "apply failed"; exit 1; }
+k rollout status statefulset/webhook-redis --timeout=180s
 kubectl wait --for=condition=Established crd/sessionpolicies.browserjs.dev crd/apitokens.browserjs.dev --timeout=60s >/dev/null
 # The stub operator is not ready until it has a bundle to serve: running is enough.
 k wait --for=jsonpath='{.status.phase}'=Running pod -l app=policy-operator --timeout=180s >/dev/null ||
@@ -211,7 +212,7 @@ done
 # --- 1. the CRDs and their rules -----------------------------------------------
 step "1. CRDs"
 policy() { # name, sessionRef, extra spec lines
-  printf 'apiVersion: browserjs.dev/v1alpha1\nkind: SessionPolicy\nmetadata:\n  name: %s\nspec:\n  sessionRef:\n    name: %s\n  kind: rego\n  source: "package browserjs.policy"\n%s' "$1" "$2" "${3:-}"
+  printf 'apiVersion: browserjs.dev/v1alpha1\nkind: SessionPolicy\nmetadata:\n  name: %s\nspec:\n  sessionRef:\n    name: %s\n  kind: rego\n  source: "package computeruse.policy"\n%s' "$1" "$2" "${3:-}"
 }
 # refused <description> <text the message must contain>; the manifest on stdin
 refused() {
@@ -238,7 +239,7 @@ policy s-cel01 s-cel01 | k apply -f - >/dev/null
 is "management defaults to the editor" editor "$(k get sessionpolicy s-cel01 -o jsonpath='{.spec.management.mode}')"
 out="$(k patch sessionpolicy s-cel01 --type=merge -p '{"spec":{"sessionRef":{"name":"s-cel02"}}}' 2>&1)"
 ok "a changed sessionRef is refused" "$(grep -F "sessionRef is immutable" <<<"$out")" "$out"
-if k patch sessionpolicy s-cel01 --type=merge -p '{"spec":{"source":"package browserjs.policy\n"}}' >/dev/null 2>&1; then
+if k patch sessionpolicy s-cel01 --type=merge -p '{"spec":{"source":"package computeruse.policy\n"}}' >/dev/null 2>&1; then
   pass "the source of a SessionPolicy can be changed"
 else fail "the source of a SessionPolicy can be changed"; fi
 k delete sessionpolicy s-cel01 >/dev/null
@@ -324,7 +325,7 @@ def ask(method, path, body=None):
     r = urllib.request.Request("http://opa.browserjs-sessions.svc:8181" + path, data=body, method=method)
     try: return urllib.request.urlopen(r, timeout=5).status
     except urllib.error.HTTPError as e: return e.code
-i = json.dumps({"input": {"server": "browser", "tool": "browser_execute", "arguments": {"operations": []}}}).encode()
+i = json.dumps({"input": {"operation": "mcp_call_tool", "server": "browser", "tool": "browser_execute", "arguments": {"operations": []}}}).encode()
 print(ask("POST", "/v1/data/browserjs/decision/s-pol01/mcp_tools", i),
       ask("POST", "/v1/data/browserjs/decision/s-pol01/mcp_tools?explain=full", i),
       ask("GET", "/v1/policies"), ask("GET", "/v1/data/browserjs/loaded"), ask("GET", "/v1/data"),
@@ -341,19 +342,20 @@ operator_ip="$(k get pods -l app=policy-operator -o jsonpath='{.items[0].status.
 backend_ip="$(k get pods -l app=backend -o jsonpath='{.items[0].status.podIP}')"
 other_ip="$(k get pod "$WITHOUT" -o jsonpath='{.status.podIP}')"
 targets=("opa.$NS.svc:8181" "$opa_ip:8181" "policy-operator.$NS.svc:8080" "$operator_ip:8080" "backend.$NS.svc:80" "$backend_ip:8080"
-  "$other_ip:8080" kubernetes.default.svc:443 1.1.1.1:443)
+  "$other_ip:8080" "webhook-redis.$NS.svc:6379" kubernetes.default.svc:443 1.1.1.1:443)
 note "" && note "### Reachability" && note "" && note "| From | To | Result |" && note "|---|---|---|"
 
 out="$(k exec "$WITH" -c browser -- python3 -c "$PROBE" "${targets[@]}" 2>&1)"
 expect "a session pod" "$out" "opa.$NS.svc:8181" open
 expect "a session pod" "$out" "$opa_ip:8181" open
-expect "a session pod" "$out" "policy-operator.$NS.svc:8080" closed
-expect "a session pod" "$out" "$operator_ip:8080" closed
+expect "a session pod" "$out" "policy-operator.$NS.svc:8080" open
+expect "a session pod" "$out" "$operator_ip:8080" open
 expect "a session pod" "$out" "backend.$NS.svc:80" closed
 expect "a session pod" "$out" "$backend_ip:8080" closed
 expect "a session pod" "$out" "$other_ip:8080" closed
 expect "a session pod" "$out" "kubernetes.default.svc:443" closed
 expect "a session pod" "$out" "1.1.1.1:443" open
+expect "a session pod" "$out" "webhook-redis.$NS.svc:6379" closed
 
 # The OPA image has no shell: an ephemeral container in its pod, which shares
 # the pod's network and so its NetworkPolicy.
@@ -374,6 +376,7 @@ expect "OPA" "$out" "1.1.1.1:443" closed
 
 out="$(k exec deploy/policy-operator -- python3 -c "$PROBE" "${targets[@]}" 2>&1)"
 expect "the operator" "$out" "$opa_ip:8181" open
+expect "the operator" "$out" "webhook-redis.$NS.svc:6379" open
 expect "the operator" "$out" "kubernetes.default.svc:443" open
 expect "the operator" "$out" "backend.$NS.svc:80" closed
 expect "the operator" "$out" "$other_ip:8080" closed
@@ -459,7 +462,7 @@ is "no call fails while OPA pods are deleted and replaced, $replacements times (
 if [ "$(outcome "$got")" != ran ]; then
   # When, against the deletions, and what the agent's code and mcp-js saw.
   echo "      calls that did not run (at, seconds, seen):"
-  jq -rs '.[] | select(.outcome != "ran") | "      \(.at) \(.seconds)s \(.outcome): \(.seen | .[0:200])"' <<<"$got"
+  jq -rs '.[] | select(.outcome != "ran") | "      \(.at) \(.seconds)s \(.outcome): \(.seen)"' <<<"$got"
   echo "      the prober (a lookup and a new connection every 50 ms): what it logged (at, what):"
   sed 's/^/      /' "$work/probe.log" | head -60
   echo "      timeline:"
@@ -487,7 +490,7 @@ for _ in $(seq 1 50); do
 done
 ok "calls are allowed again when OPA is back" "$recovered"
 
-# OPA there but not answering: its NetworkPolicy without the sessions' rule,
+# OPA there but not answering: its NetworkPolicy without the gateway rule,
 # which drops the packets. Recorded, not asserted on its length: connections
 # mcp-js already holds may outlive the change.
 k patch networkpolicy opa --type=json -p '[{"op":"remove","path":"/spec/ingress/0/from/0"}]' >/dev/null
@@ -548,7 +551,7 @@ if [ -n "${OPERATOR_IMAGE:-}" ]; then
   fi
   status="$(k get sessionpolicy "$WITH" -o json | jq -c '.status // {}')"
   is "it is loaded by both replicas" "2 of 2" "$(jq -r '"\(.loaded.replicas) of \(.loaded.total)"' <<<"$status")"
-  ok "its status has the hash and the Rego" "$(jq -r 'select((.hash // "") | startswith("sha256:")) | select((.rego // "") | contains("package browserjs.policy")) | "yes"' <<<"$status")" "$status"
+  ok "its status has the hash and the Rego" "$(jq -r 'select((.hash // "") | startswith("sha256:")) | select((.rego // "") | contains("package computeruse.policy")) | "yes"' <<<"$status")" "$status"
   is "an allowed call runs" ran "$(outcome "$(call $P_WITH url)")"
   is "a denied call does not" denied "$(outcome "$(call $P_WITH evaluate)")"
   is "the session without a SessionPolicy is denied" denied "$(outcome "$(call $P_WITHOUT url)")"
@@ -577,7 +580,7 @@ if [ -n "${OPERATOR_IMAGE:-}" ]; then
   # mcp-js. The same rule: its own file policy allows it, the session's
   # decides, and a policy that does not name it denies it.
   is "under no-scripting, which does not name the exec server, a command is denied" denied "$(outcome "$(SERVER="exec" call $P_WITH 'git status')")"
-  rego='package browserjs.policy\n\nimport rego.v1\n\nallow_tool_call if {\n\tinput.server == \"exec\"\n\tinput.tool == \"exec\"\n\tinput.arguments.bin == \"git\"\n\tinput.arguments.args[0] in {\"status\", \"log\"}\n}\n'
+  rego='package computeruse.policy\n\nimport rego.v1\n\nallow_tool_call if {\n\tinput.server == \"exec\"\n\tinput.tool == \"exec\"\n\tinput.arguments.bin == \"git\"\n\tinput.arguments.args[0] in {\"status\", \"log\"}\n}\n'
   k patch sessionpolicy "$WITH" --type=merge -p "{\"spec\":{\"kind\":\"rego\",\"source\":\"$rego\"}}" >/dev/null
   command=""
   for _ in $(seq 1 60); do

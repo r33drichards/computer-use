@@ -338,7 +338,7 @@ cannot reach:
 - **mcp-js's own files stay out of reach.** `/data/memory` and `/data/mcp`
   are mounted in the other container only.
 - **It can break its own session:** kill Xvnc or the entrypoint (the
-  container restarts), fill the 5Gi disk, use the memory up to the limit.
+  container restarts), fill the 32Gi disk, use the memory up to the limit.
 
 ## Snapshot and restore
 
@@ -439,3 +439,27 @@ The image-selection filter retains its existing merge checkout/full-history
 comparison; main publishing/deployment conditions and checkouts are unchanged.
 These receipts identify tested source, not approval, production parity or
 registry digest verification. Fresh real image/canary gates remain required.
+
+### Observed root-context/source divergence
+
+The associated mcp-js receipt11313198215 from run37229386833 bound
+head1567068/tree4421fae, jobbuild and successful self-tests, but actual
+context was repository root with images/mcp-js/Dockerfile. That head still
+used legacy COPY start.sh. Its committed script existed in images/mcp-js,
+not at root: this was definition/source layout mismatch, not absent Git data.
+Public run metadata named base57b14ed; current synthetic mergebe018d0
+(parenta7c0c07 plus1567068) showed the newer root unified-MCP definition.
+It is corroborating source evidence, not a claim that be018 was the exact
+historical workflow commit. Main had advanced; this branch integrates the
+actually fetched/pinned ce1b2d071bd8f56ca5758e20ddb5838e407dab53 normally.
+Its unified image, root-prefixed COPY and Dockerfile-specific ignore policy
+are retained, not replaced with the old context to hide the failure.
+
+Image matrix data now lives in .github/image-build-matrix.json and is read
+from the same immutable source checkout as the build; the changes job also
+checks out that source, rather than combining merge-defined inline matrix
+data with an old head Dockerfile. The receipt binds definition hash/source
+and checks declared COPY input against both supported root/subdirectory
+layouts, rejecting mixed layouts even if the committed script exists.
+Fresh actual image/canary results and independent integration review remain
+required; no production/GKE/gVisor/digest acceptance is implied.

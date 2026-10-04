@@ -133,16 +133,20 @@ to run code. See the [SDK reference](/reference/sdk) for every call.
 
 ::: warning Coming, not yet published
 The provider works with the live API but is in no registry yet. Until it is,
-build it from `terraform-provider-browserjs/` in the repository.
+build it from `terraform-provider-computeruse/` in the repository.
 :::
 
 ```hcl
-resource "browserjs_session" "research" {
+resource "session" "research" {
+  provider = computeruse
+
   name = "research"
 }
 
-resource "browserjs_session_policy" "research" {
-  session_id  = browserjs_session.research.id
+resource "session_policy" "research" {
+  provider = computeruse
+
+  session_id  = session.research.id
   managed_url = "https://github.com/example/infra/tree/main/desktops"
   rego        = file("${path.module}/no-scripting.rego")
 }
@@ -151,7 +155,7 @@ resource "browserjs_session_policy" "research" {
 Keep `no-scripting.rego` beside the Terraform configuration. For example:
 
 ```txt
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

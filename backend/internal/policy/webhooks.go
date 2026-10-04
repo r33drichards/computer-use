@@ -1,0 +1,184 @@
+package policy
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
+
+	"github.com/r33drichards/computer-use/backend/internal/auth"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
+)
+
+// Webhook settings live alongside a session's policy but do not change
+// enforcement. Secrets are never returned by reads.
+func (h *Handlers) GetWebhook(w http.ResponseWriter, r *http.Request, id string) {
+	if _, ok := caller(w, r, auth.ScopeSessionsRead, id); !ok || !h.capable(w, r, id) {
+		return
+	}
+	obj, err := h.policies.Get(r.Context(), id, metav1.GetOptions{})
+	if err != nil {
+		clusterError(w, err)
+		return
+	}
+	doc, found, _ := unstructured.NestedMap(obj.Object, "spec", "webhook")
+	if !found {
+		writeJSON(w, http.StatusOK, nil)
+		return
+	}
+	secret, _ := doc["signing_secret"].(string)
+	delete(doc, "signing_secret")
+	doc["has_signing_secret"] = secret != ""
+	writeJSON(w, http.StatusOK, doc)
+}
+
+func (h *Handlers) PutWebhook(w http.ResponseWriter, r *http.Request, id string) {
+	if _, ok := caller(w, r, auth.ScopeSessionsWrite, id); !ok {
+		return
+	}
+	if !h.capable(w, r, id) {
+		return
+	}
+	s, err := h.store.Get(r.Context(), id)
+	if err != nil {
+		clusterError(w, err)
+		return
+	}
+	if !s.WebhookCapable {
+		writeError(w, http.StatusConflict, "recreate this session to enable tool-call webhooks; this session was created before webhook capture was installed")
+		return
+	}
+	var doc map[string]any
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, MaxBody))
+	if err := dec.Decode(&doc); err != nil || doc == nil {
+		writeError(w, http.StatusBadRequest, "the body must be a webhook object")
+		return
+	}
+	var extra any
+	if err := dec.Decode(&extra); err != io.EOF {
+		writeError(w, http.StatusBadRequest, "the body must contain one webhook object")
+		return
+	}
+	obj, err := h.policies.Get(r.Context(), id, metav1.GetOptions{})
+	if err != nil {
+		clusterError(w, err)
+		return
+	}
+	// PUT replaces all ordinary settings; only the secret supports omission.
+	for key, value := range map[string]any{"filter": "", "batch_size": 100, "flush_interval_seconds": 5} {
+		if _, given := doc[key]; !given {
+			doc[key] = value
+		}
+	}
+	_, secretGiven := doc["signing_secret"]
+	// Omission preserves the current secret; an explicit empty string clears it.
+	if _, given := doc["signing_secret"]; !given {
+		secret, _, _ := unstructured.NestedString(obj.Object, "spec", "webhook", "signing_secret")
+		if secret != "" {
+			doc["signing_secret"] = secret
+		}
+	}
+	body, _ := json.Marshal(doc)
+	answer, err := h.operator.do(r.Context(), http.MethodPost, "/v1/webhooks/validate", body)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "webhooks cannot be validated right now")
+		return
+	}
+	if answer.status >= 500 {
+		writeError(w, http.StatusServiceUnavailable, "webhooks cannot be validated right now")
+		return
+	}
+	if answer.status != http.StatusOK {
+		writeError(w, http.StatusBadRequest, "invalid webhook settings: use a public HTTPS URL on port 443, batch size 1–500 and interval 1–60 seconds")
+		return
+	}
+	var v Validation
+	if err := json.Unmarshal(answer.body, &v); err != nil {
+		writeError(w, http.StatusServiceUnavailable, "invalid validation response")
+		return
+	}
+	if !v.OK {
+		message := "the webhook filter does not validate"
+		if len(v.Errors) > 0 {
+			message += ": " + v.Errors[0].Message
+		}
+		writeJSON(w, http.StatusUnprocessableEntity, Error{Error: message, Errors: v.Errors})
+		return
+	}
+	// Retry status reconciliation conflicts without restoring a stale secret.
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latest, err := h.policies.Get(r.Context(), id, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if !secretGiven {
+			delete(doc, "signing_secret")
+			secret, _, _ := unstructured.NestedString(latest.Object, "spec", "webhook", "signing_secret")
+			if secret != "" {
+				doc["signing_secret"] = secret
+			}
+		}
+		patch, _ := json.Marshal(map[string]any{"metadata": map[string]any{"resourceVersion": latest.GetResourceVersion()}, "spec": map[string]any{"webhook": doc}})
+		_, err = h.policies.Patch(r.Context(), id, types.MergePatchType, patch, metav1.PatchOptions{})
+		return err
+	})
+	if err != nil {
+		clusterError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handlers) DeleteWebhook(w http.ResponseWriter, r *http.Request, id string) {
+	if _, ok := caller(w, r, auth.ScopeSessionsWrite, id); !ok {
+		return
+	}
+	if !h.capable(w, r, id) {
+		return
+	}
+	if _, err := h.policies.Patch(r.Context(), id, types.MergePatchType, []byte(`{"spec":{"webhook":null}}`), metav1.PatchOptions{}); err != nil {
+		clusterError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// RecordToolEvents returns only after durable acceptance, or refuses execution.
+func (h *Handlers) RecordToolEvents(ctx context.Context, events []map[string]any) error {
+	if len(events) == 0 {
+		return nil
+	}
+	sid, _ := events[0]["session_id"].(string)
+	obj, err := h.policies.Get(ctx, sid, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	// Unconfigured sessions do not depend on the export store.
+	webhook, found, _ := unstructured.NestedMap(obj.Object, "spec", "webhook")
+	if !found {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	body, err := json.Marshal(map[string]any{"events": events, "webhook": webhook})
+	if err != nil {
+		return err
+	}
+	a, err := h.operator.do(ctx, http.MethodPost, "/v1/tool-events", body)
+	if err != nil {
+		return err
+	}
+	if a.status != http.StatusNoContent {
+		return fmt.Errorf("durable tool event ingestion returned %d", a.status)
+	}
+	return nil
+}

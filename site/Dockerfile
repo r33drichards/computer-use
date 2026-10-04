@@ -5,7 +5,11 @@ WORKDIR /site
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . ./
-RUN npm run build
+# Preview builds keep all app links and canonical URLs within the PR.
+ARG VITEPRESS_SITE_ORIGIN
+ARG VITEPRESS_APP_URL
+ARG VITEPRESS_PREVIEW=false
+RUN VITEPRESS_SITE_ORIGIN="$VITEPRESS_SITE_ORIGIN" VITEPRESS_APP_URL="$VITEPRESS_APP_URL" VITEPRESS_PREVIEW="$VITEPRESS_PREVIEW" npm run build
 
 # nginxinc/nginx-unprivileged:1.29-alpine: runs as uid 101, listens on 8080,
 # and writes only under /tmp (mount one there for a read-only root).

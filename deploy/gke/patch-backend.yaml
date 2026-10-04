@@ -27,13 +27,13 @@ spec:
               value: rwendt1337@gmail.com
             # The API host (the "api" route of pomerium-config.yaml). Naming
             # it makes it the API's alone: nothing of the app is served
-            # there. ALLOWED_EMAILS (below) must list the addresses of
-            # the policy in pomerium-config.yaml (docs/api-tokens.md).
+            # there. ALLOWED_EMAILS="*" matches the open sign-in policy
+            # in pomerium-config.yaml (docs/api-tokens.md).
             - name: API_URL
               value: https://api.computeruse.site
-            # API tokens are on: the addresses of the policy in pomerium-config.yaml.
+            # API tokens are on for all signed-in users.
             - name: ALLOWED_EMAILS
-              value: rwendt1337@gmail.com,browserjs06@gmail.com
+              value: "*"
             # An idle session sleeps to a Pod Snapshot and wakes from it
             # (snapshots.yaml). "false" is today's behaviour: every wake is a
             # cold start, with Chromium restoring its tabs from disk.
@@ -51,7 +51,19 @@ spec:
               value: 2m
             - name: READY_TIMEOUT
               value: 5m
-            # New sessions are taken from the SandboxWarmPool "s"
-            # (warmpool.yaml). Remove this to start every session cold.
+            # Claim a warm session; the DaemonSet replenishes available compute.
+            - name: WARM_CAPACITY
+              value: "true"
+            - name: FEATURE_FLAGS_PATH
+              value: /etc/browserjs-flags/flags.json
             - name: WARM_POOL
               value: s
+
+          volumeMounts:
+            - name: feature-flags
+              mountPath: /etc/browserjs-flags
+              readOnly: true
+      volumes:
+        - name: feature-flags
+          configMap:
+            name: feature-flags

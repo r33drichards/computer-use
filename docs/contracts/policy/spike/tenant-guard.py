@@ -5,7 +5,7 @@ def guard(src):
     if p.returncode: return ["parse error"]
     ast = json.loads(p.stdout); errs = []
     path = [t["value"] for t in ast["package"]["path"]]
-    if path != ["data", "browserjs", "policy"]: errs.append("package must be browserjs.policy")
+    if path != ["data", "computeruse", "policy"]: errs.append("package must be computeruse.policy")
     for imp in ast.get("imports", []):
         v = imp["path"]["value"]; head = v[0]["value"]
         if head not in ("rego", "future", "input"): errs.append(f"import of {head} not allowed")
@@ -18,12 +18,12 @@ def guard(src):
             for v in n: walk(v)
     walk(ast.get("rules", [])); walk(ast.get("imports", []))
     return sorted(set(errs))
-H = "package browserjs.policy\nimport rego.v1\n"
+H = "package computeruse.policy\nimport rego.v1\n"
 cases = {
  "ok": H + 'allow_tool_call if { helper(input.tool) }\nhelper(t) if t == "browser_execute"\n',
  "data ref": H + 'allow_tool_call if data.browserjs.tenant["s-other"].allow_tool_call\n',
  "data alias": H + 'allow_tool_call if { d := data; d.browserjs }\n',
- "import data": "package browserjs.policy\nimport rego.v1\nimport data.browserjs.tenant as t\nallow_tool_call if t\n",
+ "import data": "package computeruse.policy\nimport rego.v1\nimport data.browserjs.tenant as t\nallow_tool_call if t\n",
  "with": H + 'allow_tool_call if { helper with input as {"tool": "x"} }\nhelper if input.tool == "x"\n',
  "with data": H + 'allow_tool_call if { helper with data.x as 1 }\nhelper := true\n',
  "wrong package": 'package browserjs.decision["s-other"].mcp_tools\nimport rego.v1\nallow := true\n',

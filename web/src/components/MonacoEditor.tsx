@@ -2,6 +2,7 @@
 // is fetched only by the pages that edit a policy.
 import { useEffect, useRef } from "react"
 import type { Marker } from "../policy/markers"
+import { isDarkTheme } from "../theme"
 import { THEME, setupMonaco } from "../policy/monaco"
 import { REGO_LANGUAGE_ID } from "../policy/rego"
 
@@ -31,7 +32,7 @@ export default function MonacoEditor(props: MonacoEditorProps) {
     const model = monaco.editor.createModel(callbacks.current.value, REGO_LANGUAGE_ID, uri)
     const editor = monaco.editor.create(host.current!, {
       model,
-      theme: THEME,
+      theme: isDarkTheme() ? "wireframe-dark" : THEME,
       ariaLabel: callbacks.current.ariaLabel,
       automaticLayout: true,
       minimap: { enabled: false },
@@ -48,12 +49,15 @@ export default function MonacoEditor(props: MonacoEditorProps) {
       accessibilitySupport: "auto",
     })
     editorRef.current = editor
+    const updateTheme = () => monaco.editor.setTheme(isDarkTheme() ? "wireframe-dark" : THEME)
+    window.addEventListener("themechange", updateTheme)
 
     const subscriptions = [
       model.onDidChangeContent(() => callbacks.current.onChange(model.getValue())),
       editor.onDidChangeCursorPosition(e => callbacks.current.onCursor?.(e.position.lineNumber, e.position.column)),
     ]
     return () => {
+      window.removeEventListener("themechange", updateTheme)
       subscriptions.forEach(s => s.dispose())
       editor.dispose()
       model.dispose()

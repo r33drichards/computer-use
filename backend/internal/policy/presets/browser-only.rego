@@ -1,5 +1,5 @@
 # The browser, with every operation. No desktop control and no shell.
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

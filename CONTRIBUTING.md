@@ -16,7 +16,7 @@ installing. The whole system on a local kind cluster:
 |---|---|
 | `backend/` | `go vet ./... && go test ./...` |
 | `web/` | `npm ci && npm test && npm run build` |
-| `terraform-provider-browserjs/` | `go test ./...` (see its README for the acceptance tests) |
+| `terraform-provider-computeruse/` | `go test ./...` (see its README for the acceptance tests) |
 | `images/policy-operator/`, `images/billing-operator/` | `pytest` (each directory's `flake.nix` has the environment) |
 | `infra/` | `tofu fmt -check -recursive && (cd main && tofu init -backend=false && tofu validate && tofu test)` |
 | `site/` | `npm ci && npm run build` |
