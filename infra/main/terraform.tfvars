@@ -87,3 +87,6 @@ session_disk_size_gb = 50
 # change it. Not a default, so that a copy of this configuration cannot be
 # applied still trusting this repository.
 github_repository_id = "1400826306"
+
+# Isolated, real-session PR environments (docs/preview-environments.md).
+enable_previews = true
