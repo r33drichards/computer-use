@@ -58,6 +58,11 @@ jobs:
           printf '[Service]\nDelegate=yes\n' | sudo tee /etc/systemd/system/nix-daemon.service.d/delegate.conf
           sudo systemctl daemon-reload
           sudo systemctl restart nix-daemon.service
+          nix store ping --store daemon
+          nix_cgroup=$(systemctl show nix-daemon.service -p ControlGroup --value)
+          # Nix 2.35 moves its daemon into a leaf, but does not yet enable
+          # controllers in the empty parent used for build cgroups.
+          printf '+cpu +cpuset +io +memory +pids' | sudo tee "/sys/fs/cgroup$nix_cgroup/cgroup.subtree_control"
           systemctl show nix-daemon.service -p Delegate -p ControlGroup
           cat /sys/fs/cgroup/cgroup.controllers
       - name: Load kernel modules for nested k3s networking
