@@ -540,7 +540,37 @@ data:
     \ true\n- name: site\n  from: https://computeruse.site\n  to: http://site\n  allow_public_unauthenticated_access:\
     \ true\n  pass_identity_headers: false\n- name: www\n  from: https://www.computeruse.site\n\
     \  redirect:\n    host_redirect: computeruse.site\n    https_redirect: true\n\
-    \    response_code: 301\n  allow_public_unauthenticated_access: true\n"
+    \    response_code: 301\n  allow_public_unauthenticated_access: true\n- name:\
+    \ preview-161-upload\n  from: https://sessions-pr-161.preview.computeruse.site\n\
+    \  to: http://backend.preview-pr-161.svc\n  preserve_host_header: true\n  set_response_headers:\
+    \ &id002\n    X-Robots-Tag: noindex, nofollow\n  regex: ^/s-[a-z0-9]+/api/artifact-uploads/[0-9a-f]+$\n\
+    \  allow_public_unauthenticated_access: true\n  timeout: 5m\n- name: preview-161-vnc\n\
+    \  from: https://sessions-pr-161.preview.computeruse.site\n  to: http://backend.preview-pr-161.svc\n\
+    \  preserve_host_header: true\n  set_response_headers: *id002\n  regex: ^/s-[a-z0-9]+/vnc$\n\
+    \  allow_public_unauthenticated_access: true\n  allow_websockets: true\n- name:\
+    \ preview-161-mcp\n  from: https://sessions-pr-161.preview.computeruse.site\n\
+    \  to: http://backend.preview-pr-161.svc\n  preserve_host_header: true\n  set_response_headers:\
+    \ *id002\n  regex: ^/s-[a-z0-9]+/mcp(/.*)?$\n  policy:\n  - allow:\n      or:\n\
+    \      - email:\n          is: rwendt1337@gmail.com\n      - email:\n        \
+    \  is: browserjs06@gmail.com\n  pass_identity_headers: true\n  mcp:\n    server:\n\
+    \      max_request_bytes: 1048576\n- name: preview-161-app\n  from: https://app-pr-161.preview.computeruse.site\n\
+    \  to: http://backend.preview-pr-161.svc\n  preserve_host_header: true\n  set_response_headers:\
+    \ *id002\n  policy:\n  - allow:\n      or:\n      - email:\n          is: rwendt1337@gmail.com\n\
+    \      - email:\n          is: browserjs06@gmail.com\n  pass_identity_headers:\
+    \ true\n  timeout: 5m\n- name: preview-161-api\n  from: https://api-pr-161.preview.computeruse.site\n\
+    \  to: http://backend.preview-pr-161.svc\n  preserve_host_header: true\n  set_response_headers:\
+    \ *id002\n  prefix: /v1/\n  allow_public_unauthenticated_access: true\n- name:\
+    \ preview-161-token\n  from: https://api-pr-161.preview.computeruse.site\n  to:\
+    \ http://backend.preview-pr-161.svc\n  preserve_host_header: true\n  set_response_headers:\
+    \ *id002\n  path: /oauth/token\n  allow_public_unauthenticated_access: true\n\
+    - name: preview-161-api-mcp\n  from: https://api-pr-161.preview.computeruse.site\n\
+    \  to: http://backend.preview-pr-161.svc\n  preserve_host_header: true\n  set_response_headers:\
+    \ *id002\n  regex: ^/s-[a-z0-9]+/mcp(/.*)?$\n  allow_public_unauthenticated_access:\
+    \ true\n  timeout: 0s\n  idle_timeout: 0s\n- name: preview-161-site\n  from: https://site-pr-161.preview.computeruse.site\n\
+    \  to: http://site.preview-pr-161.svc\n  policy:\n  - allow:\n      or:\n    \
+    \  - email:\n          is: rwendt1337@gmail.com\n      - email:\n          is:\
+    \ browserjs06@gmail.com\n  pass_identity_headers: false\n  set_response_headers:\n\
+    \    X-Robots-Tag: noindex, nofollow\n"
 kind: ConfigMap
 metadata:
   name: pomerium-config-hk757f4bf4
