@@ -88,7 +88,10 @@ The **preview build** workflow runs when the `preview` label is added and
 on subsequent commits, reopening, or making a labelled PR ready for review.
 Its artifacts contain Docker images; the trusted **preview deploy** workflow
 verifies the source repository, workflow, PR label and current head SHA
-before publishing or applying anything. Stale and superseded runs do not
+before publishing or applying anything. Its manual dispatch accepts a successful
+preview build run ID, reusing that run's artifacts for deployment recovery or
+initial activation. The same ownership, workflow, label and exact-head checks
+apply to retries. Stale and superseded runs do not
 replace a newer preview. The app and docs URLs appear in a PR comment and
 GitHub deployment record, naming the exact previewed commit.
 
