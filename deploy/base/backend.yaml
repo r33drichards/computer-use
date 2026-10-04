@@ -32,6 +32,10 @@ rules:
   - apiGroups: ["browserjs.dev"]
     resources: ["apitokens/status"]
     verbs: ["patch"]
+  # GitHub connections contain encrypted token pairs; no Secret read access.
+  - apiGroups: ["browserjs.dev"]
+    resources: ["githubconnections"]
+    verbs: ["get", "create", "update", "delete"]
   # Billing (docs/contracts/billing/deploy.md). Accounts are the backend's
   # and nobody else's; usage and credit are in Metronome. No watch: there is
   # no informer, every decision reads the Account.
@@ -104,6 +108,18 @@ spec:
         - name: backend
           image: browserjs/backend
           env:
+            - name: GITHUB_CLIENT_ID
+              valueFrom:
+                secretKeyRef: {name: github-app, key: client-id, optional: true}
+            - name: GITHUB_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: {name: github-app, key: client-secret, optional: true}
+            - name: GITHUB_APP_SLUG
+              valueFrom:
+                secretKeyRef: {name: github-app, key: app-slug, optional: true}
+            - name: GITHUB_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef: {name: github-app, key: encryption-key, optional: true}
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
@@ -235,6 +251,9 @@ spec:
             # to the metrics collector only.
             - name: metrics
               containerPort: 9090
+            # Session credentials only, exposed by the dedicated broker Service.
+            - name: github-broker
+              containerPort: 8082
           readinessProbe:
             httpGet:
               path: /healthz
@@ -294,3 +313,16 @@ spec:
     - name: http
       port: 80
       targetPort: http
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: github-broker
+spec:
+  selector:
+    app: backend
+  ports:
+    - name: credentials
+      port: 8082
+      targetPort: 8082

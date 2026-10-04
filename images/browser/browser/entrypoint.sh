@@ -72,6 +72,12 @@ export USER LOGNAME
 USER="$(id -un 2>/dev/null || echo browser)"
 LOGNAME="$USER"
 mkdir -p "$FILES_DIR" "$HOME/Desktop" "$HOME/.config"
+# Empty helper first resets inherited helpers; this helper never stores tokens.
+if [ -n "${CU_GITHUB_CREDENTIAL:-}" ]; then
+  git config --global --replace-all credential.https://github.com.helper ""
+  git config --global --add credential.https://github.com.helper computeruse
+  git config --global credential.https://github.com.useHttpPath true
+fi
 # The folder the session page lists and Chromium downloads to is the home
 # directory's Downloads, for the file manager and for `cd ~/Downloads`.
 [ -e "$HOME/Downloads" ] || [ -L "$HOME/Downloads" ] || ln -s "$FILES_DIR" "$HOME/Downloads"

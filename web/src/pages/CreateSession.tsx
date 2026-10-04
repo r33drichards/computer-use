@@ -4,6 +4,7 @@
 import Alert from "@cloudscape-design/components/alert"
 import Box from "@cloudscape-design/components/box"
 import Button from "@cloudscape-design/components/button"
+import Checkbox from "@cloudscape-design/components/checkbox"
 import Container from "@cloudscape-design/components/container"
 import Form from "@cloudscape-design/components/form"
 import FormField from "@cloudscape-design/components/form-field"
@@ -16,7 +17,7 @@ import SpaceBetween from "@cloudscape-design/components/space-between"
 import SplitPanel from "@cloudscape-design/components/split-panel"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ApiError } from "../api"
+import { ApiError, type GitHubConnection } from "../api"
 import { signedOutHandled } from "../auth/signedOut"
 import { useCreateGate } from "../billing/SessionBilling"
 import { PanelShell } from "../components/PanelShell"
@@ -65,6 +66,10 @@ const same = (a: PolicySource, b: PolicySource) => a.kind === b.kind && a.source
 
 export function CreateSession() {
   const navigate = useNavigate()
+  const [github, setGitHub] = useState<GitHubConnection | null>(null)
+  const [useGitHub, setUseGitHub] = useState(true)
+  const [githubError, setGitHubError] = useState("")
+  const [githubLoading, setGitHubLoading] = useState(!!window.__BROWSERJS_CFG__?.githubConnections)
   const [name, setName] = useState("")
   const [suggested, setSuggested] = useState(petname) // the placeholder; used when the field is left empty
   const [sessions, setSessions] = useState<PolicySession[]>([])
@@ -92,6 +97,16 @@ export function CreateSession() {
 
   useEffect(() => {
     let cancelled = false
+    if (window.__BROWSERJS_CFG__?.githubConnections) {
+      api.githubConnection()
+        .then(answer => { if (!cancelled) setGitHub(answer) })
+        .catch(e => {
+          if (!cancelled && !signedOutHandled(e)) {
+            setGitHubError("Could not check your GitHub connection. You can create this session with GitHub disabled.")
+          }
+        })
+        .finally(() => { if (!cancelled) setGitHubLoading(false) })
+    }
     ifAvailable(policyApi.presets())
       .then(list => {
         if (cancelled) return
@@ -135,7 +150,7 @@ export function CreateSession() {
   const panelBase = custom ?? NEW_DRAFT
   const panelDirty = panelOpen && !same(panelDraft, panelBase)
   const dirty =
-    name.trim() !== "" || (size !== "" && size !== sizes?.default) || choice !== defaultChoice || custom !== null || panelDirty || managedUrl !== "" || copyFrom !== ""
+    !useGitHub || name.trim() !== "" || (size !== "" && size !== sizes?.default) || choice !== defaultChoice || custom !== null || panelDirty || managedUrl !== "" || copyFrom !== ""
   const unsaved = useUnsavedChanges(dirty)
 
   function openPanel() {
@@ -199,10 +214,10 @@ export function CreateSession() {
           copied = { kind: from.kind, source: from.source }
         }
         const policy = policyForChoice({ choice, presets, copied, custom: custom ?? undefined, managedUrl })
-        session = await policyApi.createSession({ name: sessionName, ...sized, policy })
+        session = await policyApi.createSession({ name: sessionName, ...sized, ...(github?.connected || githubError ? { github: useGitHub } : {}), policy })
       } else {
         // No policies on this deployment: the request it has always been.
-        session = await api.createSession(sessionName, sized.size)
+        session = await api.createSession(sessionName, sized.size, github?.connected || githubError ? useGitHub : undefined)
       }
       unsaved.markSaved()
       const flash: Flash = { type: "success", content: `Session ${session.name} created` }
@@ -237,7 +252,7 @@ export function CreateSession() {
             <Button variant="link" formAction="none" onClick={() => navigate("/")}>
               Cancel
             </Button>
-            <Button variant="primary" loading={busy} disabled={gate.disabled} formAction="submit">
+            <Button variant="primary" loading={busy} disabled={gate.disabled || githubLoading || (useGitHub && (!!githubError || !!github?.needs_reconnect))} formAction="submit">
               Create session
             </Button>
           </SpaceBetween>
@@ -257,6 +272,20 @@ export function CreateSession() {
               <Input value={name} placeholder={suggested} onChange={e => setName(e.detail.value)} autoFocus />
             </FormField>
           </Container>
+
+          {window.__BROWSERJS_CFG__?.githubConnections && (
+            <Container header={<Header variant="h2">GitHub</Header>}>
+              <SpaceBetween size="s">
+                {githubLoading ? <Box>Checking GitHub connection…</Box> : github?.connected || githubError ? <SpaceBetween size="s">
+                  {githubError && <Alert type="warning">{githubError}</Alert>}
+                  {github?.needs_reconnect && <Alert type="warning">Reconnect GitHub in account connections before enabling it for a new session.</Alert>}
+                  <Checkbox checked={useGitHub} onChange={e => setUseGitHub(e.detail.checked)}>Use GitHub connection{github?.login ? ` as @${github.login}` : ""}</Checkbox>
+                  <Box>Anyone who can run commands in this session can access the repositories granted to your GitHub connection.</Box>
+                </SpaceBetween> : <Box>Connect GitHub to authenticate Git automatically in new sessions.</Box>}
+                <Button href="/connections">Manage connections</Button>
+              </SpaceBetween>
+            </Container>
+          )}
 
           {sizes && (
             <Container

@@ -32,6 +32,7 @@ import (
 	"github.com/r33drichards/computer-use/backend/internal/auth"
 	"github.com/r33drichards/computer-use/backend/internal/authz"
 	"github.com/r33drichards/computer-use/backend/internal/config"
+	gh "github.com/r33drichards/computer-use/backend/internal/github"
 	"github.com/r33drichards/computer-use/backend/internal/idle"
 	"github.com/r33drichards/computer-use/backend/internal/leader"
 	"github.com/r33drichards/computer-use/backend/internal/metrics"
@@ -169,7 +170,14 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	handler, px := newHandlerWith(cfg, verifier, store, tracker, bill)
+	github, err := newGitHub(cfg, dyn, store)
+	if err != nil {
+		return err
+	}
+	if err := serveGitHubBroker(ctx, cfg.GitHubBrokerAddr, github); err != nil {
+		return err
+	}
+	handler, px := newHandlerWithGitHub(cfg, verifier, store, tracker, bill, github)
 	// The periodic passes, on one replica at a time. Each keeps nothing
 	// between runs and reads what it decides from off the cluster.
 	// A replica a release is still checking (ACTIVE_FILE) does not campaign.
@@ -290,6 +298,10 @@ func newHandler(cfg config.Config, verifier auth.Verifier, store *sessions.Store
 
 // newHandlerWith is newHandler with metering and billing (nil for none).
 func newHandlerWith(cfg config.Config, verifier auth.Verifier, store *sessions.Store, tracker *idle.Tracker, bill *billingParts) (http.Handler, *proxy.Proxy) {
+	return newHandlerWithGitHub(cfg, verifier, store, tracker, bill, nil)
+}
+
+func newHandlerWithGitHub(cfg config.Config, verifier auth.Verifier, store *sessions.Store, tracker *idle.Tracker, bill *billingParts, github *gh.Service) (http.Handler, *proxy.Proxy) {
 	owners := authz.NewOwners(store, ownerTTL)
 	// Nil, and so no policy routes and no gate, unless the store has
 	// policies enabled.
@@ -319,6 +331,10 @@ func newHandlerWith(cfg config.Config, verifier auth.Verifier, store *sessions.S
 	// browser call (proxy/browser.go).
 	sessionAPI.OnCreated(px.StartBrowser)
 	bill.enable(sessionAPI, px, apiMux)
+	if github != nil {
+		github.Register(apiMux)
+		sessionAPI.SetGitHubCreate(github.PrepareCreate)
+	}
 	sessionAPI.Register(apiMux)
 	px.RegisterApp(apiMux)
 

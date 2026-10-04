@@ -166,7 +166,7 @@ func (s *Store) CreateSized(ctx context.Context, name, owner, size string, asked
 			return Session{}, err
 		}
 	}
-	if s.warmPool != "" && canary == nil && size == DefaultSize {
+	if s.warmPool != "" && canary == nil && githubOf(ctx) == nil && size == DefaultSize {
 		warm, err := s.createWarm(ctx, name, owner, policy)
 		if err == nil {
 			return warm, nil
@@ -187,6 +187,9 @@ func (s *Store) CreateSized(ctx context.Context, name, owner, size string, asked
 		annotations[AnnSize] = size
 	}
 	if err := s.room(ctx, size, spec, ""); err != nil {
+		return Session{}, err
+	}
+	if err := applyGitHub(spec, annotations, id, githubOf(ctx)); err != nil {
 		return Session{}, err
 	}
 	spec["operatingMode"] = "Running"

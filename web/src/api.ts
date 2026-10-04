@@ -4,6 +4,7 @@ export type SessionState = "starting" | "running" | "stopping" | "asleep" | "sto
 
 export interface Session {
   id: string
+  github?: boolean
   name: string
   owner: string // email
   state: SessionState
@@ -24,6 +25,13 @@ export interface Session {
 }
 
 export type StoppedBy = "user" | "sleep" | "idle" | "credit" | "payment-method" | "blocked"
+
+export interface GitHubConnection {
+ connected: boolean
+ login?: string
+ install_url: string
+ needs_reconnect?: boolean
+}
 
 export interface Me {
   email: string
@@ -127,13 +135,16 @@ export function createApi(fetchImpl: Fetch = fetch) {
   }
 
   return {
+    githubConnection: () => call<GitHubConnection>("GET", "/api/connections/github"),
+    connectGitHub: () => call<{ url: string }>("POST", "/api/connections/github/connect"),
+    disconnectGitHub: () => call<void>("DELETE", "/api/connections/github"),
     me: () => call<Me>("GET", "/api/me"),
     listSessions: (all = false) => call<Session[]>("GET", all ? "/api/sessions?all=1" : "/api/sessions"),
     getSession: async (id: string) => call<Session>("GET", await sessionPath(id)),
     // The sizes a session can have here. A backend from before sizes has no such route.
     listSizes: () => call<Sizes>("GET", "/api/sizes"),
     // `size` is sent only when one is chosen: left out, the session is small.
-    createSession: (name: string, size?: string) => call<Session>("POST", "/api/sessions", size ? { name, size } : { name }),
+    createSession: (name: string, size?: string, github?: boolean) => call<Session>("POST", "/api/sessions", { name, ...(size ? { size } : {}), ...(github === undefined ? {} : { github }) }),
     // Takes effect at the session's next start, which is then a fresh one.
     resizeSession: async (id: string, size: string) => call<Session>("PATCH", await sessionPath(id), { size }),
     renameSession: async (id: string, name: string) => call<Session>("PATCH", await sessionPath(id), { name }),

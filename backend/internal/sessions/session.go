@@ -91,12 +91,15 @@ const (
 )
 
 type Session struct {
-	ID      string    `json:"id"`
-	Name    string    `json:"name"`
-	Owner   string    `json:"owner"`
-	State   State     `json:"state"`
-	Message string    `json:"message,omitempty"` // why it is starting or failed
-	Created time.Time `json:"created"`
+	GitHub               bool      `json:"github,omitempty"`
+	GitHubConnection     string    `json:"-"`
+	GitHubCredentialHash string    `json:"-"`
+	ID                   string    `json:"id"`
+	Name                 string    `json:"name"`
+	Owner                string    `json:"owner"`
+	State                State     `json:"state"`
+	Message              string    `json:"message,omitempty"` // why it is starting or failed
+	Created              time.Time `json:"created"`
 	// StateSaved is whether a suspended session holds a snapshot of its pod
 	// to wake from (see snapshots.go). Without one it starts fresh, with its
 	// disk only.
@@ -152,10 +155,13 @@ func conditions(obj *unstructured.Unstructured) map[string]condition {
 // FromSandbox derives the API view of a session from its Sandbox.
 func FromSandbox(obj *unstructured.Unstructured) Session {
 	s := Session{
-		ID:      obj.GetName(),
-		Name:    obj.GetAnnotations()[AnnName],
-		Owner:   obj.GetAnnotations()[AnnOwner],
-		Created: obj.GetCreationTimestamp().Time,
+		ID:                   obj.GetName(),
+		Name:                 obj.GetAnnotations()[AnnName],
+		Owner:                obj.GetAnnotations()[AnnOwner],
+		GitHub:               obj.GetAnnotations()[AnnGitHubConnection] != "",
+		GitHubConnection:     obj.GetAnnotations()[AnnGitHubConnection],
+		GitHubCredentialHash: obj.GetAnnotations()[AnnGitHubCredentialHash],
+		Created:              obj.GetCreationTimestamp().Time,
 
 		PolicyCapable: PolicyCapable(obj),
 		Size:          sizeOf(obj),

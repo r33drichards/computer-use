@@ -96,6 +96,7 @@ export interface NewToken {
 export type PolicySession = Session & { policy?: PolicySummary }
 
 export interface NewSession {
+  github?: boolean
   name?: string
   size?: string // left out: small
   policy?: PolicyInput

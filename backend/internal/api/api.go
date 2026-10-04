@@ -40,11 +40,12 @@ type Sizer interface {
 }
 
 type API struct {
-	store Store
-	sizer Sizer // nil: small only
-	authz authz.Checker
-	urls  *sessions.URLTemplate
-	cap   int
+	githubCreate func(context.Context, string, *bool) (context.Context, error)
+	store        Store
+	sizer        Sizer // nil: small only
+	authz        authz.Checker
+	urls         *sessions.URLTemplate
+	cap          int
 
 	// The lock is per user, and this replica's: it keeps the same user's
 	// creates here from interleaving. A create on another replica is
@@ -61,6 +62,10 @@ type API struct {
 	canary map[string]bool
 
 	onCreated func(id string) // nil: nothing (see OnCreated)
+}
+
+func (a *API) SetGitHubCreate(f func(context.Context, string, *bool) (context.Context, error)) {
+	a.githubCreate = f
 }
 
 // SetCanary names the users, by email address, whose create requests may
@@ -307,6 +312,7 @@ func (a *API) create(w http.ResponseWriter, r *http.Request, u auth.User) {
 		Policy *policy.Input `json:"policy"`
 		// Container name to image digest: see SetCanary.
 		Canary map[string]string `json:"canary"`
+		GitHub *bool             `json:"github"`
 	}
 	// The name is optional, and so is a body that would only carry it.
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, a.maxCreateBody())).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
@@ -357,6 +363,16 @@ func (a *API) create(w http.ResponseWriter, r *http.Request, u auth.User) {
 	name := body.Name
 	if strings.TrimSpace(name) == "" {
 		name = a.freshName(mine)
+	}
+	if a.githubCreate != nil {
+		ctx, err = a.githubCreate(ctx, u.Subject, body.GitHub)
+		if err != nil {
+			writeError(w, http.StatusConflict, "GitHub connection unavailable; reconnect GitHub or disable it for this session")
+			return
+		}
+	} else if body.GitHub != nil && *body.GitHub {
+		writeError(w, http.StatusBadRequest, "GitHub connections are not configured")
+		return
 	}
 	// The owner is recorded on the session itself; that is all there is to
 	// who may use it.
