@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, chmodSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, chmodSync, symlinkSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -75,7 +75,7 @@ test('encrypted smoke seeds before export and exercises locked runtime twice', (
  const smoke = readFileSync(new URL('./keyring-smoke.sh', import.meta.url), 'utf8');
  assert.match(smoke, /--foreground --unlock --components=secrets/);
  // The fixture daemon must exit before testing the production helper locked.
- assert.match(smoke, /wait_unlocked\nstop\nstart\nlocked/);
+ assert.match(smoke, /wait_unlocked\nstop\ncheck_keyring_files\nstart\nlocked/);
  assert.match(smoke, /python3 "\$KEYRING_UNLOCK" ok/);
  assert.equal((smoke.match(/^locked$/gm) || []).length, 3);
  assert.match(smoke, /keyring-smoke-wrong-password/);
@@ -184,4 +184,23 @@ test('real image exposes gdbus and checks all encrypted fixture prerequisites', 
  assert.ok(image.includes('command -v "$tool"'));
  assert.ok(image.includes('missing encrypted fixture tool: $tool'));
  assert.ok(image.includes('exit 1; }'));
+});
+
+test('real daemon smoke checks persisted file UID/0600 and rejects nonregular/symlink files', () => {
+ const smoke = readFileSync(new URL('./keyring-smoke.sh', import.meta.url), 'utf8');
+ const fn = smoke.slice(smoke.indexOf('check_keyring_files() {'), smoke.indexOf('has_service() {'));
+ assert.ok(fn.includes('info.st_uid == os.getuid()'));
+ assert.ok(smoke.split('\n').filter(x => x === 'check_keyring_files').length >= 4);
+ const f = fixture();
+ try {
+  const dir = join(f.home, '.local/share/keyrings'); mkdirSync(dir, { recursive: true });
+  const file = join(dir, 'synthetic.keyring'); writeFileSync(file, 'synthetic-canary', { mode: 0o600 });
+  const run = () => spawnSync('bash', ['-c', fn + '\ncheck_keyring_files'], { env: f.env, encoding: 'utf8' });
+  assert.equal(run().status, 0);
+  chmodSync(file, 0o644); assert.notEqual(run().status, 0);
+  rmSync(file); const target = join(f.dir, 'target'); writeFileSync(target, 'synthetic-canary', { mode: 0o600 });
+  symlinkSync(target, file); assert.notEqual(run().status, 0);
+  rmSync(file); mkdirSync(file); assert.notEqual(run().status, 0);
+  rmSync(file, { recursive: true }); assert.notEqual(run().status, 0);
+ } finally { rmSync(f.dir, { recursive: true, force: true }); }
 });

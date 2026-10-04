@@ -421,3 +421,21 @@ before its8081 health server started. mcp-js start.sh waits for that browser
 TCP endpoint before starting mcp-v8 (which cannot initialize an unreachable
 upstream), consistent with the simultaneous8080 probe refusal without establishing a separate MCP failure. New canary validation is
 required; if MCP remains unready after browser recovery, inspect it separately.
+
+### CI source binding
+
+The earlier green image run37188741680 and kind canary37188741744
+checked out GitHub's synthetic PR merge a6e596e (including head e5619a1
+and base e60790e), as captured by the parent/reviewer. They are integration
+evidence for that merge tree, **not** independently proven bare-head tests
+merely because the run metadata names e5619a1.
+
+The PR image-build job and kind canary now explicitly checkout the immutable
+PR head SHA; non-PR invocations use github.sha. Before building they assert
+that actual git HEAD equals the expected SHA and the tracked tree is clean,
+and record commit, tree and parents in logs/summary. The image build labels
+org.opencontainers.image.revision with the asserted actual checkout SHA.
+The image-selection filter retains its existing merge checkout/full-history
+comparison; main publishing/deployment conditions and checkouts are unchanged.
+These receipts identify tested source, not approval, production parity or
+registry digest verification. Fresh real image/canary gates remain required.

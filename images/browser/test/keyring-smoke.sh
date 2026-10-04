@@ -14,6 +14,20 @@ pid=""
 cleanup() { [ -z "$pid" ] || kill "$pid" 2>/dev/null || true; }
 trap cleanup EXIT
 
+check_keyring_files() {
+  python3 - "$HOME/.local/share/keyrings" <<'PY'
+import os, pathlib, stat, sys
+files = list(pathlib.Path(sys.argv[1]).glob('*.keyring'))
+assert files, 'encrypted persisted keyring required'
+for path in files:
+    info = path.lstat()  # Never follow a symlink to satisfy the assertion.
+    assert stat.S_ISREG(info.st_mode), 'keyring must be a regular non-symlink file'
+    assert info.st_uid == os.getuid(), 'keyring must belong to the invoking UID'
+    assert stat.S_IMODE(info.st_mode) == 0o600, 'keyring must have mode 0600'
+print('ok: persisted keyring files are regular, invoking-UID owned and 0600')
+PY
+}
+
 has_service() {
   dbus-send --session --print-reply --dest=org.freedesktop.DBus \
     /org/freedesktop/DBus org.freedesktop.DBus.NameHasOwner \
@@ -106,6 +120,7 @@ wait_service
 echo "fixture: seeded encrypted login before Secret Service initialization"
 wait_unlocked
 stop
+check_keyring_files
 start
 locked
 echo "runtime: existing collection exported and cold-start locked"
@@ -115,20 +130,21 @@ wait_unlocked
 printf %s 'keyring-smoke-secret' | timeout 20 secret-tool store \
   --label='Computer Use smoke test' computeruse-smoke keyring
 [ "$(timeout 20 secret-tool lookup computeruse-smoke keyring)" = keyring-smoke-secret ]
-[ -n "$(find "$HOME/.local/share/keyrings" -name '*.keyring' -type f -print -quit)" ]
+check_keyring_files
 if grep -R -a -q 'keyring-smoke-secret' "$HOME/.local/share/keyrings"; then
   echo "Secret appeared unencrypted on disk" >&2
   exit 1
 fi
 
 stop
+check_keyring_files
 # A fresh runtime directory proves no control socket is needed for persistence.
 export XDG_RUNTIME_DIR="$TMPDIR/keyring-runtime-restarted"
 export GNOME_KEYRING_CONTROL="$XDG_RUNTIME_DIR/keyring"
 mkdir -m 700 "$XDG_RUNTIME_DIR"
 start
 # The files survived, but memory did not: startup must not unlock them.
-[ -n "$(find "$HOME/.local/share/keyrings" -type f -print -quit)" ]
+check_keyring_files
 locked
 # A wrong nonempty password must be denied AND leave the collection locked.
 printf %s 'keyring-smoke-wrong-password' | python3 "$KEYRING_UNLOCK" denied
@@ -136,5 +152,6 @@ locked
 printf %s 'keyring-smoke-password' | python3 "$KEYRING_UNLOCK" ok
 wait_unlocked
 [ "$(timeout 20 secret-tool lookup computeruse-smoke keyring)" = keyring-smoke-secret ]
+check_keyring_files
 timeout 20 secret-tool clear computeruse-smoke keyring
 echo 'ok: Secret Service, encrypted storage, restart persistence, locked startup'

@@ -208,6 +208,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Bind tested source
+        id: source
+        env:
+          EXPECTED_SOURCE: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          bash test/ci-source-binding.sh
+          node --test test/ci-source-binding.test.mjs
 
       # A hosted runner has about 14 GB free; the browser image needs its
       # Nix store, a copy of it, and the exported layer.
@@ -231,6 +240,7 @@ jobs:
           platforms: linux/amd64
           push: false
           provenance: false
+          labels: org.opencontainers.image.revision=${{ steps.source.outputs.sha }}
           # The browser image is started below: it has to be in Docker.
           load: ${{ matrix.name == 'browser' }}
           tags: ${{ matrix.name == 'browser' && 'browser:ci' || '' }}

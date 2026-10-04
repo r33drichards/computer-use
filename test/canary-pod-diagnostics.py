@@ -15,6 +15,15 @@ def redact(text):
     return text
 
 
+def redact_values(value):
+    # Redact values before JSON encoding: token regexes must not eat JSON
+    # delimiters when a log ends with an Authorization/token string.
+    if isinstance(value, str): return redact(value)
+    if isinstance(value, list): return [redact_values(x) for x in value]
+    if isinstance(value, dict): return {k: redact_values(v) for k, v in value.items()}
+    return value
+
+
 def command(*args):
     done = subprocess.run(['kubectl', '-n', 'browserjs-sessions', *args],
                           capture_output=True, text=True, timeout=8)
@@ -46,17 +55,26 @@ def collect(sid):
         result['containers'].append({k: c.get(k) for k in
             ('name', 'image', 'securityContext')})
         result['containers'][-1].update({k: probe(c.get(k)) for k in ('startupProbe', 'readinessProbe')})
+        statuses = pod.get('status', {}).get('containerStatuses', [])
+        no_previous = any(x.get('name') == c['name'] and x.get('restartCount') == 0 for x in statuses)
         for previous in (False, True):
+            field = c['name'] + ('-previous' if previous else '')
+            if previous and no_previous:
+                result['logs'][field] = {'status': 'unavailable', 'reason': 'no-previous-container'}
+                continue
             try:
                 args = ['logs', sid, '-c', c['name'], '--tail=100']
                 if previous: args.append('--previous')
-                result['logs'][c['name'] + ('-previous' if previous else '')] = redact(command(*args))
-            except (RuntimeError, subprocess.TimeoutExpired): pass
+                result['logs'][field] = redact(command(*args))
+            except subprocess.TimeoutExpired:
+                result['logs'][field] = {'status': 'unavailable', 'reason': 'timeout'}
+            except RuntimeError:
+                result['logs'][field] = {'status': 'error', 'reason': 'command-failed'}
     events = json.loads(command('get', 'events', '--field-selector',
                                'involvedObject.uid=' + meta['uid'], '-o', 'json'))
     result['events'] = [{k: e.get(k) for k in ('reason', 'message', 'type', 'count')}
                         for e in events.get('items', []) if e.get('involvedObject', {}).get('uid') == meta['uid']]
-    return redact(json.dumps(result, indent=2))
+    return json.dumps(redact_values(result), indent=2)
 
 
 if __name__ == '__main__':
