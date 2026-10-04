@@ -188,7 +188,14 @@ def gc_image_tags():
     active = set(preview.live_previews())
     for name in preview.IMAGES:
         flags = ["--project=browserjs-sessions", "--location=us-west1", "--repository=browserjs-previews", f"--package={name}"]
-        tags = json.loads(cloud_command("gcloud", "artifacts", "tags", "list", *flags, "--format=json"))
+        try:
+            tags = json.loads(cloud_command("gcloud", "artifacts", "tags", "list", *flags, "--format=json"))
+        except subprocess.CalledProcessError as error:
+            # Before the first publication a package does not exist. Only an
+            # explicit NOT_FOUND is empty; authentication/API failures propagate.
+            if re.search(r'"status"\s*:\s*"NOT_FOUND"', error.stderr or ""):
+                continue
+            raise
         for tag in tags:
             value = tag["name"].rsplit("/", 1)[-1]
             match = re.fullmatch(r"pr-([1-9][0-9]{0,9})-[0-9a-f]{40}", value)
