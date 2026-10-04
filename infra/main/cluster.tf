@@ -227,7 +227,7 @@ resource "google_container_node_pool" "sessions" {
 
   autoscaling {
     min_node_count = 0
-    max_node_count = var.session_max_nodes
+    max_node_count = lookup(var.session_pool_max_nodes, "sessions", var.session_max_nodes)
     # ANY lets the autoscaler take Spot capacity wherever there is some.
     location_policy = var.session_spot ? "ANY" : "BALANCED"
   }
@@ -313,7 +313,7 @@ resource "google_container_node_pool" "sessions_fallback" {
 
   autoscaling {
     min_node_count = lookup(var.session_fallback_min_nodes, each.key, 0)
-    max_node_count = var.session_max_nodes
+    max_node_count = lookup(var.session_pool_max_nodes, each.key, var.session_max_nodes)
     # ANY lets the autoscaler take Spot capacity wherever there is some.
     location_policy = var.session_spot ? "ANY" : "BALANCED"
   }

@@ -60,7 +60,6 @@ spec:
       runtimeClassName: gvisor
       nodeSelector:
         sandbox.gke.io/runtime: gvisor
-        cloud.google.com/gke-nodepool: sessions-n2d-standard-4
       tolerations:
         - key: sandbox.gke.io/runtime
           operator: Equal

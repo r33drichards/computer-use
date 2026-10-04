@@ -39,9 +39,9 @@ sizes:
         env: {MCP_V8_HEAP_MEMORY_MAX: "32"}
     shm: 4Gi
 
-# Up to two production session nodes in us-west1-c. Conservative room after node
+# Up to three production session nodes in us-west1-c. Conservative room after node
 # services: three small sessions (1 CPU/2.5 GiB requested each) fit.
 capacity:
-  nodes: 2
+  nodes: 3
   cpu: 3213m
   memory: 12097Mi
