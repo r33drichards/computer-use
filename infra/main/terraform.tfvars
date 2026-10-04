@@ -45,10 +45,10 @@ kubernetes_version = "1.36"
 # }
 
 # Each 4-vCPU/16-GB session node fits three small sessions.
-# N2D quota is 8 vCPUs: keep one node warm and permit a second on demand.
+# Three nodes require 12 N2D vCPUs: keep one node warm and grow on demand.
 # session_max_nodes is the ceiling on what sessions can cost.
 session_machine_type = "n2-standard-4"
-session_max_nodes    = 2
+session_max_nodes    = 3
 # Spot: cheaper, but Compute Engine can take a node back with 30 seconds'
 # notice; sessions on it restart from their disks (tabs reopen, pages reload).
 session_spot = true

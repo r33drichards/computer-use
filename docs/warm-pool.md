@@ -3,7 +3,7 @@
 The pool keeps up to one node's worth of small sessions ready, reduced by
 claimed sessions' CPU and memory requests. Two running small sessions leave
 one warm spare; there is no global session-count cap. GKE scales the session
-pool from one to two nodes when claimed sessions need more capacity.
+pool from one to three nodes when claimed sessions need more capacity.
 Current tier and storage details are in [session-sizes.md](session-sizes.md).
 
 ## How it works
@@ -100,8 +100,8 @@ reservation. Its replicas do not multiply this budget when GKE adds a node.
 Small pods request 1 CPU and 2.5 GiB: up to three can be warm when idle.
 
 Only claimed workloads can grow demand beyond this baseline. The backend
-admits pending pods within the configured two-node ceiling; GKE Cluster
-Autoscaler provisions the second node when no existing node can schedule them.
+admits pending pods within the configured three-node ceiling; GKE Cluster
+Autoscaler provisions additional nodes when no existing node can schedule them.
 Requests beyond that ceiling return `409 no_capacity`.
 
 Session pods prefer nodes already hosting sessions, without requiring it,
@@ -123,7 +123,7 @@ sessions rather than repopulating an empty surplus node.
 ## Cost
 
 One session node remains provisioned at idle. Claimed workload demand can
-add a second node; removing or suspending that workload allows the empty
+add up to two more nodes; removing or suspending that workload allows the empty
 node to scale down. Warm disks and running spare pods consume infrastructure
 resources, but are not billed to an account before adoption.
 
