@@ -22,6 +22,8 @@ class ReleaseTests(unittest.TestCase):
             ('Service', 'webhook-redis'), ('StatefulSet', 'webhook-redis'),
             ('NetworkPolicy', 'policy-operator'), ('NetworkPolicy', 'webhook-redis'),
             ('Role', 'policy-operator'), ('RoleBinding', 'policy-operator'),
+            ('ConfigMap', 'opa-config-newhash'), ('Secret', 'policy-tokens'),
+            ('ServiceAccount', 'policy-operator'), ('Service', 'opa'),
             ('Deployment', 'policy-operator'), ('Deployment', 'opa'),
             ('Deployment', 'backend'), ('CustomResourceDefinition', 'sessionpolicies.browserjs.dev')]
         docs = [{'apiVersion':'v1', 'kind':kind, 'metadata':{'name':name}} for kind, name in resources]
@@ -34,6 +36,9 @@ class ReleaseTests(unittest.TestCase):
             operator = waves[('Deployment', 'policy-operator')]
             for resource in resources[:6]:
                 self.assertLess(waves[resource], operator)
+            for resource in resources[6:10]:
+                self.assertLess(waves[resource], waves[('Deployment', 'opa')])
+                self.assertLess(waves[resource], waves[('StatefulSet', 'webhook-redis')])
             self.assertLess(operator, waves[('Deployment', 'backend')])
             self.assertNotIn(('CustomResourceDefinition', 'sessionpolicies.browserjs.dev'), waves)
 
