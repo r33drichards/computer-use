@@ -145,6 +145,13 @@ func TestPolicyEnvironment(t *testing.T) {
 						Path string `json:"policy_path"`
 					} `json:"policies"`
 				} `json:"mcp_tools"`
+				Fetch struct {
+					Mode     string `json:"mode"`
+					Policies []struct {
+						URL  string `json:"url"`
+						Path string `json:"policy_path"`
+					} `json:"policies"`
+				} `json:"fetch"`
 				Filesystem struct {
 					Policies []struct {
 						URL string `json:"url"`
@@ -161,6 +168,13 @@ func TestPolicyEnvironment(t *testing.T) {
 				tools.Policies[1].URL != "http://opa.browserjs-sessions.svc:8181" ||
 				tools.Policies[1].Path != "browserjs/decision/"+id+"/mcp_tools" {
 				t.Errorf("%s: mcp_tools is %+v; want mode all, the image's file policy, then OPA at browserjs/decision/%s/mcp_tools", file, tools, id)
+			}
+			fetch := policies.Fetch
+			if fetch.Mode != "all" || len(fetch.Policies) != 2 ||
+				fetch.Policies[0].URL != "file:///etc/mcp/fetch.rego" ||
+				fetch.Policies[1].URL != "http://opa.browserjs-sessions.svc:8181" ||
+				fetch.Policies[1].Path != "browserjs/decision/"+id+"/mcp_tools" {
+				t.Errorf("%s: fetch is %+v; want local HTTP(S) policy and session OPA decision", file, fetch)
 			}
 			if fs := policies.Filesystem.Policies; len(fs) != 1 || fs[0].URL != "file:///etc/mcp/filesystem.rego" {
 				t.Errorf("%s: filesystem is %+v; want the image's file policy only", file, fs)

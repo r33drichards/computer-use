@@ -189,7 +189,9 @@ export function createMockBackend(options: MockOptions) {
 
   // See the top of this file: a preset's cases, or a placeholder.
   function evaluate(source: string, input: any): boolean {
-    if (!TOOLS[input?.server]?.includes(input?.tool)) return false
+    if (input?.operation === "fetch") {
+      if (!["http", "https"].includes(input?.url_parsed?.scheme)) return false
+    } else if (!TOOLS[input?.server]?.includes(input?.tool)) return false
     const expected = presets.find(p => p.source === source)?.cases.find(c => sameJson(c.input, input))
     if (expected) return expected.allow
     if (withoutComments(source).replace(/\s+/g, "") === UNRESTRICTED) return true
