@@ -234,6 +234,9 @@
               browser-mcp
               pkgs.caddy
               pkgs.dbus
+              # gdbus inspects the desktop Secret Service; native smoke inputs
+              # alone do not make this command available in the real image.
+              pkgs.glib.bin
               desktop
               # exec-server.sh: mcp-exec, and find to prune its old logs.
               mcp-exec-pkg

@@ -172,3 +172,16 @@ test('image encrypted fixture requires and forwards the packaged Nix session bus
   assert.throws(() => readFileSync(f.capture));
  } finally { rmSync(f.dir, { recursive: true, force: true }); }
 });
+
+test('real image exposes gdbus and checks all encrypted fixture prerequisites', () => {
+ const flake = readFileSync(new URL('../flake.nix', import.meta.url), 'utf8');
+ const runtime = flake.slice(flake.indexOf('runtime = pkgs.writeShellApplication'), flake.indexOf('# Test the real Secret Service'));
+ assert.ok(runtime.includes('pkgs.glib.bin'));
+ const image = readFileSync(new URL('./keyring-capability-image-smoke.sh', import.meta.url), 'utf8');
+ for (const tool of ['bash', 'dbus-send', 'dbus-run-session', 'gdbus', 'gnome-keyring-daemon', 'secret-tool', 'python3', 'stat', 'find', 'grep', 'sed', 'timeout', 'seq']) {
+  assert.ok(image.includes(tool), tool);
+ }
+ assert.ok(image.includes('command -v "$tool"'));
+ assert.ok(image.includes('missing encrypted fixture tool: $tool'));
+ assert.ok(image.includes('exit 1; }'));
+});

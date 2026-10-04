@@ -36,6 +36,11 @@ for mode in nonroot-zero legacy-partial; do
   docker exec -i "$name" /bin/bash -s -- "$mode" <<'INSIDE' >"$out/$mode.log" 2>&1
 set -euo pipefail
 . /tmp/runtime/session-env
+# Check every encrypted fixture dependency against the actual image PATH.
+# Do not skip a guarantee or fall back to host tools if one is missing.
+for tool in bash dbus-send dbus-run-session gdbus gnome-keyring-daemon secret-tool python3 stat find grep sed timeout seq; do
+  command -v "$tool" >/dev/null || { echo "missing encrypted fixture tool: $tool"; exit 1; }
+done
 python3 - "$1" <<'PY'
 import os, pathlib, sys
 mode = sys.argv[1]
