@@ -45,6 +45,7 @@ mock_provider "google" {
 variables {
   project_id           = "browserjs-sessions-test"
   github_repository_id = "424242"
+  enable_previews      = false
 }
 
 run "defaults_pomerium_nlb" {
@@ -423,4 +424,32 @@ run "rejects_unknown_edge_mode" {
   }
 
   expect_failures = [var.edge_mode]
+}
+
+run "preview_environments" {
+  command = plan
+
+  variables {
+    enable_previews = true
+  }
+
+  assert {
+    condition     = google_artifact_registry_repository.previews[0].repository_id == "browserjs-previews"
+    error_message = "Previews must use a separate image repository."
+  }
+
+  assert {
+    condition     = local.public_names.previews == "*.preview.computeruse.site"
+    error_message = "Preview app, site, API and session hosts must share the preview wildcard."
+  }
+
+  assert {
+    condition     = endswith(google_service_account_iam_member.preview_github["deployer"].member, "@refs/heads/main") && endswith(google_service_account_iam_member.preview_github["publisher"].member, "@refs/heads/main")
+    error_message = "PR build jobs must not acquire publisher or deployer credentials."
+  }
+
+  assert {
+    condition     = one(google_artifact_registry_repository.previews[0].cleanup_policies).condition[0].older_than == "1209600s"
+    error_message = "Preview images must expire after 14 days."
+  }
 }

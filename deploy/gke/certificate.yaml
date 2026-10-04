@@ -24,6 +24,8 @@ spec:
     # DEPRECATED: the host each session had before. Remove it with the
     # legacy-session-* routes in pomerium-config.yaml.
     - "*.sessions.computeruse.site"
+    # app-pr-N, site-pr-N, sessions-pr-N and api-pr-N share this wildcard.
+    - "*.preview.computeruse.site"
   privateKey:
     algorithm: ECDSA
     size: 256
