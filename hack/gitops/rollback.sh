@@ -11,6 +11,10 @@ git fetch --quiet origin "$branch"
 git worktree add --quiet --detach "$work/tree" FETCH_HEAD
 [ "$(git -C "$work/tree" rev-parse HEAD)" = "$failed" ] || { echo 'Production changed: refusing to overwrite another release.' >&2; exit 1; }
 git -C "$work/tree" checkout "$previous" -- production
+if [ "${PREVIEWS_ENABLED:-false}" = true ]; then
+  python3 hack/preview.py reconcile-manifests --file "$work/tree/production/manifests.yaml"
+fi
+git -C "$work/tree" add production
 git -C "$work/tree" config user.name 'github-actions[bot]'
 git -C "$work/tree" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 git -C "$work/tree" commit -m "Roll back failed release $failed"

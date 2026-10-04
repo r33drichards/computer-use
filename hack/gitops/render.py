@@ -2,6 +2,7 @@
 """Render a release from reviewed manifests and this build's immutable images."""
 import argparse
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -34,6 +35,8 @@ def render(source, previous, artifacts, output):
         raise ValueError('invalid source commit')
     subprocess.run(['hack/pin-images.sh', *[f'{n}={v.split("@")[1]}' for n, v in images.items()]], check=True)
     subprocess.run(['hack/pin-images.sh', '--check'], check=True)
+    if os.environ.get('PREVIEWS_ENABLED') == 'true':
+        subprocess.run(['python3', 'hack/preview.py', 'prepare-edge'], check=True)
     docs = list(yaml.safe_load_all(subprocess.check_output(['kubectl', 'kustomize', 'deploy/gke'], text=True)))
     # Mutable controller-owned resources and bootstrap infrastructure are not
     # release payloads. The existing manual workflow installs their CRDs.

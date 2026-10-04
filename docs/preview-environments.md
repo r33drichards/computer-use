@@ -64,15 +64,14 @@ can be used by a preview pod. Production image repositories are unchanged.
    - `PREVIEW_PUBLISH_SA`: `preview_publisher_service_account_email`
    - `PREVIEW_DEPLOY_SA`: `preview_deployer_service_account_email`
    Leave `PREVIEWS_ENABLED` unset until step 4.
-3. Merge the automation PR and wait for its **infra apply** to finish (it
-   adds tag-cleanup permissions), then run the production **deploy** workflow on main with its existing `deploy`
-   confirmation. This adds `*.preview.computeruse.site` to the existing
-   Pomerium certificate and installs the preview deployer's explicit
-   cluster-admin binding for custom-resource operations. This is a cloud
-   identity, not a ServiceAccount available to preview pods. Wait for the
-   certificate to be Ready before
-   enabling preview workflows. The DNS and certificate names are deliberately
-   fixed to this repository's GKE deployment, as in `deploy/gke`.
+3. Merge the automation PR and wait for **infra apply** and the Argo CD
+   production release to finish. The release adds the wildcard certificate.
+   An administrator installs the cloud identity's cluster-admin binding once:
+   ```sh
+   kubectl create clusterrolebinding browserjs-preview-deployer --clusterrole=cluster-admin --user=preview-deployer@browserjs-sessions.iam.gserviceaccount.com --dry-run=client -o yaml | kubectl apply -f -
+   ```
+   Wait for the certificate to be Ready. With `ARGOCD_ENABLED=true`, keep
+   Argo CD enabled; the legacy production deploy workflow is not required.
 4. Set `PREVIEWS_ENABLED=true`. Label a same-repository, non-draft PR `preview`.
    The workflow builds and creates its environment. For branches created
    before preview support landed (such as the theme PR), update from main
@@ -105,14 +104,16 @@ Artifact Registry reclaims untagged versions older than 14 days. Every tag
 of a live preview is retained, including previous rollout images; identical
 images shared by another active preview remain tagged and are protected.
 
-Reconciliation edits the ConfigMap mounted by the current production
-Pomerium StatefulSet and preserves all non-preview routes. It uses
-resourceVersion to detect conflicting edits. Preview lifecycle jobs and
-production deployment share the `deploy` concurrency group. Production
-releases include live preview routes before rendering their kustomize
-ConfigMap; the hourly sweep also restores routes after a historical release
-rollback. A preview is unavailable briefly while Pomerium reloads a changed
-ConfigMap (Kubernetes projection is eventually consistent).
+With Argo CD enabled, reconciliation commits only the mounted Pomerium
+ConfigMap's routes in `production/manifests.yaml` on the `production` branch,
+then waits for Argo CD to sync that exact revision. Its ConfigMap name and
+all non-preview resources and routes remain intact. Lifecycle jobs have
+contents-write permission only on trusted main code; PR builds do not.
+Normal Git pushes reject concurrent changes, and preview lifecycle jobs and
+production releases share the `deploy` concurrency group. Releases and
+rollbacks preserve live preview routes. Legacy manual deployments retain
+ConfigMap reconciliation with resourceVersion conflict checks. Kubernetes
+ConfigMap projection and Pomerium reload are eventually consistent.
 
 ## Verification and troubleshooting
 

@@ -89,6 +89,22 @@ class PreviewTests(unittest.TestCase):
                 self.assertEqual(route["policy"], preview.allowed_policy())
         self.assertEqual(len(preview.routes_for("154")), 8)
 
+    def test_gitops_changes_only_mounted_config_and_preserves_hash(self):
+        import yaml
+        config = preview.documents("deploy/gke/pomerium-config.yaml")[0]
+        sts = {"kind": "StatefulSet", "metadata": {"name": "pomerium", "namespace": preview.PRODUCTION}, "spec": {"template": {"spec": {"volumes": [{"name": "config", "configMap": {"name": "pomerium-config-hash"}}]}}}}
+        cm = {"kind": "ConfigMap", "metadata": {"name": "pomerium-config-hash", "namespace": preview.PRODUCTION}, "data": {"config.yaml": preview.dump(config)}}
+        unrelated = {"kind": "Secret", "metadata": {"name": "unrelated"}, "data": {"key": "unchanged"}}
+        docs = [sts, cm, unrelated]
+        result = preview.merge_manifest_routes(docs, ["154"])
+        self.assertEqual(result[0], sts)
+        self.assertEqual(result[2], unrelated)
+        self.assertEqual(result[1]["metadata"], cm["metadata"])
+        self.assertEqual(yaml.safe_load(result[1]["data"]["config.yaml"]), preview.merge_routes(config, ["154"]))
+        self.assertEqual(preview.merge_manifest_routes(result, ["154"]), result)
+        self.assertEqual(preview.merge_manifest_routes(result, []), docs)
+        self.assertEqual(docs[1], cm)
+
     def test_sync_follows_mounted_configmap_and_preserves_resource_version(self):
         original = preview.documents("deploy/gke/pomerium-config.yaml")[0]
         import yaml
