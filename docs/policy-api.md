@@ -226,3 +226,10 @@ dynamic client's fake, taught to treat `SessionPolicy` as the API server
 does (`internal/sessions/sessionstest/policies.go`: the CRD's validation, a
 generation that rises with the spec, a status that only the test, playing
 the operator, writes).
+
+## Fetch permissions
+
+The editable session Rego policy also governs JavaScript `fetch()` in enforcing
+deployments. Use `allow_tool_call` with `input.operation == "fetch"` and request
+fields such as host, path, and method. See [Fetch permissions](contracts/policy/fetch.md)
+for allow and deny examples, the request input, testing, and rollout requirements.

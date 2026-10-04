@@ -12,6 +12,7 @@ describe("sample calls", () => {
     expect(SAMPLE_GROUPS.map(g => [g.label, g.samples.length])).toEqual([
       ["browser / browser_execute", 5],
       ["browser / desktop_execute", 4],
+      ["fetch / fetch", 3],
       ["exec / exec", 3],
       ["exec / stream_logs", 1],
       ["exec / search_logs", 1],
@@ -24,7 +25,11 @@ describe("sample calls", () => {
 
   it("are the input a policy is asked about", () => {
     for (const s of SAMPLES) {
-      expect(s.input).toMatchObject({ operation: "mcp_call_tool", server: s.server, tool: s.tool })
+      if (s.tool === "fetch") {
+        expect(s.input).toMatchObject({ operation: "fetch", url_parsed: { scheme: "https" } })
+      } else {
+        expect(s.input).toMatchObject({ operation: "mcp_call_tool", server: s.server, tool: s.tool })
+      }
       expect(JSON.parse(sampleText(s))).toEqual(s.input)
     }
   })

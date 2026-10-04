@@ -6,7 +6,6 @@ require (
 	github.com/MicahParks/keyfunc/v3 v3.8.2
 	github.com/dustinkirkland/golang-petname v0.0.0-20260929120758-6e3915f1a6a8
 	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/open-feature/go-sdk v1.19.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/stripe/stripe-go/v86 v86.4.2
 	golang.org/x/sync v0.23.0
@@ -50,8 +49,8 @@ require (
 	github.com/prometheus/common v0.70.1 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
+	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.uber.org/mock v0.6.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/net v0.57.0 // indirect

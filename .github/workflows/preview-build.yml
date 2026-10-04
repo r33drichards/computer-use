@@ -45,9 +45,9 @@ jobs:
             file: images/browser/Dockerfile
             timeout: 120
           - name: mcp-js
-            context: images/mcp-js
+            context: .
             file: images/mcp-js/Dockerfile
-            timeout: 15
+            timeout: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

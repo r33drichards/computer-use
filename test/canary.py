@@ -33,6 +33,9 @@ The environment:
                        0: a cluster without snapshots; wake starts it fresh.
   EXPECT_POLICIES      1 (default): the session's policy is changed and must
                        bind. 0: a deployment with session policies off.
+  EXPECT_MCP_CAPABILITIES  1 (default): verify skills, fetch and editable fetch
+                       permissions. 0: baseline/rollback checks of old releases.
+  FETCH_URL            URL to fetch (public site home page, or localhost in kind).
   SESSION_HOOK         a command run once the session is running, with
                        SESSION_ID in its environment (the release workflow
                        checks the pod's images with it). Its failure fails
@@ -41,6 +44,7 @@ The environment:
   SUMMARY              a file the results are appended to, as Markdown
 """
 import base64
+import hashlib
 import json
 import os
 import re
@@ -60,6 +64,8 @@ SITE = os.environ.get("SITE_URL", "https://" + DOMAIN).rstrip("/")
 API_HOST = os.environ.get("API_HOST", "")
 TOKEN = os.environ.get("CANARY_API_TOKEN", "")
 EXPECT_STATE_SAVED = os.environ.get("EXPECT_STATE_SAVED", "1") != "0"
+EXPECT_MCP_CAPABILITIES = os.environ.get("EXPECT_MCP_CAPABILITIES", "1") != "0"
+FETCH_URL = os.environ.get("FETCH_URL", (SITE + "/") if SITE else "http://127.0.0.1:8081/healthz")
 EXPECT_POLICIES = os.environ.get("EXPECT_POLICIES", "1") != "0"
 START_TIMEOUT = int(os.environ.get("START_TIMEOUT", "420"))
 # Sessions this script made are named so, and it deletes any it finds.
@@ -187,8 +193,9 @@ class MCP:
 
     def connect(self):
         self.session = None
-        self.rpc("initialize", {"protocolVersion": "2025-03-26", "capabilities": {},
+        result = self.rpc("initialize", {"protocolVersion": "2025-03-26", "capabilities": {"extensions": {"io.modelcontextprotocol/skills": {}}},
                                 "clientInfo": {"name": "release-canary", "version": "0"}})
+        self.capabilities = result.get("capabilities", {})
         self.post({"jsonrpc": "2.0", "method": "notifications/initialized"}, 30)
 
     def run_js(self, code, timeout=150):
@@ -272,6 +279,65 @@ def until(what, fn, timeout=60):
             return last
         time.sleep(3)
     raise Failed("%s: not after %.0fs" % (what, time.time() - started))
+
+
+def verify_skills(mcp):
+    expect("io.modelcontextprotocol/skills" in mcp.capabilities.get("extensions", {}),
+           "server did not advertise skills")
+    skills = []
+    cursor = None
+    while True:
+        page = mcp.rpc("skills/list", {"cursor": cursor} if cursor else {})
+        skills.extend(page["skills"])
+        cursor = page.get("nextCursor")
+        if not cursor:
+            break
+    by_name = {skill["frontmatter"]["name"]: skill for skill in skills}
+    expect(len(skills) > 1 and "project-documentation" not in by_name,
+                  "expected independent page skills instead of an umbrella skill")
+    expect(all(name.startswith(("tutorials-", "guides-", "reference-", "explanation-")) for name in by_name),
+                  "catalog includes non-customer documentation")
+    for name in ("tutorials-first-program", "guides-use-from-code", "reference-mcp"):
+        skill = by_name[name]
+        manifest = mcp.rpc("skills/get", {"uri": skill["uri"]})["skill"]
+        prefix = "skill://" + name + "/"
+        expect(all(r["uri"].startswith(prefix) for r in manifest["resources"]),
+                      "page skill manifest includes another skill's resources")
+        entries = [next(r for r in manifest["resources"] if r["uri"] == skill["uri"])]
+        assets = [r for r in manifest["resources"] if r["uri"] != skill["uri"]]
+        if assets:
+            entries.append(assets[0])
+        for entry in entries:
+            uri = entry["uri"]
+            contents = mcp.rpc("resources/read", {"uri": uri})["contents"]
+            expect(len(contents) == 1 and contents[0]["uri"] == uri, "unexpected resource contents")
+            content = contents[0]
+            data = content["text"].encode() if "text" in content else base64.b64decode(content["blob"], validate=True)
+            expect(len(data) == entry["size"] and "sha256:" + hashlib.sha256(data).hexdigest() == entry["digest"],
+                          "resource hash or size mismatch")
+    return f"{len(skills)} page skills; manifests and resource hashes verified"
+
+
+def fetch_request(mcp, url=FETCH_URL, method="GET"):
+    return mcp.run_js("""
+try {
+  const response = await fetch(%s, {method: %s});
+  const body = await response.text();
+  if (!response.ok || !body.length) throw new Error("unsuccessful or empty fetch response: " + response.status);
+  console.log("CANARY-FETCH " + JSON.stringify({status: response.status, bytes: body.length}));
+} catch (e) {
+  console.log("CANARY-FETCH-THROWN " + String((e && e.message) || e));
+}
+""" % (json.dumps(url), json.dumps(method)))
+
+
+def expect_fetch(mcp, url=FETCH_URL, method="GET", allowed=True):
+    out = fetch_request(mcp, url, method)
+    if allowed:
+        expect("CANARY-FETCH {" in out, "fetch failed: " + out[:300])
+    else:
+        expect("CANARY-FETCH-THROWN" in out and "den" in out.lower(),
+               "fetch was not denied by policy: " + out[:300])
 
 
 def main():
@@ -399,6 +465,10 @@ def main():
             expect("CANARY-EXEC completed" in out and state["marker"] in out, "exec: %s" % out[:300])
         check("exec: a program runs, given as {bin, args}", execute)
 
+        if EXPECT_MCP_CAPABILITIES:
+            check("MCP skills: catalog, manifests and resource hashes", lambda: verify_skills(mcp))
+            check("fetch: HTTP response and body through run_js", lambda: expect_fetch(mcp))
+
         # --- the policy binds -----------------------------------------------------
         if not EXPECT_POLICIES:
             skip("the policy browser-only denies exec", "EXPECT_POLICIES=0")
@@ -423,11 +493,44 @@ def main():
                 expect("CANARY-RETURNED" in out and "canary page" in out, "the browser under browser-only: %s" % out[:300])
             restricted = check("the policy browser-only denies exec and allows the browser", restrict)
 
+            def fetch_permissions():
+                if not restricted:
+                    raise Failed("browser-only policy was not installed")
+                expect_fetch(mcp, allowed=False)
+                parsed = urllib.parse.urlsplit(FETCH_URL)
+                rule = """
+allow_tool_call if {
+    input.operation == "fetch"
+    input.url_parsed.scheme == %s
+    input.url_parsed.host == %s
+    input.url_parsed.path == %s
+    input.method == "GET"
+}
+""" % (json.dumps(parsed.scheme), json.dumps(parsed.hostname), json.dumps(parsed.path or "/"))
+                status, presets = api("GET", "/v1/policy-presets")
+                expect(status == 200, "could not read presets")
+                source = next(p["source"] for p in presets if p["id"] == "browser-only")
+                status, saved = api("PUT", "/v1/sessions/%s/policy" % sid,
+                                    {"kind": "rego", "source": source + rule,
+                                     "management": {"mode": "iac", "managed_url": MANAGED_URL}})
+                expect(status in (200, 202), "PUT fetch policy failed: %s" % saved)
+                wait_policy(sid)
+                expect_fetch(mcp)
+                expect_fetch(mcp, method="POST", allowed=False)
+                expect_fetch(mcp, url="https://example.com/", allowed=False)
+                expect_fetch(mcp, url=FETCH_URL.rstrip("/") + "/denied-path", allowed=False)
+                return "deny by default, allow GET at one host/path, deny POST and other destinations without restarting"
+
+            if EXPECT_MCP_CAPABILITIES:
+                check("editable fetch policy binds to the running session", fetch_permissions)
+
             def restore():
                 status, saved = api("DELETE", "/v1/sessions/%s/policy" % sid)
                 expect(status in (200, 202), "DELETE policy answered %d: %s" % (status, saved))
                 wait_policy(sid)
                 until("exec is allowed again", lambda: "CANARY-EXEC completed" in exec_echo(mcp, "restored"))
+                if EXPECT_MCP_CAPABILITIES:
+                    expect_fetch(mcp)
             if restricted:
                 check("the policy is put back, and exec runs again", restore)
             else:
