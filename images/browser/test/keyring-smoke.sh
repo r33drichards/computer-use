@@ -43,6 +43,28 @@ locked() {
     grep -q '<true>'
 }
 
+# Control-socket unlock and Secret Service object registration need not finish
+# together. Wait for the collection to be exported and unlocked before asking
+# libsecret to store an item; a stale default alias alone is not readiness.
+wait_unlocked() {
+  local path
+  for _ in $(seq 1 100); do
+    path="$(collection)"
+    if [ -n "$path" ] && [ "$path" != / ] &&
+      gdbus call --session --dest org.freedesktop.secrets \
+        --object-path "$path" \
+        --method org.freedesktop.DBus.Properties.Get org.freedesktop.Secret.Collection Locked \
+        2>/dev/null | grep -q '<false>'; then
+      return
+    fi
+    kill -0 "$pid"
+    sleep 0.1
+  done
+  cat "$TMPDIR/keyring-daemon.log" >&2
+  echo 'Login collection was not exported and unlocked after explicit unlock' >&2
+  exit 1
+}
+
 start
 [ "$(stat -c %a "$HOME/.local/share/keyrings")" = 700 ]
 [ "$(stat -c %a "$GNOME_KEYRING_CONTROL")" = 700 ]
@@ -52,6 +74,7 @@ start
 # Test fixture only: GNOME Keyring reads a password from stdin, never argv.
 printf %s 'keyring-smoke-password' | gnome-keyring-daemon --unlock \
   --control-directory="$GNOME_KEYRING_CONTROL" >/dev/null
+wait_unlocked
 printf %s 'keyring-smoke-secret' | timeout 20 secret-tool store \
   --label='Computer Use smoke test' computeruse-smoke keyring
 [ "$(timeout 20 secret-tool lookup computeruse-smoke keyring)" = keyring-smoke-secret ]
@@ -70,6 +93,7 @@ start
 locked
 printf %s 'keyring-smoke-password' | gnome-keyring-daemon --unlock \
   --control-directory="$GNOME_KEYRING_CONTROL" >/dev/null
+wait_unlocked
 [ "$(timeout 20 secret-tool lookup computeruse-smoke keyring)" = keyring-smoke-secret ]
 timeout 20 secret-tool clear computeruse-smoke keyring
 echo 'ok: Secret Service, encrypted storage, restart persistence, locked startup'
