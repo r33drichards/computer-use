@@ -296,6 +296,17 @@ variable "session_fallback_machine_types" {
   }
 }
 
+variable "session_fallback_min_nodes" {
+  description = "Minimum nodes per fallback pool, keyed by machine type. Keep the warm-pool controller's node available even when sessions are suspended."
+  type        = map(number)
+  default     = {}
+
+  validation {
+    condition     = alltrue([for machine, count in var.session_fallback_min_nodes : contains(keys(var.session_fallback_machine_types), machine) && count >= 0 && count <= var.session_max_nodes && floor(count) == count])
+    error_message = "Minimums must name configured fallback pools and be whole numbers between zero and session_max_nodes."
+  }
+}
+
 variable "session_min_cpu_platform" {
   description = <<-EOT
     Minimum CPU platform of session nodes. A snapshot only restores on a CPU
@@ -327,6 +338,17 @@ variable "session_spot" {
   EOT
   type        = bool
   default     = false
+}
+
+variable "session_disk_type" {
+  description = "Session node boot disk type. Session data volumes use their own storage class."
+  type        = string
+  default     = "pd-balanced"
+
+  validation {
+    condition     = contains(["pd-standard", "pd-balanced", "pd-ssd"], var.session_disk_type)
+    error_message = "Choose pd-standard, pd-balanced, or pd-ssd."
+  }
 }
 
 variable "session_disk_size_gb" {

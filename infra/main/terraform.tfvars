@@ -86,3 +86,9 @@ github_repository_id = "1400826306"
 
 # Isolated, real-session PR environments (docs/preview-environments.md).
 enable_previews = true
+
+# The DaemonSet must run to replenish warm slots after all sessions suspend.
+session_fallback_min_nodes = { n2d-standard-4 = 1 }
+
+# Keep SSD quota for session data even when the system pool needs two nodes.
+session_disk_type = "pd-standard"
