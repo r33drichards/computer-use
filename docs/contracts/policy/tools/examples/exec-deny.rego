@@ -3,7 +3,7 @@
 # desktop_execute is denied with the exec server on purpose. It drives the
 # mouse and keyboard of a desktop that has a terminal on it, so allowing it
 # allows typing commands into that terminal.
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

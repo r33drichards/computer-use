@@ -3,7 +3,7 @@
 # of ones that take no value, and URLs whose host is on the list. Anything
 # this policy does not recognise (-o, -L, -x, -K, --resolve, --connect-to,
 # a proxy variable in `env`, ...) denies the call.
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

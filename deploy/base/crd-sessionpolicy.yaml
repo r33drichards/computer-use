@@ -126,7 +126,7 @@ spec:
                   description: '"sha256:" and the hex SHA-256 of status.rego. What an OPA replica reports once it has loaded this policy.'
                   type: string
                 rego:
-                  description: The module in force for this session, with package browserjs.policy. It is the last one that compiled, which is not the current spec's while Compiled is False.
+                  description: The module in force for this session, with package computeruse.policy. It is the last one that compiled, which is not the current spec's while Compiled is False.
                   type: string
                 regoGeneration:
                   description: The generation status.rego and status.hash were built from.

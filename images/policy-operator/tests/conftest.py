@@ -35,7 +35,7 @@ def cfg(redis_server) -> Config:
                   webhook_redis_url=redis_server.url, webhook_redis_prefix="test:{" + __import__("uuid").uuid4().hex + "}:")
 
 
-H = "package browserjs.policy\nimport rego.v1\n"
+H = "package computeruse.policy\nimport rego.v1\n"
 
 
 def free_port() -> int:

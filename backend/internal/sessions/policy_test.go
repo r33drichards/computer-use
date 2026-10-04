@@ -21,7 +21,7 @@ var (
 		Source: `{"version": 1, "allow": {"operations": ["*"]}, "deny": {"operations": ["evaluate"]}}`,
 	}
 	asCode = sessions.PolicySpec{
-		Kind: "rego", Source: "package browserjs.policy\n\nallow_tool_call := false\n",
+		Kind: "rego", Source: "package computeruse.policy\n\nallow_tool_call := false\n",
 		Mode: sessions.PolicyModeIaC, ManagedURL: "https://git.example.com/infra", UpdatedBy: "token:ci",
 	}
 )
@@ -287,14 +287,14 @@ func TestClaimRecoveryKeepsTheRequestedPolicy(t *testing.T) {
 	// its owner made it.
 	res := client.Resource(sessions.PolicyGVR).Namespace(sessionstest.Namespace)
 	obj := sessionstest.Policy(t, client, "s-bcdfg")
-	_ = unstructured.SetNestedField(obj.Object, "package browserjs.policy\n", "spec", "source")
+	_ = unstructured.SetNestedField(obj.Object, "package computeruse.policy\n", "spec", "source")
 	if _, err := res.Update(ctx, obj, metav1.UpdateOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	if err := store.RecoverClaims(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if got := policySpec(t, sessionstest.Policy(t, client, "s-bcdfg")); got.Source != "package browserjs.policy\n" {
+	if got := policySpec(t, sessionstest.Policy(t, client, "s-bcdfg")); got.Source != "package computeruse.policy\n" {
 		t.Errorf("recovery overwrote the policy: %+v", got)
 	}
 }

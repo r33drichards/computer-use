@@ -1,6 +1,6 @@
 # The agent may be sent only to example.com and its subdomains, and may type
 # only short text. No desktop control and no shell.
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

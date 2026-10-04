@@ -7,7 +7,7 @@
 # make, an interpreter given a script). Its use is to keep every command a
 # program and arguments that a person reading the audit trail can read; to
 # restrict what runs, list what is allowed (exec-exact-commands.rego).
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

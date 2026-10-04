@@ -64,7 +64,7 @@ export const REGO_TEMPLATE = `# What an agent may do in this session. The policy
 # Restricting the browser while allowing desktop control or the shell can be
 # walked around: desktop_execute can type into the address bar or DevTools,
 # and a program run with exec can reach the browser's own control ports.
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

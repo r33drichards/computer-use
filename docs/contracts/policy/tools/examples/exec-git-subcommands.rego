@@ -11,7 +11,7 @@
 # the configuration of the repository it is run in, which can name programs
 # for git to run (core.fsmonitor, diff drivers): this policy is safe for
 # repositories the agent cannot write to, not for arbitrary ones.
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

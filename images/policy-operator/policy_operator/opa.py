@@ -73,7 +73,7 @@ def check(opa_bin: str, capabilities: Path, source: str) -> list[dict]:
 
 
 def eval_rule(opa_bin: str, capabilities: Path, source: str, input_doc, deadline: float) -> tuple[object, list[dict]]:
-    """The value of data.browserjs.policy.allow_tool_call for one input
+    """The value of data.computeruse.policy.allow_tool_call for one input
     (None when undefined) and OPA's errors. Raises OpaTimeout past the deadline.
     """
     with tempfile.TemporaryDirectory(prefix="policy-") as d:
@@ -83,7 +83,7 @@ def eval_rule(opa_bin: str, capabilities: Path, source: str, input_doc, deadline
             opa_bin,
             ["eval", "--format", "json", "--capabilities", str(capabilities),
              "--timeout", f"{deadline}s", "-d", "policy.rego", "-i", "input.json",
-             "data.browserjs.policy.allow_tool_call"],
+             "data.computeruse.policy.allow_tool_call"],
             d,
             # OPA's own deadline answers first; this one is for an OPA that hangs.
             timeout=deadline + 3,
@@ -99,10 +99,10 @@ def eval_rule(opa_bin: str, capabilities: Path, source: str, input_doc, deadline
 
 
 def eval_many(opa_bin: str, capabilities: Path, source: str, inputs: list, deadline: float) -> list[bool] | None:
-    """For each input, whether data.browserjs.policy.allow_tool_call is true;
+    """For each input, whether data.computeruse.policy.allow_tool_call is true;
     None when OPA reports an error. Raises OpaTimeout past the deadline.
     """
-    query = "{i | some i, probe in input.probes; data.browserjs.policy.allow_tool_call == true with input as probe}"
+    query = "{i | some i, probe in input.probes; data.computeruse.policy.allow_tool_call == true with input as probe}"
     with tempfile.TemporaryDirectory(prefix="policy-") as d:
         Path(d, "policy.rego").write_text(source, encoding="utf-8")
         Path(d, "input.json").write_text(json.dumps({"probes": inputs}), encoding="utf-8")

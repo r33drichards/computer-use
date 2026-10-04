@@ -106,7 +106,7 @@ spelled out and Phase 2 edits it; nothing in `deploy/gke` is templated.
 | `backend/internal/sessions/deploy_test.go` | the URLs the blueprint is rendered with for the comparison with `warmpool.yaml` | literal |
 | `backend/` otherwise | nothing: every URL comes from the environment | parameterised |
 | `web/` | nothing: the UI shows what the API returns | parameterised |
-| `terraform-provider-browserjs/` | default `endpoint`, `https://api.browserjs.com`, in code, tests, docs and examples | literal |
+| `terraform-provider-computeruse/` | default `endpoint`, `https://api.browserjs.com`, in code, tests, docs and examples | literal |
 | `docs/*.md`, `infra/README.md` | prose and commands | literal. `docs/plans/` is history and is left alone |
 
 ## Runbook
@@ -221,7 +221,7 @@ Rebase it on `main`. If other changes have added public names since
 rebase
 
 ```sh
-git grep -n 'browserjs\.com' -- deploy .github test site web backend terraform-provider-browserjs \
+git grep -n 'browserjs\.com' -- deploy .github test site web backend terraform-provider-computeruse \
   | grep -v 'browserjs\.com/pool'
 ```
 
@@ -447,7 +447,7 @@ step 4).
 - **API tokens** (#43, merged; off in production): the API host moves with
   the rest, to `https://api.computeruse.site`, and the Terraform provider's
   default endpoint with it. A token is not tied to a host, but whatever
-  holds the endpoint is: `BROWSERJS_ENDPOINT` or `endpoint =` set to the old
+  holds the endpoint is: `COMPUTERUSE_ENDPOINT` or `endpoint =` set to the old
   host has to change. Before turning tokens on (`ALLOWED_EMAILS`), nothing
   else to do.
 - **#31, the site on the apex**, and **#32**, its deploy: the certificate's

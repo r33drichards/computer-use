@@ -60,7 +60,7 @@ func TestPolicyRoutesNeedTheOperatorConfigured(t *testing.T) {
 	}
 	on.handler, _ = newHandler(cfg, verifier, store, idle.New(store, "test", 15*time.Minute, time.Now))
 
-	rec = on.do("POST", appHost, "/api/sessions", alice, `{"name":"work","policy":{"kind":"rego","source":"package browserjs.policy"}}`)
+	rec = on.do("POST", appHost, "/api/sessions", alice, `{"name":"work","policy":{"kind":"rego","source":"package computeruse.policy"}}`)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("create with a policy: %d %s", rec.Code, rec.Body)
 	}
@@ -123,7 +123,7 @@ func TestPoliciesWithAPITokens(t *testing.T) {
 	_, all := s.newToken(alice, auth.Scopes...)
 	_, sessionsOnly := s.newToken(alice, auth.ScopeSessionsRead, auth.ScopeSessionsWrite)
 	_, bobs := s.newToken(bob, auth.Scopes...)
-	const source = `{"kind":"rego","source":"package browserjs.policy"`
+	const source = `{"kind":"rego","source":"package computeruse.policy"`
 	const link = "https://git.example.com/infra"
 	path := "/v1/sessions/" + mine.ID + "/policy"
 	message := func(rec *httptest.ResponseRecorder) (m struct {
@@ -153,7 +153,7 @@ func TestPoliciesWithAPITokens(t *testing.T) {
 		t.Errorf("updated-by = %q", by)
 	}
 	// Now the cookie may not write, and is told where the policy is managed.
-	rec = s.do("PUT", appHost, "/api/sessions/"+mine.ID+"/policy", alice, `{"kind":"rego","source":"package browserjs.policy\n"}`)
+	rec = s.do("PUT", appHost, "/api/sessions/"+mine.ID+"/policy", alice, `{"kind":"rego","source":"package computeruse.policy\n"}`)
 	if m := message(rec); rec.Code != http.StatusConflict || m.Error != "this policy is managed externally" || m.ManagedURL != link {
 		t.Errorf("cookie, iac mode: %d %s", rec.Code, rec.Body)
 	}

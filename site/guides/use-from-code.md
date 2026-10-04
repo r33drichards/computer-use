@@ -133,16 +133,20 @@ to run code. See the [SDK reference](/reference/sdk) for every call.
 
 ::: warning Coming, not yet published
 The provider works with the live API but is in no registry yet. Until it is,
-build it from `terraform-provider-browserjs/` in the repository.
+build it from `terraform-provider-computeruse/` in the repository.
 :::
 
 ```hcl
-resource "browserjs_session" "research" {
+resource "session" "research" {
+  provider = computeruse
+
   name = "research"
 }
 
-resource "browserjs_session_policy" "research" {
-  session_id  = browserjs_session.research.id
+resource "session_policy" "research" {
+  provider = computeruse
+
+  session_id  = session.research.id
   managed_url = "https://github.com/example/infra/tree/main/desktops"
   rego        = file("${path.module}/no-scripting.rego")
 }
@@ -151,7 +155,7 @@ resource "browserjs_session_policy" "research" {
 Keep `no-scripting.rego` beside the Terraform configuration. For example:
 
 ```txt
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 
@@ -172,4 +176,6 @@ and `sessions:write` for the session resource, and `policies:read` and
 `policies:write` for its policy. Apply waits for the policy to be in force by
 default. The app shows it read-only with a link to `managed_url`.
 
-The provider and its resources keep the product's earlier name.
+The provider and its resources keep the product's earlier name. See the
+[Terraform and OpenTofu reference](/reference/terraform) for installation,
+every resource and data source, complete configurations, and import commands.

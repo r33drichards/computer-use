@@ -1,0 +1,13 @@
+**
+!images/
+!images/mcp-js/
+!images/mcp-js/**
+!site/
+!site/tutorials/
+!site/tutorials/**
+!site/guides/
+!site/guides/**
+!site/reference/
+!site/reference/**
+!site/explanation/
+!site/explanation/**
