@@ -290,9 +290,22 @@ jobs:
       - name: Actual module-policy image smoke
         timeout-minutes: 6
         if: matrix.name == 'mcp-js'
+        env:
+          RECEIPT_FILE: ${{ runner.temp }}/module-fixture/receipt.json
+          EXPECTED_SOURCE: ${{ steps.source.outputs.sha }}
         run: |
+          python3 -B images/mcp-js/module_fixture_receipt.py "$RECEIPT_FILE" "$EXPECTED_SOURCE" "$GITHUB_RUN_ID" "$GITHUB_JOB"
           python3 -B images/mcp-js/test-module-policy-contract.py
-          python3 -B images/mcp-js/test-module-policy-image.py mcp-js:ci
+          python3 -B images/mcp-js/test-module-policy-image.py mcp-js:ci "$RECEIPT_FILE" "$EXPECTED_SOURCE" "$GITHUB_RUN_ID" "$GITHUB_JOB"
+
+      - name: Separate bounded module fixture receipt
+        if: ${{ !cancelled() && matrix.name == 'mcp-js' && steps.source.outcome == 'success' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: module-fixture-${{ steps.source.outputs.sha }}-${{ github.run_id }}-${{ github.job }}
+          path: ${{ runner.temp }}/module-fixture/receipt.json
+          if-no-files-found: warn
+          retention-days: 14
 
       # The image as a session pod runs it (uid 1000, no capabilities), with
       # its XFCE desktop checked on the real display: window manager, panel,

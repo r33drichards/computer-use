@@ -7,9 +7,11 @@ import tempfile
 import time
 import urllib.request
 import uuid
+from module_fixture_receipt import Receipt
 
 OPA = 'openpolicyagent/opa:1.9.0-static@sha256:60b6af32b58377718546ac7d4634eecbfe50ec36f7d3ca3f8ebf515f9826c2ac'
 image = sys.argv[1]
+receipt = Receipt(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
 prefix = 'module-smoke-' + uuid.uuid4().hex[:10]
 owned = {}
 network = None
@@ -43,9 +45,13 @@ def execute(base, code):
     raise AssertionError('module execution deadline')
 def port(name, service='8080/tcp'): return 'http://' + docker('port', name, service).splitlines()[0]
 try:
+    receipt.mark('image')
+    receipt.image(docker('image','inspect','--format','{{ index .Config.Labels "org.opencontainers.image.revision" }}',image), docker('image','inspect','--format','{{ .Id }}',image))
+    receipt.mark('network')
     network = docker('network', 'create', '--internal', prefix)
     with tempfile.TemporaryDirectory(prefix=prefix) as tmp:
         directory = pathlib.Path(tmp); directory.chmod(0o755)
+        receipt.mark('files')
         decision = pathlib.Path('docs/contracts/policy/decision-module.rego.tmpl').read_text()
         for sid in ('s-abcdefghij', 's-klmnopqrst', 's-cdefghijkl', 's-defghijklm'):
             (directory/(sid+'.rego')).write_text(decision.replace('{{SESSION_ID}}', sid))
@@ -54,42 +60,60 @@ try:
         (directory/'wronggrant.rego').write_text('package browserjs.tenant["s-cdefghijkl"]\nimport rego.v1\nallow_tool_call := true\nallow_unrestricted_modules := "true"\n')
         (directory/'legacy.rego').write_text('package browserjs.tenant["s-defghijklm"]\nimport rego.v1\nallow_tool_call := true\n')
         opa = prefix+'-opa'
+        receipt.mark('opa-create')
         start(opa, '--network', network, '--network-alias', 'opa', '--memory', '128m', '--cpus', '0.5', '--pids-limit', '64', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '-p', '127.0.0.1::8181', '-v', tmp+':/policies:ro', OPA, 'run', '--server', '--addr=0.0.0.0:8181', '/policies')
         fixture = prefix+'-http'
+        receipt.mark('http-create')
         start(fixture, '--network', network, '--network-alias', 'fixture', '--network-alias', 'esm.sh', '--memory', '128m', '--cpus', '0.5', '--pids-limit', '64', '--user', '1000:1000', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '-p', '127.0.0.1::8080', '-v', str(pathlib.Path('images/mcp-js/test-module-http.py').resolve())+':/fixture.py:ro', 'python:3.13-slim', 'python3', '-B', '/fixture.py')
+        receipt.mark('http-ready')
         http = port(fixture); ready(http, '/count')
+        receipt.mark('opa-ready')
         opa_api = port(opa, '8181/tcp'); ready(opa_api, '/health')
+        receipt.mark('grant-spoof')
         spoof = {'input': {'specifier':'http://fixture:8080/module.js', 'resolved_url':'http://fixture:8080/module.js','url_parsed':{'scheme':'http'},'allow_unrestricted_modules':True}}
         assert request(opa_api, '/v1/data/browserjs/decision/s-abcdefghij/mcp_tools', spoof).get('result',{}).get('allow') is False, 'input-supplied grant accepted'
         for mode, sid, remote in [('restrictive','s-abcdefghij','http://opa:8181'), ('unrestricted','s-klmnopqrst','http://opa:8181'), ('undefined','s-uvwxyzabcd','http://opa:8181'), ('legacy','s-defghijklm','http://opa:8181'), ('grant-wrongtype','s-cdefghijkl','http://opa:8181'), ('wrongtype','s-abcdefghij','http://fixture:8080'), ('error','s-abcdefghij','http://fixture:8080'), ('timeout','s-abcdefghij','http://fixture:8080')]:
             name = prefix+'-'+mode
             policy = {'modules': {'mode':'all','policies':[{'url':'file:///etc/mcp/modules.rego'},{'url':remote,'policy_path':'browserjs/decision/'+sid+('/'+mode if mode in ('error','timeout') else '/mcp_tools')}]}}
+            receipt.mark('mcp-create',mode)
             start(name,'--network',network,'--memory','512m','--cpus','1','--pids-limit','128','--cap-drop','ALL','--security-opt','no-new-privileges','-p','127.0.0.1::8080','-e','MCP_V8_MCP_CONFIG=[]','-e','MCP_V8_POLICIES_JSON='+json.dumps(policy),'--entrypoint','/usr/local/bin/mcp-v8',image,'--allow-external-modules')
+            receipt.mark('mcp-ready',mode)
             api = port(name)
             for _ in range(60):
                 try:
                     if execute(api, '1+1').get('status') == 'completed': break
                 except Exception: time.sleep(0.25)
             else: raise AssertionError('MCP readiness deadline')
+            receipt.mark('native',mode)
             assert execute(api, 'import path from "node:path"; console.log(path.basename("/synthetic/fixture"));')['status'] == 'completed', 'native builtin regressed'
             codes = ['import {value} from "http://fixture:8080/module.js?synthetic='+mode+'"; console.log(value);', 'import {value} from "http://fixture:8080/redirect?synthetic='+mode+'"; console.log(value);']
             codes.append('import {value} from "http://fixture:8080/parent.js?synthetic='+mode+'"; console.log(value);')
             if mode != 'unrestricted':
                 codes += ['import x from "http://fixture:8080/invalid?synthetic=yes";', 'import x from "npm:synthetic-fixture@1.0.0";', 'import x from "jsr:@synthetic/fixture@1.0.0";', 'import x from "https://esm.sh/invalid?synthetic='+mode+'";']
             if mode == 'timeout': codes = codes[:1]
-            before = request(http, '/count')
-            for code in codes:
+            before = request(http, '/count'); receipt.counter('counterBefore',before)
+            for operation, code in enumerate(codes):
+                receipt.mark('module',mode,operation)
                 result = execute(api, code)
+                receipt.counter('counterAfter', request(http, '/count'))
                 assert result['status'] == ('completed' if mode == 'unrestricted' else 'failed'), 'module policy outcome'
                 if mode != 'unrestricted': assert 'Module ' in json.dumps(result), 'failure was not module hook denial'
             if mode == 'unrestricted':
+                receipt.mark('probe',mode)
                 probe_before = request(http, '/count')
                 probe = execute(api, 'import x from "https://esm.sh/transport-control?synthetic=yes";')
                 assert probe['status'] == 'failed' and request(http, '/count') > probe_before, 'esm.sh transport trap positive control failed'
-            after = request(http, '/count')
+            receipt.mark('counter',mode)
+            after = request(http, '/count'); receipt.counter('counterAfter',after)
             assert (after > before) if mode == 'unrestricted' else (after == before), 'module transport escaped policy'
+            receipt.mark('mode-complete',mode)
             print('ok actual module loader: ' + mode, flush=True)
             docker('rm','-f',owned[name]); del owned[name]
+    receipt.complete()
+except Exception as error:
+    receipt.fail(error)
+    print('module fixture failed; inspect bounded associated fixture receipt',flush=True)
+    raise SystemExit(1)
 finally:
     for ident in reversed(list(owned.values())):
         try: docker('rm','-f',ident)

@@ -161,8 +161,9 @@ describe("policy state", () => {
 
   it("recognises the unrestricted policy, whatever its comments and spacing", () => {
     const rego = (source: string) => ({ kind: "rego" as const, source })
-    expect(isUnrestricted(rego("package computeruse.policy\n\nimport rego.v1\n\nallow_tool_call := true\n"))).toBe(true)
-    expect(isUnrestricted(rego("# all of it\npackage computeruse.policy\nimport rego.v1 # v1\n\tallow_tool_call  :=  true"))).toBe(true)
+    expect(isUnrestricted(rego("package computeruse.policy\n\nimport rego.v1\n\nallow_tool_call := true\n"))).toBe(false)
+    expect(isUnrestricted(rego("package computeruse.policy\nimport rego.v1\nallow_tool_call := true\nallow_unrestricted_modules := true\n"))).toBe(true)
+    expect(isUnrestricted(rego("# all of it\npackage computeruse.policy\nimport rego.v1 # v1\n\tallow_tool_call  :=  true\n allow_unrestricted_modules := true"))).toBe(true)
     expect(isUnrestricted(rego("package computeruse.policy\nimport rego.v1\nallow_tool_call := false\n"))).toBe(false)
     expect(isUnrestricted(rego("package computeruse.policy\nimport rego.v1\nallow_tool_call := true\nx := 1\n"))).toBe(false)
     // Commented out, it allows nothing.
