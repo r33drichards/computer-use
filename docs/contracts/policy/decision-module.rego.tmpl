@@ -17,3 +17,11 @@ allow if {
 	}[input.server]
 	data.browserjs.tenant["{{SESSION_ID}}"].allow_tool_call == true
 }
+
+# Fetch uses the same tenant entry rule and decision endpoint. The local
+# image policy also limits requests to HTTP(S).
+allow if {
+	input.operation == "fetch"
+	input.url_parsed.scheme in {"http", "https"}
+	data.browserjs.tenant["{{SESSION_ID}}"].allow_tool_call == true
+}

@@ -41,12 +41,25 @@ No state carries from one call to the next. The desktop and the disk do.
 | `fs` | Node-style file functions, for `/data/` and its subdirectories. |
 | `artifact(key, mime, bytes)` | Attaches an image or file to the result. Up to 16 MiB each. |
 | `artifact.get(key)`, `artifact.list()` | Reads stored artifacts and uploaded files. |
+| `fetch(url, options?)` | HTTP(S) requests, subject to the session policy. Returns a standard Fetch Response. |
 | top-level `await` | Supported. |
 
 ### Not available in the code
 
-The general-purpose `fetch` API, environment variables, DOM APIs,
-`child_process`. Timers (`setTimeout`, `setInterval`) are available.
+Environment variables, DOM APIs, and `child_process`. Timers (`setTimeout`, `setInterval`) are available.
+
+### Fetching HTTP data
+
+```js
+const response = await fetch("https://api.example.com/v1/data")
+if (!response.ok) throw new Error(`HTTP ${response.status}`)
+console.log(await response.json())
+```
+
+The default Unrestricted policy allows HTTP(S) fetch. Other presets deny
+fetch until a matching rule is added. [Fetch permissions](/reference/policy#fetch-requests)
+shows the request fields and how to allow a host, path, and method. Policy
+edits apply to subsequent requests without restarting the session.
 
 ### Importing packages
 

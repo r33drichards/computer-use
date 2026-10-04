@@ -52,8 +52,8 @@ export default defineConfig({
   cleanUrls: true,
   srcExclude: ["README.md"],
   lastUpdated: false,
-  // Black on white only, like the app.
-  appearance: false,
+  // Follow the device until the visitor chooses a theme.
+  appearance: true,
   sitemap: { hostname: origin },
   head: process.env.VITEPRESS_PREVIEW === "true" ? [["meta", { name: "robots", content: "noindex, nofollow" }]] : [],
   // Each page names its one address.
