@@ -49,9 +49,9 @@ policies=0
 images="$(awk '$1 == "image:" { n = split($2, p, "/"); sub(/:.*/, "", p[n]); printf "%s%s=%s", sep, p[n], $2; sep = "," }' deploy/local/blueprint.yaml)"
 failed=""
 
-# A backend restart can leave Envoy briefly using an old headless-Service
-# endpoint even after Kubernetes reports the replacement pod ready. Wait
-# for the API route itself, retaining the canary's unauthenticated 401 check.
+# Kubernetes rollout readiness does not establish that the gateway can
+# reach the replacement backend. Wait for the API route itself, retaining
+# the canary's unauthenticated 401 check.
 echo "Waiting for the API route through Pomerium"
 edge_deadline=$((SECONDS + 90))
 while :; do
