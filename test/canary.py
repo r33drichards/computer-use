@@ -44,6 +44,7 @@ The environment:
   SUMMARY              a file the results are appended to, as Markdown
 """
 from bounded_process import run_bounded, OutputLimitExceeded
+from private_diagnostic_file import write_private_json
 
 import base64
 import hashlib
@@ -470,14 +471,12 @@ def main():
                         payload = json.loads(done.stdout)
                         os.makedirs(directory, mode=0o700, exist_ok=True)
                         path = os.path.join(directory, sid + ".json")
-                        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-                        with os.fdopen(fd, "w") as output:
-                            def scrub_values(value):
-                                if isinstance(value, str): return scrub(value)
-                                if isinstance(value, list): return [scrub_values(x) for x in value]
-                                if isinstance(value, dict): return {k: scrub_values(v) for k, v in value.items()}
-                                return value
-                            output.write(json.dumps(scrub_values(payload)))
+                        def scrub_values(value):
+                            if isinstance(value, str): return scrub(value)
+                            if isinstance(value, list): return [scrub_values(x) for x in value]
+                            if isinstance(value, dict): return {k: scrub_values(v) for k, v in value.items()}
+                            return value
+                        write_private_json(path, json.dumps(scrub_values(payload)))
                         print("      saved sanitized owned-pod diagnostics", flush=True)
                     else:
                         print("      owned-pod diagnostics failed", flush=True)

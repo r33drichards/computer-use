@@ -23,6 +23,8 @@ on:
       - "docs/contracts/policy/**"
       - "hack/**"
       - "test/canary.py"
+      - "test/private_diagnostic_file.py"
+      - "test/private-diagnostic-file-test.py"
       - "test/canary-kind.sh"
       - ".github/workflows/canary-kind.yml"
   workflow_dispatch:
@@ -63,6 +65,7 @@ jobs:
           python3 -m py_compile test/canary.py
           python3 -B test/canary-pod-diagnostics-test.py
           python3 -B test/bounded-process-test.py
+          python3 -B test/private-diagnostic-file-test.py
           python3 -B test/chromium-launch-lock-test.py
           # Without a token it says so and does nothing.
           if env -u CANARY_API_TOKEN test/canary.py; then

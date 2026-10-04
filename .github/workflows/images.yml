@@ -34,6 +34,9 @@ on:
       - "README.md"
       - ".github/workflows/images.yml"
       - ".github/image-build-matrix.json"
+      - "test/build-context-receipt*.py"
+      - "test/ci-source-binding*"
+      - "test/image-helper-trigger-test.py"
       - "hack/site-release.sh"
       - "deploy/argocd/**"
       - "deploy/gke/**"
@@ -58,6 +61,9 @@ on:
       - "README.md"
       - ".github/workflows/images.yml"
       - ".github/image-build-matrix.json"
+      - "test/build-context-receipt*.py"
+      - "test/ci-source-binding*"
+      - "test/image-helper-trigger-test.py"
       - "hack/site-release.sh"
       - "deploy/argocd/**"
       - "deploy/gke/**"
@@ -170,7 +176,7 @@ jobs:
             echo "Changed files:"
             printf '%s\n' "$files" | sed 's/^/  /'
             touches() { grep -Eq "$1" <<<"$files"; }
-            if touches '^\.github/(workflows/images\.yml|image-build-matrix\.json)$'; then
+            if touches '^\.github/(workflows/images\.yml|image-build-matrix\.json)$|^test/(build-context-receipt[^/]*\.py|ci-source-binding[^/]*|image-helper-trigger-test\.py)$'; then
               # The pipeline itself changed: prove it on every image.
               wanted=(backend mcp-js browser site policy-operator billing-operator)
             else
@@ -221,6 +227,7 @@ jobs:
         run: |
           bash test/ci-source-binding.sh
           node --test test/ci-source-binding.test.mjs
+          python3 -B test/image-helper-trigger-test.py
 
       # A hosted runner has about 14 GB free; the browser image needs its
       # Nix store, a copy of it, and the exported layer.
@@ -272,11 +279,18 @@ jobs:
           provenance: false
           labels: org.opencontainers.image.revision=${{ steps.source.outputs.sha }}
           # The browser image is started below: it has to be in Docker.
-          load: ${{ matrix.name == 'browser' }}
-          tags: ${{ matrix.name == 'browser' && 'browser:ci' || '' }}
+          load: ${{ matrix.name == 'browser' || matrix.name == 'mcp-js' }}
+          tags: ${{ matrix.name == 'browser' && 'browser:ci' || (matrix.name == 'mcp-js' && 'mcp-js:ci' || '') }}
           cache-from: ${{ matrix.cache && format('type=gha,scope={0}', matrix.name) || '' }}
           # Pull requests can read main's cache; what they write stays theirs.
           cache-to: ${{ matrix.cache && format('type=gha,scope={0},mode=max,ignore-error=true', matrix.name) || '' }}
+
+      - name: Actual module-policy image smoke
+        timeout-minutes: 6
+        if: matrix.name == 'mcp-js'
+        run: |
+          python3 -B images/mcp-js/test-module-policy-contract.py
+          python3 -B images/mcp-js/test-module-policy-image.py mcp-js:ci
 
       # The image as a session pod runs it (uid 1000, no capabilities), with
       # its XFCE desktop checked on the real display: window manager, panel,

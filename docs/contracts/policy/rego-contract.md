@@ -321,3 +321,24 @@ decision/<session id>.rego      the decision module
 
 The operator's token reaches the policy as the environment variable
 `OPERATOR_TOKEN` of the OPA container.
+
+## External module network authority (pinned MCP723fe32)
+
+The installed modules ALL policy chain uses the same fixed session decision
+endpoint as tools/fetch; module inputs contain specifier, resolved_url, type
+and parsed scheme/host/path, not fetch input or caller identity. The platform
+checks only an explicit allow_unrestricted_modules == true evaluated with
+input as {}. Unspecified/false/wrong-type/error grants deny retrieval before
+the initial GET, including resolved npm/jsr transports. Only the existing
+unrestricted preset grants it; stored tenant policies are not rewritten.
+Legacy unrestricted custom policies without the grant now fail closed for
+external imports until explicitly amended. Tools/fetch/native builtins keep
+their existing rules; allow_tool_call or an input-supplied grant is not a
+module grant.
+
+This is deliberately full module transport authority within NetworkPolicy,
+including query strings, dependencies, npm/jsr and redirects. The pinned
+loader automatically follows redirects without a new policy check: granular
+per-host external imports therefore cannot be safely granted and restrictive
+policies deny ALL external retrieval. No per-hop authorization, credential
+injection, redirect SSRF protection or production proof is claimed.
