@@ -1,6 +1,6 @@
 # Fetch permissions
 
-JavaScript `fetch()` is enabled in both MCP images for HTTP and HTTPS.
+JavaScript `fetch()` is enabled in the session MCP image for HTTP and HTTPS.
 When session policies are enforcing, each request must pass the image's
 local HTTP(S) policy and the session's editable `allow_tool_call` rule.
 Requests use the same OPA decision endpoint as tool calls, with a different
