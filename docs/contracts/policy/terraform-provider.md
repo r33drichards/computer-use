@@ -51,7 +51,7 @@ policy in `editor` mode.
 |---|---|---|---|
 | `id` | string | computed | Equal to `session_id`. Import by it. |
 | `session_id` | string | required, forces replacement | |
-| `rego` | string | required | The policy: a Rego module, package `browserjs.policy`, at most 65536 bytes. Compared as text. |
+| `rego` | string | required | The policy: a Rego module, package `computeruse.policy`, at most 65536 bytes. Compared as text. |
 | `managed_url` | string | required | `https` URL of where this configuration lives; shown in the UI. |
 | `wait_for_ready` | bool | optional, default true | Whether apply waits for the policy to be in force. |
 | `version` | number | computed | |

@@ -34,7 +34,7 @@ def cfg() -> Config:
                   opa_token="opa-secret", api_token="api-secret")
 
 
-H = "package browserjs.policy\nimport rego.v1\n"
+H = "package computeruse.policy\nimport rego.v1\n"
 
 
 def free_port() -> int:

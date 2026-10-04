@@ -9,7 +9,7 @@ reference for someone writing a policy.
 
 One Rego module (Rego v1 syntax), at most 65536 bytes, which:
 
-- declares exactly `package browserjs.policy`;
+- declares exactly `package computeruse.policy`;
 - defines `allow_tool_call`. The call is allowed only when it evaluates to
   `true`; undefined, `false`, or any other value denies;
 - may define any other rules and functions in that package for its own use.
@@ -232,8 +232,8 @@ so they appear in package clauses in the bracketed form,
 In this order; the first three use the AST from
 `opa parse --format json --json-include locations`.
 
-1. **Package**: the package path is exactly `data.browserjs.policy`.
-   Otherwise `policy_guard_error`, "the package must be browserjs.policy".
+1. **Package**: the package path is exactly `data.computeruse.policy`.
+   Otherwise `policy_guard_error`, "the package must be computeruse.policy".
 2. **Imports**: each import's path starts with `rego`, `future` or `input`.
    Otherwise `policy_guard_error`.
 3. **No `data`, no `with`**: no term of type `var` with value `data` occurs

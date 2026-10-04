@@ -63,7 +63,7 @@ func TestRequestShape(t *testing.T) {
 			t.Errorf("Content-Type %q", got)
 		}
 		body, _ := io.ReadAll(r.Body)
-		const want = `{"kind":"rego","source":"package browserjs.policy","management":{"mode":"iac","managed_url":"https://example.com/x"}}`
+		const want = `{"kind":"rego","source":"package computeruse.policy","management":{"mode":"iac","managed_url":"https://example.com/x"}}`
 		if !sameJSON(string(body), want) {
 			t.Errorf("body %s", body)
 		}
@@ -71,7 +71,7 @@ func TestRequestShape(t *testing.T) {
 		_, _ = w.Write([]byte(`{"kind":"rego","version":4,"hash":"abc","state":"loading","management":{"mode":"iac","managed_url":"https://example.com/x"}}`))
 	})
 	p, loading, err := c.PutPolicy(context.Background(), "s-ab2cd", PolicyInput{
-		Kind: "rego", Source: "package browserjs.policy",
+		Kind: "rego", Source: "package computeruse.policy",
 		Management: &Management{Mode: ModeIaC, ManagedURL: "https://example.com/x"},
 	})
 	if err != nil || !loading || p.Version != 4 || p.State != StateLoading || p.Management.Mode != ModeIaC {
@@ -85,7 +85,7 @@ func TestValidateSendsOnlyTheSource(t *testing.T) {
 		if !sameJSON(string(body), `{"kind":"rego","source":"package p"}`) {
 			t.Errorf("body %s", body)
 		}
-		_ = json.NewEncoder(w).Encode(Validation{Errors: []Diagnostic{{Row: 1, Col: 2, Code: "package", Message: "the package must be browserjs.policy"}}})
+		_ = json.NewEncoder(w).Encode(Validation{Errors: []Diagnostic{{Row: 1, Col: 2, Code: "package", Message: "the package must be computeruse.policy"}}})
 	})
 	v, err := c.ValidatePolicy(context.Background(), "package p")
 	if err != nil || v.OK || len(v.Errors) != 1 || v.Errors[0].Row != 1 || v.Errors[0].Col != 2 {

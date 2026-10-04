@@ -87,7 +87,7 @@ func (r *sessionPolicyResource) Metadata(_ context.Context, _ resource.MetadataR
 func (r *sessionPolicyResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "The policy of one session, managed as code: which tool calls an agent connected over MCP may make: the browser (`browser_execute`), desktop control (`desktop_execute`) and the shell (the `exec` server).\n\n" +
-			"The policy is a Rego module of package `browserjs.policy` that defines `allow_tool_call`; what it is asked and the built-ins it may use are in `docs/contracts/policy/rego-contract.md` of the computeruse repository, and ready-made policies in `docs/contracts/policy/examples/`.\n\n" +
+			"The policy is a Rego module of package `computeruse.policy` that defines `allow_tool_call`; what it is asked and the built-ins it may use are in `docs/contracts/policy/rego-contract.md` of the computeruse repository, and ready-made policies in `docs/contracts/policy/examples/`.\n\n" +
 			"~> **A policy that restricts `browser_execute` must deny `desktop_execute` and the `exec` server.** Either can drive the browser around the rules: the desktop through the address bar and DevTools, a shell command through the browser's own control ports. The API answers such a policy with a warning, which the plan and the apply show.\n\n" +
 			"Creating this resource puts the session's policy in managed-as-code mode: the UI shows it read-only with a link to `managed_url`. " +
 			"Destroying it resets the session to the unrestricted policy, editable in the UI again.\n\n" +
@@ -109,7 +109,7 @@ func (r *sessionPolicyResource) Schema(ctx context.Context, _ resource.SchemaReq
 			},
 			"rego": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "The policy: a Rego module of package `browserjs.policy`, usually `file(\"${path.module}/policy.rego\")`. Compared as text, so a change of formatting is a change.",
+				MarkdownDescription: "The policy: a Rego module of package `computeruse.policy`, usually `file(\"${path.module}/policy.rego\")`. Compared as text, so a change of formatting is a change.",
 				Validators:          []validator.String{stringvalidator.LengthBetween(1, 65536)},
 			},
 			"managed_url": schema.StringAttribute{

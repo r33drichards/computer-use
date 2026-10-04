@@ -14,7 +14,7 @@ vi.mock("./MonacoEditor", () => ({ default: FakeEditor }))
 afterEach(cleanup)
 
 const rego = (source: string): PolicySource => ({ kind: "rego", source })
-const BAD = "package browserjs.policy\n\nallow_tool_call if http.send({})\n"
+const BAD = "package computeruse.policy\n\nallow_tool_call if http.send({})\n"
 // one-site restricts the browser; this leaves the shell open beside it.
 const WITH_SHELL = presetSource("one-site") + '\nallow_tool_call if input.server == "exec"\n'
 
@@ -84,7 +84,7 @@ describe("policy workbench", () => {
     // A backend whose check cannot be reached: only the save's 422 is known.
     globalThis.__testFetch = async () => new Response(JSON.stringify({ error: "the operator could not be reached" }), { status: 503, headers: { "Content-Type": "application/json" } })
     const refused = { errors: [{ row: 2, col: 3, code: "rego_type_error", message: "undefined function http.send" }], warnings: [{ code: "w", message: "no place" }] }
-    render(<Bench start={rego("package browserjs.policy\n  http.send({})\n")} refused={refused} />)
+    render(<Bench start={rego("package computeruse.policy\n  http.send({})\n")} refused={refused} />)
     const problems = await screen.findByRole("list", { name: "Problems" })
     expect(problems.textContent).toContain("2:3  undefined function http.send")
     expect(problems.textContent).toContain("Warning no place")
@@ -113,7 +113,7 @@ describe("policy workbench", () => {
     expect(dropdown.findItems().map(i => i.getElement().textContent)).toEqual(presets.map(p => expect.stringContaining(p.title)))
     dropdown.findItemById("read-only-shell")!.click()
     expect((await editor()).value).toBe(presetSource("read-only-shell"))
-    expect((await editor()).value).toContain("package browserjs.policy")
+    expect((await editor()).value).toContain("package computeruse.policy")
   })
 
   it("has no presets to offer unless it is given them", async () => {

@@ -17,7 +17,7 @@ const (
 	managedURL = "https://github.com/example/infra/tree/main/computeruse"
 
 	// Everything in the browser but script in the page. No desktop, no shell.
-	noScripting = `package browserjs.policy
+	noScripting = `package computeruse.policy
 
 import rego.v1
 
@@ -29,7 +29,7 @@ allow_tool_call if {
 	}
 }
 `
-	observeOnly = `package browserjs.policy
+	observeOnly = `package computeruse.policy
 
 import rego.v1
 
@@ -42,7 +42,7 @@ allow_tool_call if {
 }
 `
 	// The whole browser and nothing else.
-	browserOnly = `package browserjs.policy
+	browserOnly = `package computeruse.policy
 
 import rego.v1
 
@@ -296,16 +296,16 @@ func TestPolicyInvalidAtPlanTime(t *testing.T) {
 	id := h.fake.AddSession("research")
 
 	// A rule that is not closed: the error is at the end, on line 4.
-	unclosed := "package browserjs.policy\n\nallow_tool_call if {\n"
+	unclosed := "package computeruse.policy\n\nallow_tool_call if {\n"
 	p := h.plan(policyRes, h.null(policyRes), policyConfig(id, unclosed))
 	wantError(t, p.diags, `AttributeName("rego")`, "Invalid policy", "rego line 4, column 1: unexpected end of file: } expected (rego_parse_error)")
 
 	wrongPackage := "# a policy\npackage wrong.name\n\nallow_tool_call := true\n"
 	p = h.plan(policyRes, h.null(policyRes), policyConfig(id, wrongPackage))
-	wantError(t, p.diags, `AttributeName("rego")`, "Invalid policy", "rego line 2, column 9: the package must be browserjs.policy, not wrong.name (policy_guard_error)")
+	wantError(t, p.diags, `AttributeName("rego")`, "Invalid policy", "rego line 2, column 9: the package must be computeruse.policy, not wrong.name (policy_guard_error)")
 
 	// An error about the module as a whole has no position to give.
-	noEntry := "package browserjs.policy\n\nallow := true\n"
+	noEntry := "package computeruse.policy\n\nallow := true\n"
 	p = h.plan(policyRes, h.null(policyRes), policyConfig(id, noEntry))
 	wantError(t, p.diags, `AttributeName("rego")`, "Invalid policy", "the policy must define allow_tool_call (policy_guard_error)")
 	for _, text := range errorsOf(p.diags) {
@@ -385,7 +385,7 @@ func TestPolicyInvalidAtApplyTime(t *testing.T) {
 	id := h.fake.AddSession("research")
 	p := h.plan(policyRes, h.null(policyRes), policyConfig(id, noScripting))
 	noErrors(t, "plan", p.diags)
-	bad := policyConfig(id, "package browserjs.policy\n\nallow_tool_call if {\n\tinput.server == \"browser\"\n}}\n")
+	bad := policyConfig(id, "package computeruse.policy\n\nallow_tool_call if {\n\tinput.server == \"browser\"\n}}\n")
 	typ := h.resourceSchema(policyRes).ValueType()
 	p.config = toValue(t, typ, bad)
 	c := cfg{"id": unknown, "version": unknown, "hash": unknown, "compiled_rego": unknown, "state": unknown, "wait_for_ready": true}

@@ -54,7 +54,7 @@ The whole example, with another policy on two more sessions, is
 
 ## Writing a policy
 
-A policy is a Rego module of package `browserjs.policy` that defines
+A policy is a Rego module of package `computeruse.policy` that defines
 `allow_tool_call`. Rego is the only kind: there is no JSON format. The
 platform asks the policy about every tool call an agent makes, with
 `input.server`, `input.tool` and `input.arguments`: `browser_execute` and

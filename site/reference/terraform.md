@@ -146,7 +146,7 @@ resource "session_policy" "research" {
   wait_for_ready = true
 
   rego = <<-EOT
-    package browserjs.policy
+    package computeruse.policy
 
     import rego.v1
 
@@ -331,7 +331,7 @@ apply in place and restart neither the session nor its desktop.
 | Argument | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `session_id` | String | Yes | ID of the session. Changing it replaces the policy resource and resets the old session's policy; it does not replace either session |
-| `rego` | String | Yes | Rego v1 module declaring `package browserjs.policy` and defining `allow_tool_call`. Source must be nonempty and at most 65536 bytes |
+| `rego` | String | Yes | Rego v1 module declaring `package computeruse.policy` and defining `allow_tool_call`. Source must be nonempty and at most 65536 bytes |
 | `managed_url` | String | Yes | https URL of the configuration's location, shown in the app |
 | `wait_for_ready` | Boolean | No | Default `true`. Wait for the saved policy to be in force |
 | `timeouts` | Block | No | `create` and `update` are the readiness wait limits; each defaults to `2m` |
@@ -468,7 +468,7 @@ resource "session_policy" "existing" {
   managed_url = "https://github.com/example/infra/tree/main/desktops"
 
   rego = <<-EOT
-    package browserjs.policy
+    package computeruse.policy
 
     import rego.v1
 

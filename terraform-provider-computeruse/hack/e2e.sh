@@ -89,7 +89,7 @@ expect 0 "Apply complete! Resources: 0 added, 1 changed, 0 destroyed." "$tf" app
 
 step "a policy that does not validate fails the plan, with its line and column"
 cp one-site.rego one-site.rego.orig
-printf 'package browserjs.policy\n\nallow_tool_call if {\n' > one-site.rego
+printf 'package computeruse.policy\n\nallow_tool_call if {\n' > one-site.rego
 expect 1 "rego line 4, column 1" "$tf" plan -no-color
 mv one-site.rego.orig one-site.rego
 

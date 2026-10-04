@@ -4,7 +4,7 @@ page_title: "session_policy Resource - computeruse"
 subcategory: ""
 description: |-
   The policy of one session, managed as code: which tool calls an agent connected over MCP may make: the browser (browser_execute), desktop control (desktop_execute) and the shell (the exec server).
-  The policy is a Rego module of package browserjs.policy that defines allow_tool_call; what it is asked and the built-ins it may use are in docs/contracts/policy/rego-contract.md of the computeruse repository, and ready-made policies in docs/contracts/policy/examples/.
+  The policy is a Rego module of package computeruse.policy that defines allow_tool_call; what it is asked and the built-ins it may use are in docs/contracts/policy/rego-contract.md of the computeruse repository, and ready-made policies in docs/contracts/policy/examples/.
   ~> A policy that restricts browser_execute must deny desktop_execute and the exec server. Either can drive the browser around the rules: the desktop through the address bar and DevTools, a shell command through the browser's own control ports. The API answers such a policy with a warning, which the plan and the apply show.
   Creating this resource puts the session's policy in managed-as-code mode: the UI shows it read-only with a link to managed_url. Destroying it resets the session to the unrestricted policy, editable in the UI again.
   A change to the policy is applied in place and restarts nothing; it never replaces the session. The policy is checked at plan time, and errors are reported with their line and column, warnings as warnings.
@@ -16,7 +16,7 @@ description: |-
 
 The policy of one session, managed as code: which tool calls an agent connected over MCP may make: the browser (`browser_execute`), desktop control (`desktop_execute`) and the shell (the `exec` server).
 
-The policy is a Rego module of package `browserjs.policy` that defines `allow_tool_call`; what it is asked and the built-ins it may use are in `docs/contracts/policy/rego-contract.md` of the computeruse repository, and ready-made policies in `docs/contracts/policy/examples/`.
+The policy is a Rego module of package `computeruse.policy` that defines `allow_tool_call`; what it is asked and the built-ins it may use are in `docs/contracts/policy/rego-contract.md` of the computeruse repository, and ready-made policies in `docs/contracts/policy/examples/`.
 
 ~> **A policy that restricts `browser_execute` must deny `desktop_execute` and the `exec` server.** Either can drive the browser around the rules: the desktop through the address bar and DevTools, a shell command through the browser's own control ports. The API answers such a policy with a warning, which the plan and the apply show.
 
@@ -57,7 +57,7 @@ resource "session_policy" "scratch" {
   managed_url = "https://github.com/example/infra/tree/main/computeruse"
 
   rego = <<-EOT
-    package browserjs.policy
+    package computeruse.policy
 
     import rego.v1
 
@@ -79,7 +79,7 @@ resource "session_policy" "scratch" {
 ### Required
 
 - `managed_url` (String) The `https` URL of where this configuration lives, such as the repository directory. The UI links to it from the read-only policy.
-- `rego` (String) The policy: a Rego module of package `browserjs.policy`, usually `file("${path.module}/policy.rego")`. Compared as text, so a change of formatting is a change.
+- `rego` (String) The policy: a Rego module of package `computeruse.policy`, usually `file("${path.module}/policy.rego")`. Compared as text, so a change of formatting is a change.
 - `session_id` (String) The session whose policy this is. Changing it forces a new resource (the old session's policy is reset).
 
 ### Optional

@@ -41,7 +41,7 @@ func TestValidateAcceptsTheContractExamples(t *testing.T) {
 }
 
 func TestValidatePositions(t *testing.T) {
-	const head = "package browserjs.policy\n"
+	const head = "package computeruse.policy\n"
 	for name, tc := range map[string]struct {
 		source, code string
 		row, col     int
@@ -49,7 +49,7 @@ func TestValidatePositions(t *testing.T) {
 		"empty":            {"", "size_error", 0, 0},
 		"too large":        {head + "allow_tool_call := true\n#" + strings.Repeat("x", 65536), "size_error", 0, 0},
 		"no package":       {"allow_tool_call := true\n", "rego_parse_error", 1, 1},
-		"commented out":    {"# package browserjs.policy\nallow_tool_call := true\n", "rego_parse_error", 1, 1},
+		"commented out":    {"# package computeruse.policy\nallow_tool_call := true\n", "rego_parse_error", 1, 1},
 		"wrong package":    {"\npackage  other\n", "policy_guard_error", 2, 10},
 		"unbalanced":       {head + "allow_tool_call if {\n", "rego_parse_error", 3, 1},
 		"closing too soon": {head + "}\n", "rego_parse_error", 2, 1},
@@ -69,7 +69,7 @@ func TestValidatePositions(t *testing.T) {
 
 // Braces in a comment or a string are not the module's.
 func TestValidateIgnoresCommentsAndStrings(t *testing.T) {
-	source := "package browserjs.policy\n\n# a brace: {\nallow_tool_call if {\n" +
+	source := "package computeruse.policy\n\n# a brace: {\nallow_tool_call if {\n" +
 		"\tregex.match(`^a{2}}$`, input.tool)\n\tinput.server != \"}\\\"}\" # }\n}\n"
 	if v := Validate(source); !v.OK {
 		t.Errorf("%+v", v.Errors)
@@ -77,7 +77,7 @@ func TestValidateIgnoresCommentsAndStrings(t *testing.T) {
 }
 
 func TestValidateWarnings(t *testing.T) {
-	const restricted = `package browserjs.policy
+	const restricted = `package computeruse.policy
 
 import rego.v1
 
@@ -114,8 +114,8 @@ allow_tool_call if {
 		"browser and desktop":      {restricted + desktop, []string{"browser_bypass_desktop"}},
 		"browser and shell":        {restricted + shell, []string{"browser_bypass_shell"}},
 		"browser, desktop, shell":  {restricted + desktop + shell, []string{"browser_bypass_desktop", "browser_bypass_shell"}},
-		"listed commands":          {"package browserjs.policy\n" + listedCommands, nil},
-		"listed commands, desktop": {"package browserjs.policy\n" + listedCommands + desktop, []string{"shell_bypass_desktop"}},
+		"listed commands":          {"package computeruse.policy\n" + listedCommands, nil},
+		"listed commands, desktop": {"package computeruse.policy\n" + listedCommands + desktop, []string{"shell_bypass_desktop"}},
 		"everything":               {Unrestricted, nil},
 	} {
 		v := Validate(tc.source)
@@ -154,7 +154,7 @@ func TestTheContractsRules(t *testing.T) {
 	id := s.AddSession("a")
 	auth := "Bearer bjs_a_b"
 	policy := "/v1/sessions/" + id + "/policy"
-	const source = `{"kind":"rego","source":"package browserjs.policy\nallow_tool_call if input.server == \"browser\"\n"`
+	const source = `{"kind":"rego","source":"package computeruse.policy\nallow_tool_call if input.server == \"browser\"\n"`
 
 	for _, bad := range []string{"", "Bearer nope", "bjs_a_b"} {
 		if code, body := do(t, s, "GET", "/v1/sessions", bad, ""); code != http.StatusUnauthorized || !strings.Contains(body, "invalid token") {
@@ -198,7 +198,7 @@ func TestTheContractsRules(t *testing.T) {
 			t.Errorf("%s %s with kind json: %d %s", method, path, code, body)
 		}
 	}
-	if code, body := do(t, s, "POST", "/v1/policies/validate", auth, `{"source":"package browserjs.policy\nallow_tool_call := true\n"}`); code != http.StatusOK || !strings.Contains(body, `"ok":true`) {
+	if code, body := do(t, s, "POST", "/v1/policies/validate", auth, `{"source":"package computeruse.policy\nallow_tool_call := true\n"}`); code != http.StatusOK || !strings.Contains(body, `"ok":true`) {
 		t.Errorf("validate without a kind: %d %s", code, body)
 	}
 	if code, body := do(t, s, "DELETE", policy, auth, ""); code != http.StatusOK || !strings.Contains(body, `"mode":"editor"`) || !strings.Contains(body, `"kind":"rego"`) {

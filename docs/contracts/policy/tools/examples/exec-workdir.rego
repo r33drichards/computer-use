@@ -7,7 +7,7 @@
 # mcp-exec uses `cwd` as written: it does not resolve symbolic links, so a
 # link inside the directory that points out of it is followed. The policy
 # refuses the spellings that leave by themselves (".." and ".").
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

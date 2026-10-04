@@ -93,7 +93,7 @@ var (
 	accObserveOnly = accRego(observeOnly)
 	accBrowserOnly = accRego(browserOnly)
 	accBypassable  = accRego(bypassable)
-	accBrokenRego  = accRego("package browserjs.policy\n\nimport rego.v1\n\nallow_tool_call if {")
+	accBrokenRego  = accRego("package computeruse.policy\n\nimport rego.v1\n\nallow_tool_call if {")
 )
 
 func TestAccSessionAndPolicy(t *testing.T) {
@@ -122,7 +122,7 @@ func TestAccSessionAndPolicy(t *testing.T) {
 					resource.TestCheckResourceAttr(policy, "wait_for_ready", "true"),
 					resource.TestCheckResourceAttrSet(policy, "version"),
 					resource.TestCheckResourceAttrSet(policy, "hash"),
-					resource.TestMatchResourceAttr(policy, "compiled_rego", regexp.MustCompile(`package browserjs\.policy`)),
+					resource.TestMatchResourceAttr(policy, "compiled_rego", regexp.MustCompile(`package computeruse\.policy`)),
 				),
 			},
 			{

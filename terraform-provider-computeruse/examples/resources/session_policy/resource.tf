@@ -24,7 +24,7 @@ resource "session_policy" "scratch" {
   managed_url = "https://github.com/example/infra/tree/main/computeruse"
 
   rego = <<-EOT
-    package browserjs.policy
+    package computeruse.policy
 
     import rego.v1
 

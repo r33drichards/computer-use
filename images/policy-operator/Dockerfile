@@ -42,7 +42,7 @@ ENV PYTHONPATH=/app \
 # OPA, the contract files and the package do not fit together.
 RUN opa version \
     && cd /app && python -c "import policy_operator.check as c, policy_operator.config as k; \
-v = c.check(k.Config.from_env(), 'rego', 'package browserjs.policy\n\nimport rego.v1\n\nallow_tool_call if input.tool == \"exec\"\n'); \
+v = c.check(k.Config.from_env(), 'rego', 'package computeruse.policy\n\nimport rego.v1\n\nallow_tool_call if input.tool == \"exec\"\n'); \
 assert v.ok and [w['code'] for w in v.warnings] == ['browser_bypass_shell'], (v.errors, v.warnings); print(v.hash)"
 
 USER 65532:65532

@@ -28,7 +28,7 @@ import (
 // docs/contracts/policy/examples/unrestricted.rego, byte for byte.
 const Unrestricted = `# No restrictions: every operation in the browser, full control of the
 # desktop, and any shell command.
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 
@@ -687,9 +687,9 @@ func Validate(source string) client.Validation {
 	if m == nil {
 		return fail(1, 1, "rego_parse_error", "package expected")
 	}
-	if name := source[m[2]:m[3]]; name != "browserjs.policy" {
+	if name := source[m[2]:m[3]]; name != "computeruse.policy" {
 		row, col := position(source, m[2])
-		return fail(row, col, guard, fmt.Sprintf("the package must be browserjs.policy, not %s", name))
+		return fail(row, col, guard, fmt.Sprintf("the package must be computeruse.policy, not %s", name))
 	}
 	depth := 0
 	for i, c := range bare {

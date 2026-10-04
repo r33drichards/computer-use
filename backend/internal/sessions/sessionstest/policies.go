@@ -33,7 +33,7 @@ var PolicyBlueprint = strings.Replace(Blueprint, `            value: "{{ .Sessio
 
 // Unrestricted is the policy the fake deployment gives a session that asked
 // for none.
-var Unrestricted = sessions.PolicySpec{Kind: "rego", Source: "package browserjs.policy\n\nimport rego.v1\n\nallow_tool_call := true\n"}
+var Unrestricted = sessions.PolicySpec{Kind: "rego", Source: "package computeruse.policy\n\nimport rego.v1\n\nallow_tool_call := true\n"}
 
 // NewWithPolicies is New with policies enabled on the store and a blueprint
 // whose sessions ask OPA.
@@ -215,7 +215,7 @@ func PolicyReady(generation int64) map[string]any {
 	return map[string]any{
 		"observedGeneration": generation,
 		"hash":               "sha256:0f0f",
-		"rego":               "package browserjs.policy\n\nallow_tool_call := true\n",
+		"rego":               "package computeruse.policy\n\nallow_tool_call := true\n",
 		"regoGeneration":     generation,
 		"warnings":           []any{map[string]any{"code": "unknown_operation", "message": "nothing in version 1 is called that"}},
 		"loaded":             map[string]any{"replicas": int64(2), "total": int64(2), "revision": "17"},

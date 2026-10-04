@@ -105,12 +105,12 @@ describe("create session", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit policy" }))
     const editor = (await screen.findByLabelText("Rego policy editor")) as HTMLTextAreaElement
     expect(editor.value).toBe(REGO_TEMPLATE) // a new policy starts from the Rego template
-    fireEvent.change(editor, { target: { value: "package browserjs.policy\n\nallow_tool_call if http.send({})\n" } })
+    fireEvent.change(editor, { target: { value: "package computeruse.policy\n\nallow_tool_call if http.send({})\n" } })
     fireEvent.click(screen.getByRole("button", { name: "Use this policy" }))
     expect(await screen.findByText("Fix the errors in the policy before using it.")).toBeTruthy()
     expect(screen.getByTestId("custom-summary").textContent).toBe("No policy written yet")
 
-    const good = 'package browserjs.policy\n\nimport rego.v1\n\nallow_tool_call if input.tool == "browser_execute"\n'
+    const good = 'package computeruse.policy\n\nimport rego.v1\n\nallow_tool_call if input.tool == "browser_execute"\n'
     fireEvent.change(screen.getByLabelText("Rego policy editor"), { target: { value: good } })
     fireEvent.click(screen.getByRole("button", { name: "Use this policy" }))
     await waitFor(() => expect(screen.getByTestId("custom-summary").textContent).toBe("Rego · 5 lines · valid"))

@@ -155,7 +155,7 @@ resource "session_policy" "research" {
 Keep `no-scripting.rego` beside the Terraform configuration. For example:
 
 ```txt
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

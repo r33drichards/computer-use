@@ -33,7 +33,7 @@ Each is a short Rego module with comments. Pick the closest and edit it.
    that only speaks of the browser refuses desktop control and the shell.
 
 ```txt
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 
@@ -57,7 +57,7 @@ and its arguments, already separate, so a rule can name them. This policy
 allows `git`, with two subcommands, and reading the output:
 
 ```txt
-package browserjs.policy
+package computeruse.policy
 
 import rego.v1
 

@@ -16,7 +16,7 @@ filling, read-only shell) and edit it.
 
 One module in Rego v1 syntax, at most 65536 bytes.
 
-- It declares `package browserjs.policy`. The name is fixed, and carries the
+- It declares `package computeruse.policy`. The name is fixed, and carries the
   product's earlier name.
 - It defines `allow_tool_call`. A call is allowed only when that is `true`.
 
