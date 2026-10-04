@@ -1,0 +1,2724 @@
+{
+  "intent-cleanup": {
+    "config": "intent-cleanup",
+    "module": "IntentCleanup",
+    "run": "f497d85286ef",
+    "inputs_sha256": {
+      "IntentCleanup.tla": "d6fb90c7b0fa7b21e91be6201b88a8464096bfbe985c8bf054f70ac91075ed2a",
+      "intent-cleanup.cfg": "e72615978dd95caaced302fa7bd84ae72ffd76f9a2cd8e177a2b347385e39a8e",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-f497d85286ef",
+      "-config",
+      "intent-cleanup.cfg",
+      "IntentCleanup"
+    ],
+    "log": "traces/intent-cleanup.f497d85286ef.txt",
+    "returncode": 0,
+    "seconds": 1.71,
+    "expected_returncode": 0,
+    "inputs_unchanged": true,
+    "pass": true,
+    "counterexample": false,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "14179 states generated, 6372 distinct states found, 0 states left on queue.",
+      "The depth of the complete state graph search is 17.",
+      "Finished in 01s at (2026-10-04 03:54:09)"
+    ],
+    "coverage": {
+      "Init": [
+        1,
+        1
+      ],
+      "UserRequest": [
+        12,
+        1416
+      ],
+      "ReadResume": [
+        12,
+        1416
+      ],
+      "ResumeAfterFork": [
+        1,
+        118
+      ],
+      "UserResume": [
+        2,
+        236
+      ],
+      "DiscardResume": [
+        13,
+        2006
+      ],
+      "ApplyStop": [
+        3,
+        354
+      ],
+      "DeleteSource": [
+        10,
+        1180
+      ],
+      "ReadCleanup": [
+        1512,
+        1890
+      ],
+      "Commit": [
+        108,
+        108
+      ],
+      "ReplaceUID": [
+        918,
+        1674
+      ],
+      "ChildDeleteIntent": [
+        1296,
+        1296
+      ],
+      "CleanupAttempt": [
+        540,
+        540
+      ],
+      "LateCleanupAttempt": [
+        1944,
+        1944
+      ]
+    }
+  },
+  "intent-multi": {
+    "config": "intent-multi",
+    "module": "IntentCleanup",
+    "run": "f2f8144d868c",
+    "inputs_sha256": {
+      "IntentCleanup.tla": "d6fb90c7b0fa7b21e91be6201b88a8464096bfbe985c8bf054f70ac91075ed2a",
+      "intent-multi.cfg": "fe09d7d93daeca668392df2b560b0c40dc879095538451fbc7b28fe4291dee3b",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-f2f8144d868c",
+      "-config",
+      "intent-multi.cfg",
+      "IntentCleanup"
+    ],
+    "log": "traces/intent-multi.f2f8144d868c.txt",
+    "returncode": 0,
+    "seconds": 1.35,
+    "expected_returncode": 0,
+    "inputs_unchanged": true,
+    "pass": true,
+    "counterexample": false,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "2673 states generated, 1701 distinct states found, 0 states left on queue.",
+      "The depth of the complete state graph search is 15.",
+      "Finished in 01s at (2026-10-04 03:54:11)"
+    ],
+    "coverage": {
+      "Init": [
+        1,
+        1
+      ],
+      "UserRequest": [
+        405,
+        972
+      ],
+      "ReadResume": [
+        315,
+        375
+      ],
+      "ResumeAfterFork": [
+        1,
+        1
+      ],
+      "UserResume": [
+        62,
+        62
+      ],
+      "DiscardResume": [
+        496,
+        841
+      ],
+      "ApplyStop": [
+        93,
+        93
+      ],
+      "DeleteSource": [
+        328,
+        328
+      ],
+      "ReadCleanup": [
+        0,
+        0
+      ],
+      "Commit": [
+        0,
+        0
+      ],
+      "ReplaceUID": [
+        0,
+        0
+      ],
+      "ChildDeleteIntent": [
+        0,
+        0
+      ],
+      "CleanupAttempt": [
+        0,
+        0
+      ],
+      "LateCleanupAttempt": [
+        0,
+        0
+      ]
+    }
+  },
+  "cleanup": {
+    "config": "cleanup",
+    "module": "IntentCleanup",
+    "run": "908d33610131",
+    "inputs_sha256": {
+      "IntentCleanup.tla": "d6fb90c7b0fa7b21e91be6201b88a8464096bfbe985c8bf054f70ac91075ed2a",
+      "cleanup.cfg": "f99cb7dd037363d73e7314d5644b9cfae2282934bd30c4f7e218c3c4a8fbb5c4",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-908d33610131",
+      "-config",
+      "cleanup.cfg",
+      "IntentCleanup"
+    ],
+    "log": "traces/cleanup.908d33610131.txt",
+    "returncode": 0,
+    "seconds": 1.25,
+    "expected_returncode": 0,
+    "inputs_unchanged": true,
+    "pass": true,
+    "counterexample": false,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "651 states generated, 354 distinct states found, 0 states left on queue.",
+      "The depth of the complete state graph search is 12.",
+      "Finished in 01s at (2026-10-04 03:54:12)"
+    ],
+    "coverage": {
+      "Init": [
+        1,
+        1
+      ],
+      "UserRequest": [
+        0,
+        0
+      ],
+      "ReadResume": [
+        1,
+        118
+      ],
+      "ResumeAfterFork": [
+        1,
+        118
+      ],
+      "UserResume": [
+        0,
+        0
+      ],
+      "DiscardResume": [
+        0,
+        0
+      ],
+      "ApplyStop": [
+        0,
+        0
+      ],
+      "DeleteSource": [
+        0,
+        0
+      ],
+      "ReadCleanup": [
+        84,
+        105
+      ],
+      "Commit": [
+        6,
+        6
+      ],
+      "ReplaceUID": [
+        51,
+        93
+      ],
+      "ChildDeleteIntent": [
+        72,
+        72
+      ],
+      "CleanupAttempt": [
+        30,
+        30
+      ],
+      "LateCleanupAttempt": [
+        108,
+        108
+      ]
+    }
+  },
+  "resources": {
+    "config": "resources",
+    "module": "Resources",
+    "run": "ea4fd574cf0e",
+    "inputs_sha256": {
+      "Resources.tla": "599bf269a708d22cefc30adf75acc50fe88f0e0e9bcfbc6af22dedca2e5996bb",
+      "resources.cfg": "48136880cc0b908861475b0a07602b2d8193628ca7365079fa087018a472e0bf",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-ea4fd574cf0e",
+      "-config",
+      "resources.cfg",
+      "Resources"
+    ],
+    "log": "traces/resources.ea4fd574cf0e.txt",
+    "returncode": 0,
+    "seconds": 1.72,
+    "expected_returncode": 0,
+    "inputs_unchanged": true,
+    "pass": true,
+    "counterexample": false,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "8962 states generated, 2850 distinct states found, 0 states left on queue.",
+      "The depth of the complete state graph search is 15.",
+      "Finished in 01s at (2026-10-04 03:54:14)"
+    ],
+    "coverage": {
+      "Init": [
+        1,
+        1
+      ],
+      "CreateSnapshot": [
+        2,
+        4
+      ],
+      "ReconcileSnapshot": [
+        2,
+        4
+      ],
+      "CreatePVC": [
+        4,
+        8
+      ],
+      "BindPVC": [
+        18,
+        24
+      ],
+      "ReconcilePVC": [
+        6,
+        40
+      ],
+      "CreateChild": [
+        8,
+        32
+      ],
+      "ReadyChild": [
+        60,
+        96
+      ],
+      "ReconcileChild": [
+        44,
+        224
+      ],
+      "Commit": [
+        24,
+        32
+      ],
+      "Replace": [
+        1563,
+        3177
+      ],
+      "DetectMismatch": [
+        60,
+        1388
+      ],
+      "Cancel": [
+        40,
+        630
+      ],
+      "CleanupReconcile": [
+        0,
+        198
+      ],
+      "CleanupDelete": [
+        150,
+        992
+      ],
+      "CleanupDone": [
+        197,
+        212
+      ],
+      "Crash": [
+        429,
+        950
+      ],
+      "Recover": [
+        242,
+        950
+      ]
+    }
+  },
+  "drain-deadline": {
+    "config": "drain-deadline",
+    "module": "DrainDeadline",
+    "run": "602ba21abb1a",
+    "inputs_sha256": {
+      "DrainDeadline.tla": "f09da296f328e56aa26abfc84f3b462c9e33e3ae4b695acb69c58b007aeec1c7",
+      "drain-deadline.cfg": "c3f4217dcfbe19c81f2d108907c50466a1a845d1cf325eedb69f999bc553e76a",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-602ba21abb1a",
+      "-config",
+      "drain-deadline.cfg",
+      "DrainDeadline"
+    ],
+    "log": "traces/drain-deadline.602ba21abb1a.txt",
+    "returncode": 0,
+    "seconds": 0.94,
+    "expected_returncode": 0,
+    "inputs_unchanged": true,
+    "pass": true,
+    "counterexample": false,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "41 states generated, 28 distinct states found, 0 states left on queue.",
+      "The depth of the complete state graph search is 7.",
+      "Finished in 00s at (2026-10-04 03:54:15)"
+    ],
+    "coverage": {
+      "Init": [
+        1,
+        1
+      ],
+      "RequestCancel": [
+        1,
+        4
+      ],
+      "CompleteActualWork": [
+        2,
+        6
+      ],
+      "Deadline": [
+        4,
+        10
+      ],
+      "BeginStop": [
+        4,
+        4
+      ],
+      "GracefulUnmount": [
+        4,
+        4
+      ],
+      "TakeSnapshot": [
+        4,
+        4
+      ],
+      "AbortBeforeStop": [
+        4,
+        4
+      ],
+      "TimeoutAfterStop": [
+        4,
+        4
+      ]
+    }
+  },
+  "intent-liveness": {
+    "config": "intent-liveness",
+    "module": "IntentCleanup",
+    "run": "f64d0dc5e60b",
+    "inputs_sha256": {
+      "IntentCleanup.tla": "d6fb90c7b0fa7b21e91be6201b88a8464096bfbe985c8bf054f70ac91075ed2a",
+      "intent-liveness.cfg": "c4f91b131e1fe19f0a2abc89cb9eb3f3e325bd859fa2148f0b8f2a3a741c8b12",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-f64d0dc5e60b",
+      "-config",
+      "intent-liveness.cfg",
+      "IntentCleanup"
+    ],
+    "log": "traces/intent-liveness.f64d0dc5e60b.txt",
+    "returncode": 0,
+    "seconds": 1.81,
+    "expected_returncode": 0,
+    "inputs_unchanged": true,
+    "pass": true,
+    "counterexample": false,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Progress(15) at 2026-10-04 03:54:16: 2,673 states generated, 1,701 distinct states found, 0 states left on queue.",
+      "2673 states generated, 1701 distinct states found, 0 states left on queue.",
+      "The depth of the complete state graph search is 15.",
+      "Finished in 01s at (2026-10-04 03:54:17)"
+    ],
+    "coverage": {
+      "Init": [
+        1,
+        1
+      ],
+      "UserRequest": [
+        405,
+        972
+      ],
+      "ReadResume": [
+        315,
+        382
+      ],
+      "ResumeAfterFork": [
+        1,
+        1
+      ],
+      "UserResume": [
+        62,
+        62
+      ],
+      "DiscardResume": [
+        496,
+        942
+      ],
+      "ApplyStop": [
+        93,
+        124
+      ],
+      "DeleteSource": [
+        328,
+        396
+      ],
+      "ReadCleanup": [
+        0,
+        0
+      ],
+      "Commit": [
+        0,
+        0
+      ],
+      "ReplaceUID": [
+        0,
+        0
+      ],
+      "ChildDeleteIntent": [
+        0,
+        0
+      ],
+      "CleanupAttempt": [
+        0,
+        0
+      ],
+      "LateCleanupAttempt": [
+        0,
+        0
+      ]
+    }
+  },
+  "cleanup-liveness": {
+    "config": "cleanup-liveness",
+    "module": "IntentCleanup",
+    "run": "2e368bae3ab4",
+    "inputs_sha256": {
+      "IntentCleanup.tla": "d6fb90c7b0fa7b21e91be6201b88a8464096bfbe985c8bf054f70ac91075ed2a",
+      "cleanup-liveness.cfg": "56b32a53ffd91b0e046a733c1beebe43647245e985adf05f9ba4ad1e5c3f770d",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-2e368bae3ab4",
+      "-config",
+      "cleanup-liveness.cfg",
+      "IntentCleanup"
+    ],
+    "log": "traces/cleanup-liveness.2e368bae3ab4.txt",
+    "returncode": 0,
+    "seconds": 1.36,
+    "expected_returncode": 0,
+    "inputs_unchanged": true,
+    "pass": true,
+    "counterexample": false,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Progress(12) at 2026-10-04 03:54:18: 651 states generated, 354 distinct states found, 0 states left on queue.",
+      "651 states generated, 354 distinct states found, 0 states left on queue.",
+      "The depth of the complete state graph search is 12.",
+      "Finished in 01s at (2026-10-04 03:54:18)"
+    ],
+    "coverage": {
+      "Init": [
+        1,
+        1
+      ],
+      "UserRequest": [
+        0,
+        0
+      ],
+      "ReadResume": [
+        1,
+        127
+      ],
+      "ResumeAfterFork": [
+        1,
+        118
+      ],
+      "UserResume": [
+        0,
+        0
+      ],
+      "DiscardResume": [
+        0,
+        0
+      ],
+      "ApplyStop": [
+        0,
+        0
+      ],
+      "DeleteSource": [
+        0,
+        0
+      ],
+      "ReadCleanup": [
+        84,
+        110
+      ],
+      "Commit": [
+        6,
+        6
+      ],
+      "ReplaceUID": [
+        51,
+        102
+      ],
+      "ChildDeleteIntent": [
+        72,
+        72
+      ],
+      "CleanupAttempt": [
+        30,
+        31
+      ],
+      "LateCleanupAttempt": [
+        108,
+        111
+      ]
+    }
+  },
+  "resources-liveness": {
+    "config": "resources-liveness",
+    "module": "Resources",
+    "run": "b2eb8192281b",
+    "inputs_sha256": {
+      "Resources.tla": "599bf269a708d22cefc30adf75acc50fe88f0e0e9bcfbc6af22dedca2e5996bb",
+      "resources-liveness.cfg": "3d212e07612707cd787cab59beda19b5ae1ff1ea07dc850164d908dd50eedb1f",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-b2eb8192281b",
+      "-config",
+      "resources-liveness.cfg",
+      "Resources"
+    ],
+    "log": "traces/resources-liveness.b2eb8192281b.txt",
+    "returncode": 0,
+    "seconds": 2.71,
+    "expected_returncode": 0,
+    "inputs_unchanged": true,
+    "pass": true,
+    "counterexample": false,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Progress(15) at 2026-10-04 03:54:20: 8,962 states generated, 2,850 distinct states found, 0 states left on queue.",
+      "8962 states generated, 2850 distinct states found, 0 states left on queue.",
+      "The depth of the complete state graph search is 15.",
+      "Finished in 02s at (2026-10-04 03:54:21)"
+    ],
+    "coverage": {
+      "Init": [
+        1,
+        1
+      ],
+      "CreateSnapshot": [
+        2,
+        6
+      ],
+      "ReconcileSnapshot": [
+        2,
+        4
+      ],
+      "CreatePVC": [
+        4,
+        8
+      ],
+      "BindPVC": [
+        18,
+        24
+      ],
+      "ReconcilePVC": [
+        6,
+        40
+      ],
+      "CreateChild": [
+        8,
+        32
+      ],
+      "ReadyChild": [
+        60,
+        96
+      ],
+      "ReconcileChild": [
+        44,
+        224
+      ],
+      "Commit": [
+        24,
+        32
+      ],
+      "Replace": [
+        1563,
+        3177
+      ],
+      "DetectMismatch": [
+        60,
+        1388
+      ],
+      "Cancel": [
+        40,
+        631
+      ],
+      "CleanupReconcile": [
+        0,
+        198
+      ],
+      "CleanupDelete": [
+        150,
+        992
+      ],
+      "CleanupDone": [
+        197,
+        212
+      ],
+      "Crash": [
+        429,
+        951
+      ],
+      "Recover": [
+        242,
+        950
+      ]
+    }
+  },
+  "drain-liveness": {
+    "config": "drain-liveness",
+    "module": "DrainDeadline",
+    "run": "3f4dd835e793",
+    "inputs_sha256": {
+      "DrainDeadline.tla": "f09da296f328e56aa26abfc84f3b462c9e33e3ae4b695acb69c58b007aeec1c7",
+      "drain-liveness.cfg": "b4068b79acec1eddcfd9b2c224ab4fd75e33922e2218c837e415db468316bf19",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-3f4dd835e793",
+      "-config",
+      "drain-liveness.cfg",
+      "DrainDeadline"
+    ],
+    "log": "traces/drain-liveness.3f4dd835e793.txt",
+    "returncode": 0,
+    "seconds": 1.18,
+    "expected_returncode": 0,
+    "inputs_unchanged": true,
+    "pass": true,
+    "counterexample": false,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Progress(7) at 2026-10-04 03:54:22: 41 states generated, 28 distinct states found, 0 states left on queue.",
+      "41 states generated, 28 distinct states found, 0 states left on queue.",
+      "The depth of the complete state graph search is 7.",
+      "Finished in 01s at (2026-10-04 03:54:22)"
+    ],
+    "coverage": {
+      "Init": [
+        1,
+        1
+      ],
+      "RequestCancel": [
+        1,
+        6
+      ],
+      "CompleteActualWork": [
+        2,
+        8
+      ],
+      "Deadline": [
+        4,
+        12
+      ],
+      "BeginStop": [
+        4,
+        4
+      ],
+      "GracefulUnmount": [
+        4,
+        4
+      ],
+      "TakeSnapshot": [
+        4,
+        4
+      ],
+      "AbortBeforeStop": [
+        4,
+        4
+      ],
+      "TimeoutAfterStop": [
+        4,
+        4
+      ]
+    }
+  },
+  "unsafe-stale-resume": {
+    "config": "unsafe-stale-resume",
+    "module": "IntentCleanup",
+    "run": "596d48dba9c1",
+    "inputs_sha256": {
+      "IntentCleanup.tla": "d6fb90c7b0fa7b21e91be6201b88a8464096bfbe985c8bf054f70ac91075ed2a",
+      "unsafe-stale-resume.cfg": "8e6c5b1f1e1a0c565c91f35dd0b28e9c42452c0518c030803b2cb47bae96d38d",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-596d48dba9c1",
+      "-config",
+      "unsafe-stale-resume.cfg",
+      "IntentCleanup"
+    ],
+    "log": "traces/unsafe-stale-resume.596d48dba9c1.txt",
+    "returncode": 12,
+    "seconds": 1.15,
+    "expected_returncode": 12,
+    "inputs_unchanged": true,
+    "pass": false,
+    "counterexample": true,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Error: Invariant LatestIntentWins is violated.",
+      "Error: The behavior up to this point is:",
+      "104 states generated, 78 distinct states found, 52 states left on queue.",
+      "The depth of the complete state graph search is 4.",
+      "Finished in 00s at (2026-10-04 03:54:23)"
+    ],
+    "coverage": {
+      "Init": [
+        3,
+        3
+      ],
+      "UserRequest": [
+        48,
+        84
+      ],
+      "ReadResume": [
+        17,
+        19
+      ],
+      "ResumeAfterFork": [
+        3,
+        6
+      ],
+      "UserResume": [
+        1,
+        2
+      ],
+      "DiscardResume": [
+        3,
+        3
+      ],
+      "ApplyStop": [
+        0,
+        0
+      ],
+      "DeleteSource": [
+        5,
+        5
+      ],
+      "ReadCleanup": [
+        0,
+        0
+      ],
+      "Commit": [
+        0,
+        0
+      ],
+      "ReplaceUID": [
+        0,
+        0
+      ],
+      "ChildDeleteIntent": [
+        0,
+        0
+      ],
+      "CleanupAttempt": [
+        0,
+        0
+      ],
+      "LateCleanupAttempt": [
+        0,
+        0
+      ]
+    }
+  },
+  "unsafe-no-uid": {
+    "config": "unsafe-no-uid",
+    "module": "IntentCleanup",
+    "run": "ffe30f686926",
+    "inputs_sha256": {
+      "IntentCleanup.tla": "d6fb90c7b0fa7b21e91be6201b88a8464096bfbe985c8bf054f70ac91075ed2a",
+      "unsafe-no-uid.cfg": "c9a689267b40ad17ea566f8c6931c8a6a41617e9afcd630e7f06dfa9cf8e40a9",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-ffe30f686926",
+      "-config",
+      "unsafe-no-uid.cfg",
+      "IntentCleanup"
+    ],
+    "log": "traces/unsafe-no-uid.ffe30f686926.txt",
+    "returncode": 12,
+    "seconds": 1.1,
+    "expected_returncode": 12,
+    "inputs_unchanged": true,
+    "pass": false,
+    "counterexample": true,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Error: Invariant UIDDeletionSafe is violated.",
+      "Error: The behavior up to this point is:",
+      "52 states generated, 37 distinct states found, 22 states left on queue.",
+      "The depth of the complete state graph search is 4.",
+      "Finished in 00s at (2026-10-04 03:54:24)"
+    ],
+    "coverage": {
+      "Init": [
+        3,
+        3
+      ],
+      "UserRequest": [
+        0,
+        0
+      ],
+      "ReadResume": [
+        1,
+        14
+      ],
+      "ResumeAfterFork": [
+        1,
+        5
+      ],
+      "UserResume": [
+        0,
+        0
+      ],
+      "DiscardResume": [
+        0,
+        0
+      ],
+      "ApplyStop": [
+        0,
+        0
+      ],
+      "DeleteSource": [
+        0,
+        0
+      ],
+      "ReadCleanup": [
+        7,
+        11
+      ],
+      "Commit": [
+        5,
+        7
+      ],
+      "ReplaceUID": [
+        8,
+        12
+      ],
+      "ChildDeleteIntent": [
+        10,
+        10
+      ],
+      "CleanupAttempt": [
+        3,
+        7
+      ],
+      "LateCleanupAttempt": [
+        1,
+        1
+      ]
+    }
+  },
+  "unsafe-postcommit": {
+    "config": "unsafe-postcommit",
+    "module": "IntentCleanup",
+    "run": "df6950e1b8fa",
+    "inputs_sha256": {
+      "IntentCleanup.tla": "d6fb90c7b0fa7b21e91be6201b88a8464096bfbe985c8bf054f70ac91075ed2a",
+      "unsafe-postcommit.cfg": "5b9593a2c7ccc53da20db2beadfde3849470ee3211dde28cf6298e7fe0d7705d",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-df6950e1b8fa",
+      "-config",
+      "unsafe-postcommit.cfg",
+      "IntentCleanup"
+    ],
+    "log": "traces/unsafe-postcommit.df6950e1b8fa.txt",
+    "returncode": 12,
+    "seconds": 1.1,
+    "expected_returncode": 12,
+    "inputs_unchanged": true,
+    "pass": false,
+    "counterexample": true,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Error: Invariant HealthyChildSafe is violated.",
+      "Error: The behavior up to this point is:",
+      "48 states generated, 34 distinct states found, 20 states left on queue.",
+      "The depth of the complete state graph search is 4.",
+      "Finished in 00s at (2026-10-04 03:54:25)"
+    ],
+    "coverage": {
+      "Init": [
+        3,
+        3
+      ],
+      "UserRequest": [
+        0,
+        0
+      ],
+      "ReadResume": [
+        1,
+        13
+      ],
+      "ResumeAfterFork": [
+        1,
+        5
+      ],
+      "UserResume": [
+        0,
+        0
+      ],
+      "DiscardResume": [
+        0,
+        0
+      ],
+      "ApplyStop": [
+        0,
+        0
+      ],
+      "DeleteSource": [
+        0,
+        0
+      ],
+      "ReadCleanup": [
+        7,
+        11
+      ],
+      "Commit": [
+        5,
+        7
+      ],
+      "ReplaceUID": [
+        7,
+        9
+      ],
+      "ChildDeleteIntent": [
+        9,
+        9
+      ],
+      "CleanupAttempt": [
+        2,
+        4
+      ],
+      "LateCleanupAttempt": [
+        1,
+        3
+      ]
+    }
+  },
+  "unsafe-shared-disk": {
+    "config": "unsafe-shared-disk",
+    "module": "Resources",
+    "run": "0634abb449c8",
+    "inputs_sha256": {
+      "Resources.tla": "599bf269a708d22cefc30adf75acc50fe88f0e0e9bcfbc6af22dedca2e5996bb",
+      "unsafe-shared-disk.cfg": "3b4e1c498b5e6e72aca022bcd4ec5a2a9af7e48fe5ce36f90dddc8eb922ba7dd",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-0634abb449c8",
+      "-config",
+      "unsafe-shared-disk.cfg",
+      "Resources"
+    ],
+    "log": "traces/unsafe-shared-disk.0634abb449c8.txt",
+    "returncode": 12,
+    "seconds": 1.76,
+    "expected_returncode": 12,
+    "inputs_unchanged": true,
+    "pass": false,
+    "counterexample": true,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Error: Invariant IndependentDisk is violated.",
+      "Error: The behavior up to this point is:",
+      "1519 states generated, 717 distinct states found, 265 states left on queue.",
+      "The depth of the complete state graph search is 10.",
+      "Finished in 01s at (2026-10-04 03:54:27)"
+    ],
+    "coverage": {
+      "Init": [
+        3,
+        3
+      ],
+      "CreateSnapshot": [
+        2,
+        6
+      ],
+      "ReconcileSnapshot": [
+        2,
+        6
+      ],
+      "CreatePVC": [
+        4,
+        10
+      ],
+      "BindPVC": [
+        18,
+        26
+      ],
+      "ReconcilePVC": [
+        6,
+        40
+      ],
+      "CreateChild": [
+        8,
+        26
+      ],
+      "ReadyChild": [
+        20,
+        30
+      ],
+      "ReconcileChild": [
+        12,
+        26
+      ],
+      "Commit": [
+        1,
+        3
+      ],
+      "Replace": [
+        343,
+        513
+      ],
+      "DetectMismatch": [
+        10,
+        168
+      ],
+      "Cancel": [
+        36,
+        160
+      ],
+      "CleanupReconcile": [
+        0,
+        28
+      ],
+      "CleanupDelete": [
+        42,
+        100
+      ],
+      "CleanupDone": [
+        29,
+        32
+      ],
+      "Crash": [
+        117,
+        218
+      ],
+      "Recover": [
+        66,
+        144
+      ]
+    }
+  },
+  "unsafe-fresh-fallback": {
+    "config": "unsafe-fresh-fallback",
+    "module": "Resources",
+    "run": "7c4ff2527666",
+    "inputs_sha256": {
+      "Resources.tla": "599bf269a708d22cefc30adf75acc50fe88f0e0e9bcfbc6af22dedca2e5996bb",
+      "unsafe-fresh-fallback.cfg": "06359d5650b954fd579ceed65c83b55be8c4b32d1dc19604034f9fb06ca17224",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-7c4ff2527666",
+      "-config",
+      "unsafe-fresh-fallback.cfg",
+      "Resources"
+    ],
+    "log": "traces/unsafe-fresh-fallback.7c4ff2527666.txt",
+    "returncode": 12,
+    "seconds": 1.4,
+    "expected_returncode": 12,
+    "inputs_unchanged": true,
+    "pass": false,
+    "counterexample": true,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Error: Invariant CorrectContents is violated.",
+      "Error: The behavior up to this point is:",
+      "1405 states generated, 683 distinct states found, 257 states left on queue.",
+      "The depth of the complete state graph search is 10.",
+      "Finished in 01s at (2026-10-04 03:54:29)"
+    ],
+    "coverage": {
+      "Init": [
+        3,
+        3
+      ],
+      "CreateSnapshot": [
+        2,
+        6
+      ],
+      "ReconcileSnapshot": [
+        2,
+        6
+      ],
+      "CreatePVC": [
+        4,
+        10
+      ],
+      "BindPVC": [
+        6,
+        26
+      ],
+      "ReconcilePVC": [
+        6,
+        48
+      ],
+      "CreateChild": [
+        8,
+        26
+      ],
+      "ReadyChild": [
+        20,
+        30
+      ],
+      "ReconcileChild": [
+        12,
+        26
+      ],
+      "Commit": [
+        1,
+        3
+      ],
+      "Replace": [
+        343,
+        487
+      ],
+      "DetectMismatch": [
+        0,
+        110
+      ],
+      "Cancel": [
+        36,
+        150
+      ],
+      "CleanupReconcile": [
+        0,
+        26
+      ],
+      "CleanupDelete": [
+        42,
+        96
+      ],
+      "CleanupDone": [
+        29,
+        32
+      ],
+      "Crash": [
+        105,
+        206
+      ],
+      "Recover": [
+        66,
+        134
+      ]
+    }
+  },
+  "unsafe-stale-commit": {
+    "config": "unsafe-stale-commit",
+    "module": "Resources",
+    "run": "13925a40b0ce",
+    "inputs_sha256": {
+      "Resources.tla": "599bf269a708d22cefc30adf75acc50fe88f0e0e9bcfbc6af22dedca2e5996bb",
+      "unsafe-stale-commit.cfg": "31ee0fa890e49c55b95e150ff3112a3bf4ea0c287dcb39ae08351047b72bcbbf",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-13925a40b0ce",
+      "-config",
+      "unsafe-stale-commit.cfg",
+      "Resources"
+    ],
+    "log": "traces/unsafe-stale-commit.13925a40b0ce.txt",
+    "returncode": 12,
+    "seconds": 1.51,
+    "expected_returncode": 12,
+    "inputs_unchanged": true,
+    "pass": false,
+    "counterexample": true,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Error: Invariant CommitOwnedFenced is violated.",
+      "Error: The behavior up to this point is:",
+      "2695 states generated, 1171 distinct states found, 450 states left on queue.",
+      "The depth of the complete state graph search is 11.",
+      "Finished in 01s at (2026-10-04 03:54:30)"
+    ],
+    "coverage": {
+      "Init": [
+        3,
+        3
+      ],
+      "CreateSnapshot": [
+        2,
+        6
+      ],
+      "ReconcileSnapshot": [
+        2,
+        6
+      ],
+      "CreatePVC": [
+        4,
+        10
+      ],
+      "BindPVC": [
+        18,
+        26
+      ],
+      "ReconcilePVC": [
+        6,
+        42
+      ],
+      "CreateChild": [
+        8,
+        34
+      ],
+      "ReadyChild": [
+        32,
+        54
+      ],
+      "ReconcileChild": [
+        20,
+        74
+      ],
+      "Commit": [
+        10,
+        25
+      ],
+      "Replace": [
+        612,
+        952
+      ],
+      "DetectMismatch": [
+        20,
+        341
+      ],
+      "Cancel": [
+        40,
+        257
+      ],
+      "CleanupReconcile": [
+        0,
+        54
+      ],
+      "CleanupDelete": [
+        86,
+        222
+      ],
+      "CleanupDone": [
+        39,
+        44
+      ],
+      "Crash": [
+        178,
+        358
+      ],
+      "Recover": [
+        93,
+        219
+      ]
+    }
+  },
+  "unsafe-control-reuse": {
+    "config": "unsafe-control-reuse",
+    "module": "Resources",
+    "run": "8caa130bcb93",
+    "inputs_sha256": {
+      "Resources.tla": "599bf269a708d22cefc30adf75acc50fe88f0e0e9bcfbc6af22dedca2e5996bb",
+      "unsafe-control-reuse.cfg": "367989ffddfbdf65342016b4e91cf907ebe8f103eb3afa1cb9b349967caa90e1",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-8caa130bcb93",
+      "-config",
+      "unsafe-control-reuse.cfg",
+      "Resources"
+    ],
+    "log": "traces/unsafe-control-reuse.8caa130bcb93.txt",
+    "returncode": 12,
+    "seconds": 1.46,
+    "expected_returncode": 12,
+    "inputs_unchanged": true,
+    "pass": false,
+    "counterexample": true,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Error: Invariant FreshControl is violated.",
+      "Error: The behavior up to this point is:",
+      "1519 states generated, 717 distinct states found, 265 states left on queue.",
+      "The depth of the complete state graph search is 10.",
+      "Finished in 01s at (2026-10-04 03:54:32)"
+    ],
+    "coverage": {
+      "Init": [
+        3,
+        3
+      ],
+      "CreateSnapshot": [
+        2,
+        6
+      ],
+      "ReconcileSnapshot": [
+        2,
+        6
+      ],
+      "CreatePVC": [
+        4,
+        10
+      ],
+      "BindPVC": [
+        18,
+        26
+      ],
+      "ReconcilePVC": [
+        6,
+        40
+      ],
+      "CreateChild": [
+        8,
+        26
+      ],
+      "ReadyChild": [
+        20,
+        30
+      ],
+      "ReconcileChild": [
+        12,
+        26
+      ],
+      "Commit": [
+        1,
+        3
+      ],
+      "Replace": [
+        343,
+        513
+      ],
+      "DetectMismatch": [
+        10,
+        168
+      ],
+      "Cancel": [
+        36,
+        160
+      ],
+      "CleanupReconcile": [
+        0,
+        28
+      ],
+      "CleanupDelete": [
+        42,
+        100
+      ],
+      "CleanupDone": [
+        29,
+        32
+      ],
+      "Crash": [
+        117,
+        218
+      ],
+      "Recover": [
+        66,
+        144
+      ]
+    }
+  },
+  "probe-stop-run": {
+    "config": "probe-stop-run",
+    "module": "IntentCleanup",
+    "run": "e0558f632450",
+    "inputs_sha256": {
+      "IntentCleanup.tla": "d6fb90c7b0fa7b21e91be6201b88a8464096bfbe985c8bf054f70ac91075ed2a",
+      "probe-stop-run.cfg": "f8d30f26383ed31be453e9bf9593a6926e4cbbd2a9d3fceccb87a0d8ecc2f55a",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-e0558f632450",
+      "-config",
+      "probe-stop-run.cfg",
+      "IntentCleanup"
+    ],
+    "log": "traces/probe-stop-run.e0558f632450.txt",
+    "returncode": 12,
+    "seconds": 1.19,
+    "expected_returncode": 12,
+    "inputs_unchanged": true,
+    "pass": false,
+    "counterexample": true,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Error: Invariant NoStopRunWitness is violated.",
+      "Error: The behavior up to this point is:",
+      "177 states generated, 148 distinct states found, 94 states left on queue.",
+      "The depth of the complete state graph search is 5.",
+      "Finished in 00s at (2026-10-04 03:54:33)"
+    ],
+    "coverage": {
+      "Init": [
+        3,
+        3
+      ],
+      "UserRequest": [
+        88,
+        140
+      ],
+      "ReadResume": [
+        29,
+        31
+      ],
+      "ResumeAfterFork": [
+        1,
+        1
+      ],
+      "UserResume": [
+        3,
+        5
+      ],
+      "DiscardResume": [
+        14,
+        15
+      ],
+      "ApplyStop": [
+        0,
+        0
+      ],
+      "DeleteSource": [
+        12,
+        12
+      ],
+      "ReadCleanup": [
+        0,
+        0
+      ],
+      "Commit": [
+        0,
+        0
+      ],
+      "ReplaceUID": [
+        0,
+        0
+      ],
+      "ChildDeleteIntent": [
+        0,
+        0
+      ],
+      "CleanupAttempt": [
+        0,
+        0
+      ],
+      "LateCleanupAttempt": [
+        0,
+        0
+      ]
+    }
+  },
+  "probe-billing-run": {
+    "config": "probe-billing-run",
+    "module": "IntentCleanup",
+    "run": "a7f7dc93ca33",
+    "inputs_sha256": {
+      "IntentCleanup.tla": "d6fb90c7b0fa7b21e91be6201b88a8464096bfbe985c8bf054f70ac91075ed2a",
+      "probe-billing-run.cfg": "071014e949e4e7e11a8b524d70ae9055586e52d677ffbb9537cb41dbd4c574b7",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-a7f7dc93ca33",
+      "-config",
+      "probe-billing-run.cfg",
+      "IntentCleanup"
+    ],
+    "log": "traces/probe-billing-run.a7f7dc93ca33.txt",
+    "returncode": 12,
+    "seconds": 1.2,
+    "expected_returncode": 12,
+    "inputs_unchanged": true,
+    "pass": false,
+    "counterexample": true,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Error: Invariant NoBillingRunWitness is violated.",
+      "Error: The behavior up to this point is:",
+      "219 states generated, 170 distinct states found, 106 states left on queue.",
+      "The depth of the complete state graph search is 5.",
+      "Finished in 01s at (2026-10-04 03:54:34)"
+    ],
+    "coverage": {
+      "Init": [
+        3,
+        3
+      ],
+      "UserRequest": [
+        100,
+        170
+      ],
+      "ReadResume": [
+        29,
+        31
+      ],
+      "ResumeAfterFork": [
+        1,
+        1
+      ],
+      "UserResume": [
+        4,
+        6
+      ],
+      "DiscardResume": [
+        21,
+        26
+      ],
+      "ApplyStop": [
+        0,
+        0
+      ],
+      "DeleteSource": [
+        14,
+        14
+      ],
+      "ReadCleanup": [
+        0,
+        0
+      ],
+      "Commit": [
+        0,
+        0
+      ],
+      "ReplaceUID": [
+        0,
+        0
+      ],
+      "ChildDeleteIntent": [
+        0,
+        0
+      ],
+      "CleanupAttempt": [
+        0,
+        0
+      ],
+      "LateCleanupAttempt": [
+        0,
+        0
+      ]
+    }
+  },
+  "probe-late-cleanup": {
+    "config": "probe-late-cleanup",
+    "module": "IntentCleanup",
+    "run": "fdf629e072fa",
+    "inputs_sha256": {
+      "IntentCleanup.tla": "d6fb90c7b0fa7b21e91be6201b88a8464096bfbe985c8bf054f70ac91075ed2a",
+      "probe-late-cleanup.cfg": "0616c67df102ec9080550d1bcd1bee9633c6503dcaaf51f193364f13d47f1bb2",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-fdf629e072fa",
+      "-config",
+      "probe-late-cleanup.cfg",
+      "IntentCleanup"
+    ],
+    "log": "traces/probe-late-cleanup.fdf629e072fa.txt",
+    "returncode": 12,
+    "seconds": 1.1,
+    "expected_returncode": 12,
+    "inputs_unchanged": true,
+    "pass": false,
+    "counterexample": true,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Error: Invariant NoLateCleanupWitness is violated.",
+      "Error: The behavior up to this point is:",
+      "48 states generated, 34 distinct states found, 20 states left on queue.",
+      "The depth of the complete state graph search is 4.",
+      "Finished in 00s at (2026-10-04 03:54:35)"
+    ],
+    "coverage": {
+      "Init": [
+        3,
+        3
+      ],
+      "UserRequest": [
+        0,
+        0
+      ],
+      "ReadResume": [
+        1,
+        13
+      ],
+      "ResumeAfterFork": [
+        1,
+        5
+      ],
+      "UserResume": [
+        0,
+        0
+      ],
+      "DiscardResume": [
+        0,
+        0
+      ],
+      "ApplyStop": [
+        0,
+        0
+      ],
+      "DeleteSource": [
+        0,
+        0
+      ],
+      "ReadCleanup": [
+        7,
+        11
+      ],
+      "Commit": [
+        5,
+        7
+      ],
+      "ReplaceUID": [
+        7,
+        9
+      ],
+      "ChildDeleteIntent": [
+        9,
+        9
+      ],
+      "CleanupAttempt": [
+        2,
+        4
+      ],
+      "LateCleanupAttempt": [
+        1,
+        3
+      ]
+    }
+  },
+  "probe-lost-response": {
+    "config": "probe-lost-response",
+    "module": "Resources",
+    "run": "783f71a17b18",
+    "inputs_sha256": {
+      "Resources.tla": "599bf269a708d22cefc30adf75acc50fe88f0e0e9bcfbc6af22dedca2e5996bb",
+      "probe-lost-response.cfg": "2683c7445d115a48f66b32e843816f74cdea71fa399fe8126fccce52ff991cef",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-783f71a17b18",
+      "-config",
+      "probe-lost-response.cfg",
+      "Resources"
+    ],
+    "log": "traces/probe-lost-response.783f71a17b18.txt",
+    "returncode": 12,
+    "seconds": 1.57,
+    "expected_returncode": 12,
+    "inputs_unchanged": true,
+    "pass": false,
+    "counterexample": true,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Error: Invariant NoLostRecoveryWitness is violated.",
+      "Error: The behavior up to this point is:",
+      "2475 states generated, 1091 distinct states found, 427 states left on queue.",
+      "The depth of the complete state graph search is 10.",
+      "Finished in 01s at (2026-10-04 03:54:37)"
+    ],
+    "coverage": {
+      "Init": [
+        3,
+        3
+      ],
+      "CreateSnapshot": [
+        2,
+        8
+      ],
+      "ReconcileSnapshot": [
+        2,
+        6
+      ],
+      "CreatePVC": [
+        4,
+        12
+      ],
+      "BindPVC": [
+        18,
+        26
+      ],
+      "ReconcilePVC": [
+        6,
+        43
+      ],
+      "CreateChild": [
+        8,
+        34
+      ],
+      "ReadyChild": [
+        30,
+        50
+      ],
+      "ReconcileChild": [
+        19,
+        67
+      ],
+      "Commit": [
+        8,
+        10
+      ],
+      "Replace": [
+        566,
+        872
+      ],
+      "DetectMismatch": [
+        18,
+        310
+      ],
+      "Cancel": [
+        39,
+        237
+      ],
+      "CleanupReconcile": [
+        0,
+        46
+      ],
+      "CleanupDelete": [
+        80,
+        205
+      ],
+      "CleanupDone": [
+        37,
+        42
+      ],
+      "Crash": [
+        166,
+        332
+      ],
+      "Recover": [
+        87,
+        202
+      ]
+    }
+  },
+  "legacy-unsafe-check": {
+    "config": "legacy-unsafe-check",
+    "module": "DiskFork",
+    "run": "a38fd4ebd637",
+    "inputs_sha256": {
+      "DiskFork.tla": "04257d5ba906c1b2ff2542634ee98fa50fad5f6dabdfa60117e27772594d3609",
+      "legacy-unsafe-check.cfg": "dadbbc71c26ade28a963d4e62f86b3a27f96f257136a34fdbfe0bdf8a946ae1d",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-a38fd4ebd637",
+      "-config",
+      "legacy-unsafe-check.cfg",
+      "DiskFork"
+    ],
+    "log": "traces/legacy-unsafe-check.a38fd4ebd637.txt",
+    "returncode": 12,
+    "seconds": 1.5,
+    "expected_returncode": 12,
+    "inputs_unchanged": true,
+    "pass": false,
+    "counterexample": true,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Error: Invariant NoNewAdmission is violated.",
+      "Error: The behavior up to this point is:",
+      "904 states generated, 514 distinct states found, 412 states left on queue.",
+      "The depth of the complete state graph search is 5.",
+      "Finished in 01s at (2026-10-04 03:54:39)"
+    ],
+    "coverage": {
+      "Init": [
+        3,
+        3
+      ],
+      "Submit": [
+        52,
+        158
+      ],
+      "Replay": [
+        36,
+        56
+      ],
+      "Begin": [
+        5,
+        91
+      ],
+      "Register": [
+        5,
+        49
+      ],
+      "Execute": [
+        3,
+        13
+      ],
+      "Expire": [
+        1,
+        1
+      ],
+      "Finish": [
+        1,
+        1
+      ],
+      "Gate": [
+        34,
+        46
+      ],
+      "Drain": [
+        4,
+        4
+      ],
+      "Unmount": [
+        0,
+        0
+      ],
+      "Snapshot": [
+        0,
+        0
+      ],
+      "Release": [
+        0,
+        0
+      ],
+      "Clone": [
+        0,
+        0
+      ],
+      "Commit": [
+        0,
+        0
+      ],
+      "PruneSnapshot": [
+        0,
+        0
+      ],
+      "UserIntent": [
+        188,
+        228
+      ],
+      "ApplyIntent": [
+        24,
+        48
+      ],
+      "UserResume": [
+        0,
+        0
+      ],
+      "DeleteSource": [
+        1,
+        1
+      ],
+      "CancelPending": [
+        0,
+        4
+      ],
+      "Fail": [
+        26,
+        52
+      ],
+      "DeleteChildIntent": [
+        30,
+        56
+      ],
+      "CancelChild": [
+        0,
+        4
+      ],
+      "ReplaceUID": [
+        0,
+        0
+      ],
+      "Cleanup": [
+        4,
+        8
+      ],
+      "DeleteChild": [
+        0,
+        0
+      ],
+      "Crash": [
+        86,
+        86
+      ],
+      "Recover": [
+        13,
+        13
+      ]
+    }
+  },
+  "legacy-unsafe-lease": {
+    "config": "legacy-unsafe-lease",
+    "module": "DiskFork",
+    "run": "61dff108cfe0",
+    "inputs_sha256": {
+      "DiskFork.tla": "04257d5ba906c1b2ff2542634ee98fa50fad5f6dabdfa60117e27772594d3609",
+      "legacy-unsafe-lease.cfg": "6e8ffda51de38677a04c47af77e1e9f9c6569337a93aed93a4fa6348cec6e930",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-61dff108cfe0",
+      "-config",
+      "legacy-unsafe-lease.cfg",
+      "DiskFork"
+    ],
+    "log": "traces/legacy-unsafe-lease.61dff108cfe0.txt",
+    "returncode": 12,
+    "seconds": 2.77,
+    "expected_returncode": 12,
+    "inputs_unchanged": true,
+    "pass": false,
+    "counterexample": true,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Error: Invariant ExecutingMounted is violated.",
+      "Error: The behavior up to this point is:",
+      "36418 states generated, 12847 distinct states found, 8031 states left on queue.",
+      "The depth of the complete state graph search is 8.",
+      "Finished in 02s at (2026-10-04 03:54:41)"
+    ],
+    "coverage": {
+      "Init": [
+        3,
+        3
+      ],
+      "Submit": [
+        282,
+        2470
+      ],
+      "Replay": [
+        996,
+        4628
+      ],
+      "Begin": [
+        14,
+        1702
+      ],
+      "Register": [
+        0,
+        0
+      ],
+      "Execute": [
+        6,
+        2027
+      ],
+      "Expire": [
+        6,
+        587
+      ],
+      "Finish": [
+        6,
+        777
+      ],
+      "Gate": [
+        936,
+        1526
+      ],
+      "Drain": [
+        182,
+        458
+      ],
+      "Unmount": [
+        59,
+        167
+      ],
+      "Snapshot": [
+        18,
+        44
+      ],
+      "Release": [
+        4,
+        4
+      ],
+      "Clone": [
+        0,
+        0
+      ],
+      "Commit": [
+        0,
+        0
+      ],
+      "PruneSnapshot": [
+        0,
+        0
+      ],
+      "UserIntent": [
+        4204,
+        6424
+      ],
+      "ApplyIntent": [
+        273,
+        756
+      ],
+      "UserResume": [
+        0,
+        0
+      ],
+      "DeleteSource": [
+        53,
+        58
+      ],
+      "CancelPending": [
+        0,
+        364
+      ],
+      "Fail": [
+        526,
+        3392
+      ],
+      "DeleteChildIntent": [
+        406,
+        4392
+      ],
+      "CancelChild": [
+        80,
+        828
+      ],
+      "ReplaceUID": [
+        0,
+        0
+      ],
+      "Cleanup": [
+        292,
+        1336
+      ],
+      "DeleteChild": [
+        0,
+        0
+      ],
+      "Crash": [
+        3361,
+        3361
+      ],
+      "Recover": [
+        1142,
+        1142
+      ]
+    }
+  },
+  "legacy-unsafe-lease-snapshot": {
+    "config": "legacy-unsafe-lease-snapshot",
+    "module": "DiskFork",
+    "run": "90a574a295c1",
+    "inputs_sha256": {
+      "DiskFork.tla": "04257d5ba906c1b2ff2542634ee98fa50fad5f6dabdfa60117e27772594d3609",
+      "legacy-unsafe-lease-snapshot.cfg": "b639263b7a2e748a9a1608be32eb12cd2fd11e62a0194b1a3cfbaf7f50a14cf7",
+      "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"
+    },
+    "tools_sha256": {
+      "tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+      "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"
+    },
+    "timeout_seconds": 180,
+    "command": [
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2",
+      "--library-path",
+      "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib",
+      "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java",
+      "-XX:+UseParallelGC",
+      "-Xmx512m",
+      "-cp",
+      "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar",
+      "tlc2.TLC",
+      "-workers",
+      "1",
+      "-coverage",
+      "1",
+      "-metadir",
+      "/data/chrome/home/.cache/disk-fork-tlc/states-v2-90a574a295c1",
+      "-config",
+      "legacy-unsafe-lease-snapshot.cfg",
+      "DiskFork"
+    ],
+    "log": "traces/legacy-unsafe-lease-snapshot.90a574a295c1.txt",
+    "returncode": 12,
+    "seconds": 3.88,
+    "expected_returncode": 12,
+    "inputs_unchanged": true,
+    "pass": false,
+    "counterexample": true,
+    "summary": [
+      "TLC2 Version 2026.10.04.025638 (rev: 1813307)",
+      "Error: Invariant SnapshotSafe is violated.",
+      "Error: The behavior up to this point is:",
+      "94723 states generated, 29776 distinct states found, 16928 states left on queue.",
+      "The depth of the complete state graph search is 9.",
+      "Finished in 03s at (2026-10-04 03:54:45)"
+    ],
+    "coverage": {
+      "Init": [
+        3,
+        3
+      ],
+      "Submit": [
+        414,
+        4942
+      ],
+      "Replay": [
+        2182,
+        13168
+      ],
+      "Begin": [
+        50,
+        3370
+      ],
+      "Register": [
+        0,
+        0
+      ],
+      "Execute": [
+        14,
+        5646
+      ],
+      "Expire": [
+        6,
+        2027
+      ],
+      "Finish": [
+        6,
+        2860
+      ],
+      "Gate": [
+        2086,
+        3498
+      ],
+      "Drain": [
+        420,
+        1150
+      ],
+      "Unmount": [
+        150,
+        458
+      ],
+      "Snapshot": [
+        59,
+        159
+      ],
+      "Release": [
+        30,
+        44
+      ],
+      "Clone": [
+        4,
+        4
+      ],
+      "Commit": [
+        0,
+        0
+      ],
+      "PruneSnapshot": [
+        0,
+        0
+      ],
+      "UserIntent": [
+        9172,
+        15040
+      ],
+      "ApplyIntent": [
+        493,
+        1528
+      ],
+      "UserResume": [
+        0,
+        0
+      ],
+      "DeleteSource": [
+        115,
+        134
+      ],
+      "CancelPending": [
+        0,
+        980
+      ],
+      "Fail": [
+        1160,
+        9172
+      ],
+      "DeleteChildIntent": [
+        738,
+        12296
+      ],
+      "CancelChild": [
+        256,
+        2564
+      ],
+      "ReplaceUID": [
+        0,
+        0
+      ],
+      "Cleanup": [
+        716,
+        4008
+      ],
+      "DeleteChild": [
+        0,
+        0
+      ],
+      "Crash": [
+        8343,
+        8343
+      ],
+      "Recover": [
+        3361,
+        3361
+      ]
+    }
+  }
+}

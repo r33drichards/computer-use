@@ -32,6 +32,11 @@ func (p *Proxy) running(ctx context.Context, id string) (sessions.Session, error
 }
 
 func (p *Proxy) undrained(ctx context.Context, id string, find func(context.Context, string) (sessions.Session, error)) (sessions.Session, error) {
+	if p.ForkFences != nil {
+		if err := p.ForkFences.CheckForkFence(ctx, id, ""); err != nil {
+			return sessions.Session{}, err
+		}
+	}
 	s, err := find(ctx, id)
 	if err != nil || p.Billing == nil || s.Draining == "" {
 		return s, err

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/r33drichards/computer-use/backend/internal/diskfork"
 	"log/slog"
 	"net"
 	"net/http"
@@ -45,9 +46,10 @@ const (
 type Proxy struct {
 	// Verifier and Authz establish who is calling a session's MCP endpoint
 	// and whether they may.
-	Verifier auth.Verifier
-	Authz    authz.Checker
-	Waker    *Waker
+	ForkFences ForkFences
+	Verifier   auth.Verifier
+	Authz      authz.Checker
+	Waker      *Waker
 	// Idle writes, on each session, the use this replica makes of it: what
 	// the idle sweep and a billing drain decide from, whichever replica
 	// runs them.
@@ -289,6 +291,8 @@ func lookupFailed(w http.ResponseWriter, r *http.Request, id string, err error) 
 	case r.Context().Err() != nil:
 		// The caller hung up while the session was waking; nobody to answer.
 	case refused(w, r, err):
+	case errors.Is(err, diskfork.ErrGated):
+		http.Error(w, "session protected by disk fork fence", http.StatusConflict)
 	case errors.Is(err, sessions.ErrNotFound):
 		http.Error(w, "session not found", http.StatusNotFound)
 	case errors.Is(err, ErrStopped):
@@ -353,6 +357,10 @@ func (p *Proxy) forward(w http.ResponseWriter, r *http.Request, s sessions.Sessi
 // forwardWith is forward for a route that says more about the pod's answer
 // than neuter does: rewrite, if any, sees the response first.
 func (p *Proxy) forwardWith(w http.ResponseWriter, r *http.Request, s sessions.Session, port int, path string, transport http.RoundTripper, rewrite func(*http.Response)) int {
+	if err := p.admitForward(r.Context(), s.ID); err != nil {
+		lookupFailed(w, r, s.ID, err)
+		return http.StatusConflict
+	}
 	target := p.Target(s, port)
 	status := 0
 	rp := &httputil.ReverseProxy{

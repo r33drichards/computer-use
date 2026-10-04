@@ -73,7 +73,7 @@ func (p *Proxy) askBrowserStart(ctx context.Context, id string) error {
 	// As the pod's own server expects from a caller that is not a web page.
 	req.Host = "localhost:" + strconv.Itoa(browserPort)
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := p.quick.RoundTrip(req)
+	resp, err := p.guardedRoundTrip(ctx, id, req, p.quick)
 	if err != nil {
 		p.Waker.Invalidate(id)
 		return err

@@ -608,3 +608,37 @@ func TestAuthenticatePrefersNothingOverTheAPIHostsCaller(t *testing.T) {
 		t.Error("a caller on the context without a token was accepted")
 	}
 }
+
+func TestDiskForkRouteScopeAndRewrite(t *testing.T) {
+	for _, c := range []struct {
+		method, path, token string
+		want                int
+	}{
+		{"POST", "/v1/sessions/s-abcdefghij/fork", "all", 204},
+		{"POST", "/v1/sessions/s-abcdefghij/fork", "write", 204},
+		{"POST", "/v1/sessions/s-abcdefghij/fork", "read", 403},
+		{"POST", "/v1/sessions/s-abcdefghij/fork", "bound", 403},
+		{"GET", "/v1/fork-operations/op-one", "read", 204},
+		{"GET", "/v1/fork-operations/op-one", "write", 403},
+		{"GET", "/v1/fork-operations/op-one", "bound", 403},
+		{"GET", "/v1/fork-operations/op-one", "", 401},
+		{"POST", "/v1/sessions/s-abcdefghij/fork", "", 401},
+		{"GET", "/v1/fork-operations/op-one/extra", "all", 404},
+		{"POST", "/v1/sessions/s-abcdefghij/fork/extra", "all", 404},
+		{"GET", "/v1/fork-operations/x/../op-one", "all", 404},
+	} {
+		f := newAPIHostFixture("alice@example.com")
+		f.tokens.tokens["write"] = fakeToken{owner: "alice@example.com", scopes: []string{ScopeSessionsWrite}}
+		rec := f.do(c.method, c.path, c.token)
+		if rec.Code != c.want {
+			t.Fatalf("%s %s: %d, want %d", c.method, c.path, rec.Code, c.want)
+		}
+		if c.want == 204 {
+			if len(f.seen) != 1 || f.seen[0].URL.Path != "/api"+strings.TrimPrefix(c.path, "/v1") {
+				t.Fatal("incorrect rewrite")
+			}
+		} else if len(f.seen) != 0 {
+			t.Fatal("denied request reached handler")
+		}
+	}
+}

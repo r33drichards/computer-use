@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/r33drichards/computer-use/backend/internal/diskfork"
 	"io"
 	"log/slog"
 	"net/http"
@@ -163,6 +164,7 @@ func (a *API) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/sessions/{id}/sleep", a.session(a.sleep))
 	mux.HandleFunc("POST /api/sessions/{id}/wake", a.session(a.wake))
 	a.registerPolicies(mux)
+	a.registerDiskFork(mux)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -211,12 +213,24 @@ func (a *API) session(next sessionHandler) http.HandlerFunc {
 			writeError(w, http.StatusNotFound, "session not found")
 			return
 		}
+		if r.Method != "GET" && r.Method != "HEAD" && strings.Contains(r.URL.Path, "/policy") {
+			if fences, ok := a.store.(interface {
+				CheckForkFence(context.Context, string, string) error
+			}); ok {
+				if err := fences.CheckForkFence(r.Context(), id, ""); err != nil {
+					a.storeError(w, err)
+					return
+				}
+			}
+		}
 		next(w, r, id)
 	})
 }
 
 func (a *API) storeError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, diskfork.ErrGated):
+		writeJSON(w, http.StatusConflict, map[string]string{"code": "disk_fork_fenced", "error": "session protected by disk fork fence"})
 	case errors.Is(err, sessions.ErrNotFound):
 		writeError(w, http.StatusNotFound, "session not found")
 	case errors.Is(err, sessions.ErrInvalidName), errors.Is(err, sessions.ErrInvalidAction), errors.Is(err, sessions.ErrCanary), errors.Is(err, sessions.ErrInvalidSize):

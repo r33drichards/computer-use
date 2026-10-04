@@ -1,0 +1,197 @@
+[
+  {
+    "config": "atomic",
+    "log": "traces/atomic-verified.txt",
+    "jar_sha256": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+    "returncode": 0,
+    "completed": true,
+    "states": {
+      "generated": 731727,
+      "distinct": 158657,
+      "queue": 0
+    },
+    "errors": [],
+    "depth": [
+      "29"
+    ],
+    "version": [
+      "2026.10.04.025638 (rev: 1813307)"
+    ],
+    "last_progress": [
+      "Progress(16) at 2026-10-04 03:06:07: 110,931 states generated (110,931 s/min), 29,169 distinct states found (29,169 ds/min), 7,491 states left on queue."
+    ]
+  },
+  {
+    "config": "cap-one",
+    "log": "traces/cap-one-verified.txt",
+    "jar_sha256": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+    "returncode": 0,
+    "completed": true,
+    "states": {
+      "generated": 204327,
+      "distinct": 55529,
+      "queue": 0
+    },
+    "errors": [],
+    "depth": [
+      "29"
+    ],
+    "version": [
+      "2026.10.04.025638 (rev: 1813307)"
+    ],
+    "last_progress": [
+      "Progress(22) at 2026-10-04 03:06:21: 111,630 states generated (111,630 s/min), 32,898 distinct states found (32,898 ds/min), 3,891 states left on queue."
+    ]
+  },
+  {
+    "config": "faults",
+    "log": "traces/faults-verified.txt",
+    "jar_sha256": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+    "returncode": 0,
+    "completed": true,
+    "states": {
+      "generated": 192203,
+      "distinct": 45807,
+      "queue": 0
+    },
+    "errors": [],
+    "depth": [
+      "24"
+    ],
+    "version": [
+      "2026.10.04.025638 (rev: 1813307)"
+    ],
+    "last_progress": [
+      "Progress(15) at 2026-10-04 03:06:27: 99,279 states generated (99,279 s/min), 26,295 distinct states found (26,295 ds/min), 4,947 states left on queue."
+    ]
+  },
+  {
+    "config": "liveness-races",
+    "log": "traces/liveness-races-verified.txt",
+    "jar_sha256": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+    "returncode": "timeout180",
+    "completed": false,
+    "states": null,
+    "errors": [],
+    "depth": [],
+    "version": [
+      "2026.10.04.025638 (rev: 1813307)"
+    ],
+    "last_progress": [
+      "Progress(23) at 2026-10-04 03:09:00: 500,022 states generated (242,822 s/min), 116,249 distinct states found (53,437 ds/min), 13,356 states left on queue."
+    ]
+  },
+  {
+    "config": "liveness-two-forks",
+    "log": "traces/liveness-two-forks-verified.txt",
+    "jar_sha256": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+    "returncode": 0,
+    "completed": true,
+    "states": {
+      "generated": 116022,
+      "distinct": 28973,
+      "queue": 0
+    },
+    "errors": [],
+    "depth": [
+      "26"
+    ],
+    "version": [
+      "2026.10.04.025638 (rev: 1813307)"
+    ],
+    "last_progress": [
+      "Progress(26) at 2026-10-04 03:24:25: 116,022 states generated, 28,973 distinct states found, 0 states left on queue."
+    ]
+  },
+  {
+    "config": "liveness",
+    "log": "traces/liveness-verified.txt",
+    "jar_sha256": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+    "returncode": 0,
+    "completed": true,
+    "states": {
+      "generated": 36642,
+      "distinct": 10425,
+      "queue": 0
+    },
+    "errors": [],
+    "depth": [
+      "21"
+    ],
+    "version": [
+      "2026.10.04.025638 (rev: 1813307)"
+    ],
+    "last_progress": [
+      "Progress(21) at 2026-10-04 03:06:35: 36,642 states generated, 10,425 distinct states found, 0 states left on queue."
+    ]
+  },
+  {
+    "config": "unsafe-check",
+    "log": "traces/unsafe-check-verified.txt",
+    "jar_sha256": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+    "returncode": 12,
+    "completed": false,
+    "states": {
+      "generated": 904,
+      "distinct": 514,
+      "queue": 412
+    },
+    "errors": [
+      "Invariant NoNewAdmission is violated.",
+      "The behavior up to this point is:"
+    ],
+    "depth": [
+      "5"
+    ],
+    "version": [
+      "2026.10.04.025638 (rev: 1813307)"
+    ],
+    "last_progress": []
+  },
+  {
+    "config": "unsafe-lease-snapshot",
+    "log": "traces/unsafe-lease-snapshot-verified.txt",
+    "jar_sha256": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+    "returncode": 12,
+    "completed": false,
+    "states": {
+      "generated": 94723,
+      "distinct": 29776,
+      "queue": 16928
+    },
+    "errors": [
+      "Invariant SnapshotSafe is violated.",
+      "The behavior up to this point is:"
+    ],
+    "depth": [
+      "9"
+    ],
+    "version": [
+      "2026.10.04.025638 (rev: 1813307)"
+    ],
+    "last_progress": []
+  },
+  {
+    "config": "unsafe-lease",
+    "log": "traces/unsafe-lease-verified.txt",
+    "jar_sha256": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+    "returncode": 12,
+    "completed": false,
+    "states": {
+      "generated": 36418,
+      "distinct": 12847,
+      "queue": 8031
+    },
+    "errors": [
+      "Invariant ExecutingMounted is violated.",
+      "The behavior up to this point is:"
+    ],
+    "depth": [
+      "8"
+    ],
+    "version": [
+      "2026.10.04.025638 (rev: 1813307)"
+    ],
+    "last_progress": []
+  }
+]

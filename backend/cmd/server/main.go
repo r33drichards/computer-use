@@ -296,8 +296,9 @@ func newHandlerWith(cfg config.Config, verifier auth.Verifier, store *sessions.S
 	// policies enabled.
 	policies := policy.New(store, policy.NewOperator(cfg.PolicyOperatorURL, cfg.OperatorAPIToken))
 	px := &proxy.Proxy{
-		Verifier: verifier,
-		Authz:    owners,
+		ForkFences: store,
+		Verifier:   verifier,
+		Authz:      owners,
 		// A session's pod is not sent anything before the session's first
 		// policy is in force.
 		Waker: &proxy.Waker{Store: policy.Gate(store, policies), Timeout: cfg.ReadyTimeout, RestoreTimeout: cfg.RestoreTimeout,

@@ -1,0 +1,332 @@
+{"config": "resources-liveness", "module": "Resources", "run": "bc6878252a2d", "inputs_sha256": {"Resources.tla": "5dd2b32fcbf9dfca14e50cccce96ef308e56b2b1af5a7239236d7ce5b9b14bcb", "resources-liveness.cfg": "3d212e07612707cd787cab59beda19b5ae1ff1ea07dc850164d908dd50eedb1f", "check.py": "df23ca0542fabb48dc9ee3bc74d0c107ae720881eef165ea57848c68d44e986e"}, "tools_sha256": {"tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239", "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"}, "timeout_seconds": 180, "command": ["/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2", "--library-path", "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib", "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java", "-XX:+UseParallelGC", "-Xmx512m", "-cp", "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar", "tlc2.TLC", "-workers", "1", "-coverage", "1", "-metadir", "/data/chrome/home/.cache/disk-fork-tlc/states-v2-bc6878252a2d", "-config", "resources-liveness.cfg", "Resources"], "log": "traces/resources-liveness.bc6878252a2d.txt"}
+TLC2 Version 2026.10.04.025638 (rev: 1813307)
+Running breadth-first search Model-Checking with fp 39 and seed -6820716959120901453 with 1 worker on 2 cores with 455MB heap and 64MB offheap memory [pid: 965] (Linux 4.19.0-gvisor amd64, Eclipse Adoptium 17.0.13 64bit, MSBDiskFPSet, DiskStateQueue).
+Parsing file /data/chrome/home/computer-use-fork-work/spec/disk-fork/v2/Resources.tla
+Parsing file /tmp/tlc-7566087187801870430/Naturals.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/Naturals.tla)
+Parsing file /tmp/tlc-7566087187801870430/Integers.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/Integers.tla)
+Parsing file /tmp/tlc-7566087187801870430/FiniteSets.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/FiniteSets.tla)
+Parsing file /tmp/tlc-7566087187801870430/TLC.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/TLC.tla)
+Parsing file /tmp/tlc-7566087187801870430/_TLCTrace.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/_TLCTrace.tla)
+Parsing file /tmp/tlc-7566087187801870430/Sequences.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/Sequences.tla)
+Parsing file /tmp/tlc-7566087187801870430/TLCExt.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/TLCExt.tla)
+Semantic processing of module Naturals
+Semantic processing of module Integers
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module TLCExt
+Semantic processing of module _TLCTrace
+Semantic processing of module Resources
+Linting of module TLCExt
+Linting of module _TLCTrace
+Linting of module Resources
+Starting... (2026-10-04 03:49:32)
+Implied-temporal checking--satisfiability problem has 1 branches.
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-04 03:49:32.
+Progress(15) at 2026-10-04 03:49:34: 8,962 states generated, 2,850 distinct states found, 0 states left on queue.
+Checking temporal properties for the complete state space with 2850 total distinct states at (2026-10-04 03:49:34)
+Finished checking temporal properties in 00s at 2026-10-04 03:49:34
+Model checking completed. No error has been found.
+  Estimates of the probability that TLC did not check all reachable states
+  because two distinct states had the same fingerprint:
+  calculated (optimistic):  val = 9.4E-13
+The coverage statistics at 2026-10-04 03:49:34 (see https://explain.tlapl.us/module-coverage-statistics for how to interpret the following statistics).
+<s line 4, col 10 to line 4, col 10 of module Resources>: 3036
+<Init line 9, col 1 to line 9, col 4 of module Resources>: 1:1
+  line 9, col 9 to line 11, col 85 of module Resources: 1
+  |line 9, col 13 to line 11, col 85 of module Resources: 1
+  ||line 9, col 44 to line 9, col 66 of module Resources: 1:3
+  |||line 9, col 61 to line 9, col 65 of module Resources: 3
+  |||line 9, col 51 to line 9, col 55 of module Resources: 1
+  ||line 10, col 23 to line 10, col 41 of module Resources: 1:3
+  |||line 10, col 30 to line 10, col 34 of module Resources: 1
+  ||line 10, col 56 to line 10, col 74 of module Resources: 1:3
+  |||line 10, col 63 to line 10, col 67 of module Resources: 1
+  ||line 11, col 14 to line 11, col 24 of module Resources: 1
+  ||line 11, col 27 to line 11, col 37 of module Resources: 1
+  ||line 11, col 55 to line 11, col 68 of module Resources: 1:11208
+  ||line 11, col 71 to line 11, col 84 of module Resources: 1:1710
+<CreateSnapshot line 12, col 1 to line 12, col 20 of module Resources>: 2:6
+  line 12, col 28 to line 12, col 31 of module Resources: 5708
+  |line 12, col 28 to line 12, col 28 of module Resources: 5702
+  line 12, col 36 to line 12, col 55 of module Resources: 3808
+  |line 12, col 36 to line 12, col 42 of module Resources: 3802
+  line 12, col 60 to line 12, col 84 of module Resources: 28
+  |line 12, col 60 to line 12, col 80 of module Resources: 22
+  line 13, col 5 to line 16, col 68 of module Resources: 6
+  |line 13, col 10 to line 16, col 68 of module Resources: 6
+  ||line 13, col 11 to line 13, col 11 of module Resources: 6
+  ||line 13, col 20 to line 13, col 108 of module Resources: 6
+  ||line 14, col 20 to line 14, col 48 of module Resources: 6
+  ||line 15, col 20 to line 15, col 61 of module Resources: 6
+  ||line 16, col 29 to line 16, col 67 of module Resources: 6
+  |||line 16, col 32 to line 16, col 35 of module Resources: 6
+  |||line 16, col 42 to line 16, col 60 of module Resources: 3
+<ReconcileSnapshot line 19, col 1 to line 19, col 17 of module Resources>: 2:4
+  line 19, col 25 to line 19, col 28 of module Resources: 2855
+  |line 19, col 25 to line 19, col 25 of module Resources: 2851
+  line 19, col 33 to line 19, col 52 of module Resources: 1905
+  |line 19, col 33 to line 19, col 39 of module Resources: 1901
+  line 20, col 5 to line 20, col 29 of module Resources: 15
+  |line 20, col 5 to line 20, col 25 of module Resources: 11
+  line 20, col 34 to line 20, col 60 of module Resources: 12
+  |line 20, col 34 to line 20, col 56 of module Resources: 8
+  line 21, col 5 to line 21, col 79 of module Resources: 4
+<CreatePVC line 22, col 1 to line 22, col 15 of module Resources>: 4:8
+  line 22, col 23 to line 22, col 26 of module Resources: 5710
+  |line 22, col 23 to line 22, col 23 of module Resources: 5702
+  line 22, col 31 to line 22, col 45 of module Resources: 3810
+  |line 22, col 31 to line 22, col 37 of module Resources: 3802
+  line 22, col 50 to line 22, col 69 of module Resources: 192
+  |line 22, col 50 to line 22, col 65 of module Resources: 184
+  line 23, col 5 to line 23, col 46 of module Resources: 24
+  |line 23, col 5 to line 23, col 25 of module Resources: 16
+  |line 23, col 29 to line 23, col 46 of module Resources: 16
+  line 23, col 51 to line 23, col 77 of module Resources: 16
+  |line 23, col 51 to line 23, col 73 of module Resources: 8
+  line 24, col 5 to line 26, col 63 of module Resources: 8
+  |line 24, col 10 to line 26, col 63 of module Resources: 8
+  ||line 24, col 11 to line 24, col 11 of module Resources: 8
+  ||line 24, col 20 to line 24, col 71 of module Resources: 8
+  ||line 25, col 20 to line 25, col 43 of module Resources: 8
+  ||line 25, col 46 to line 25, col 82 of module Resources: 8
+  ||line 26, col 29 to line 26, col 62 of module Resources: 8
+  |||line 26, col 32 to line 26, col 35 of module Resources: 8
+  |||line 26, col 42 to line 26, col 55 of module Resources: 4
+  ||||line 26, col 49 to line 26, col 55 of module Resources: 4:4
+<BindPVC line 31, col 1 to line 31, col 7 of module Resources>: 18:24
+  line 31, col 15 to line 31, col 18 of module Resources: 2875
+  |line 31, col 15 to line 31, col 15 of module Resources: 2851
+  line 31, col 23 to line 31, col 37 of module Resources: 1925
+  |line 31, col 23 to line 31, col 29 of module Resources: 1901
+  line 31, col 42 to line 31, col 63 of module Resources: 116
+  |line 31, col 42 to line 31, col 59 of module Resources: 92
+  line 31, col 68 to line 31, col 86 of module Resources: 84
+  |line 31, col 69 to line 31, col 86 of module Resources: 60
+  line 32, col 5 to line 32, col 29 of module Resources: 48
+  |line 32, col 5 to line 32, col 25 of module Resources: 24
+  line 33, col 5 to line 36, col 79 of module Resources: 24
+<ReconcilePVC line 37, col 1 to line 37, col 12 of module Resources>: 6:40
+  line 37, col 20 to line 37, col 23 of module Resources: 2883
+  |line 37, col 20 to line 37, col 20 of module Resources: 2851
+  line 37, col 28 to line 37, col 42 of module Resources: 1933
+  |line 37, col 28 to line 37, col 34 of module Resources: 1901
+  line 37, col 47 to line 37, col 66 of module Resources: 124
+  |line 37, col 47 to line 37, col 62 of module Resources: 92
+  line 37, col 71 to line 37, col 92 of module Resources: 116
+  |line 37, col 71 to line 37, col 88 of module Resources: 84
+  line 38, col 6 to line 38, col 22 of module Resources: 76
+  |line 38, col 6 to line 38, col 18 of module Resources: 60
+  line 38, col 27 to line 38, col 44 of module Resources: 84
+  |line 38, col 27 to line 38, col 38 of module Resources: 60
+  line 39, col 6 to line 39, col 24 of module Resources: 64
+  |line 39, col 7 to line 39, col 24 of module Resources: 56
+  line 39, col 29 to line 39, col 68 of module Resources: 88
+  |line 39, col 29 to line 39, col 47 of module Resources: 56
+  |line 39, col 51 to line 39, col 68 of module Resources: 56
+  line 39, col 73 to line 39, col 95 of module Resources: 56
+  line 40, col 5 to line 41, col 71 of module Resources: 40
+<CreateChild line 42, col 1 to line 42, col 17 of module Resources>: 8:32
+  line 42, col 25 to line 42, col 28 of module Resources: 5734
+  |line 42, col 25 to line 42, col 25 of module Resources: 5702
+  line 42, col 33 to line 42, col 49 of module Resources: 3834
+  |line 42, col 33 to line 42, col 39 of module Resources: 3802
+  line 42, col 54 to line 42, col 75 of module Resources: 768
+  |line 42, col 54 to line 42, col 71 of module Resources: 736
+  line 43, col 5 to line 43, col 36 of module Resources: 96
+  |line 43, col 5 to line 43, col 20 of module Resources: 64
+  |line 43, col 24 to line 43, col 36 of module Resources: 64
+  line 43, col 41 to line 43, col 62 of module Resources: 64
+  |line 43, col 41 to line 43, col 58 of module Resources: 32
+  line 44, col 5 to line 46, col 65 of module Resources: 32
+  |line 44, col 10 to line 46, col 65 of module Resources: 32
+  ||line 44, col 11 to line 44, col 11 of module Resources: 32
+  ||line 44, col 20 to line 44, col 104 of module Resources: 32
+  ||line 45, col 20 to line 45, col 45 of module Resources: 32
+  ||line 45, col 48 to line 45, col 86 of module Resources: 32
+  ||line 46, col 29 to line 46, col 64 of module Resources: 32
+  |||line 46, col 32 to line 46, col 35 of module Resources: 32
+  |||line 46, col 42 to line 46, col 57 of module Resources: 16
+  ||||line 46, col 49 to line 46, col 57 of module Resources: 16:24
+<ReadyChild line 49, col 1 to line 49, col 10 of module Resources>: 60:96
+  line 49, col 18 to line 49, col 21 of module Resources: 2947
+  |line 49, col 18 to line 49, col 18 of module Resources: 2851
+  line 49, col 26 to line 49, col 42 of module Resources: 1997
+  |line 49, col 26 to line 49, col 32 of module Resources: 1901
+  line 49, col 47 to line 49, col 70 of module Resources: 464
+  |line 49, col 47 to line 49, col 66 of module Resources: 368
+  line 49, col 75 to line 49, col 95 of module Resources: 336
+  |line 49, col 76 to line 49, col 95 of module Resources: 240
+  line 50, col 5 to line 50, col 24 of module Resources: 192
+  |line 50, col 5 to line 50, col 20 of module Resources: 96
+  line 51, col 5 to line 51, col 88 of module Resources: 96
+<ReconcileChild line 52, col 1 to line 52, col 14 of module Resources>: 44:224
+  line 52, col 22 to line 52, col 25 of module Resources: 3027
+  |line 52, col 22 to line 52, col 22 of module Resources: 2851
+  line 52, col 30 to line 52, col 46 of module Resources: 2077
+  |line 52, col 30 to line 52, col 36 of module Resources: 1901
+  line 52, col 51 to line 52, col 72 of module Resources: 544
+  |line 52, col 51 to line 52, col 68 of module Resources: 368
+  line 52, col 77 to line 52, col 100 of module Resources: 512
+  |line 52, col 77 to line 52, col 96 of module Resources: 336
+  line 53, col 6 to line 53, col 24 of module Resources: 320
+  |line 53, col 6 to line 53, col 20 of module Resources: 240
+  line 53, col 29 to line 53, col 48 of module Resources: 384
+  |line 53, col 29 to line 53, col 42 of module Resources: 240
+  line 54, col 5 to line 55, col 74 of module Resources: 224
+<Commit line 60, col 1 to line 60, col 6 of module Resources>: 24:32
+  line 60, col 14 to line 60, col 17 of module Resources: 2883
+  |line 60, col 14 to line 60, col 14 of module Resources: 2851
+  line 60, col 22 to line 60, col 39 of module Resources: 1933
+  |line 60, col 22 to line 60, col 28 of module Resources: 1901
+  line 61, col 6 to line 61, col 26 of module Resources: 160
+  line 56, col 21 to line 56, col 56 of module Resources: 192
+  |line 56, col 21 to line 56, col 38 of module Resources: 160
+  |line 56, col 42 to line 56, col 56 of module Resources: 160
+  line 56, col 61 to line 56, col 84 of module Resources: 128
+  |line 56, col 61 to line 56, col 80 of module Resources: 96
+  line 57, col 21 to line 57, col 52 of module Resources: 128
+  |line 57, col 21 to line 57, col 36 of module Resources: 96
+  |line 57, col 40 to line 57, col 52 of module Resources: 96
+  line 57, col 57 to line 57, col 78 of module Resources: 64
+  |line 57, col 57 to line 57, col 74 of module Resources: 32
+  line 58, col 21 to line 58, col 56 of module Resources: 64
+  |line 58, col 21 to line 58, col 40 of module Resources: 32
+  |line 58, col 44 to line 58, col 56 of module Resources: 32
+  line 59, col 22 to line 59, col 61 of module Resources: 64
+  |line 59, col 22 to line 59, col 40 of module Resources: 32
+  |line 59, col 44 to line 59, col 61 of module Resources: 32
+  line 59, col 66 to line 59, col 88 of module Resources: 32
+  line 69, col 8 to line 69, col 102 of module Resources: 32
+  |line 69, col 13 to line 69, col 102 of module Resources: 32
+  ||line 69, col 14 to line 69, col 14 of module Resources: 32
+  ||line 69, col 58 to line 69, col 71 of module Resources: 32
+  |||line 69, col 65 to line 69, col 71 of module Resources: 32:384
+  ||||line 69, col 66 to line 69, col 70 of module Resources: 32
+  ||line 69, col 74 to line 69, col 101 of module Resources: 32
+<Replace line 70, col 1 to line 70, col 10 of module Resources>: 1563:3177
+  line 70, col 18 to line 70, col 55 of module Resources: 11730
+  |line 70, col 18 to line 70, col 24 of module Resources: 8553
+  |line 70, col 33 to line 70, col 55 of module Resources: 8553
+  line 70, col 60 to line 70, col 75 of module Resources: 10632
+  |line 70, col 60 to line 70, col 71 of module Resources: 7455
+  line 71, col 5 to line 71, col 116 of module Resources: 3177
+<DetectMismatch line 79, col 1 to line 79, col 14 of module Resources>: 60:1388
+  line 79, col 22 to line 79, col 25 of module Resources: 3375
+  |line 79, col 22 to line 79, col 22 of module Resources: 2851
+  line 75, col 16 to line 75, col 64 of module Resources: 2425
+  |line 75, col 16 to line 75, col 22 of module Resources: 1901
+  |line 75, col 31 to line 75, col 64 of module Resources: 1901
+  line 76, col 25 to line 76, col 40 of module Resources: 2701
+  |line 76, col 25 to line 76, col 36 of module Resources: 1893
+  line 76, col 45 to line 76, col 62 of module Resources: 2544
+  |line 76, col 45 to line 76, col 58 of module Resources: 1736
+  line 76, col 17 to line 76, col 21 of module Resources: 631
+  line 77, col 11 to line 77, col 28 of module Resources: 971
+  |line 77, col 11 to line 77, col 22 of module Resources: 631
+  line 77, col 33 to line 77, col 72 of module Resources: 928
+  |line 77, col 33 to line 77, col 51 of module Resources: 588
+  |line 77, col 55 to line 77, col 72 of module Resources: 588
+  line 77, col 77 to line 77, col 99 of module Resources: 680
+  |line 77, col 77 to line 77, col 80 of module Resources: 340
+  line 78, col 11 to line 78, col 30 of module Resources: 871
+  |line 78, col 11 to line 78, col 24 of module Resources: 631
+  line 78, col 35 to line 78, col 70 of module Resources: 640
+  |line 78, col 35 to line 78, col 54 of module Resources: 400
+  |line 78, col 58 to line 78, col 70 of module Resources: 400
+  line 79, col 42 to line 79, col 76 of module Resources: 1388
+<Cancel line 80, col 1 to line 80, col 6 of module Resources>: 40:631
+  line 80, col 14 to line 80, col 17 of module Resources: 3482
+  |line 80, col 14 to line 80, col 14 of module Resources: 2851
+  line 80, col 22 to line 80, col 70 of module Resources: 2532
+  |line 80, col 22 to line 80, col 28 of module Resources: 1901
+  |line 80, col 37 to line 80, col 70 of module Resources: 1901
+  line 81, col 14 to line 81, col 48 of module Resources: 631
+<CleanupReconcile line 82, col 1 to line 82, col 19 of module Resources>: 0:198
+  line 82, col 27 to line 82, col 30 of module Resources: 8751
+  |line 82, col 27 to line 82, col 27 of module Resources: 8553
+  line 82, col 35 to line 82, col 53 of module Resources: 5901
+  |line 82, col 35 to line 82, col 41 of module Resources: 5703
+  line 82, col 58 to line 82, col 75 of module Resources: 3276
+  |line 82, col 58 to line 82, col 71 of module Resources: 3078
+  line 82, col 80 to line 82, col 92 of module Resources: 1388
+  |line 82, col 80 to line 82, col 88 of module Resources: 1190
+  line 83, col 5 to line 83, col 44 of module Resources: 198
+<CleanupDelete line 84, col 1 to line 84, col 16 of module Resources>: 150:992
+  line 84, col 24 to line 84, col 27 of module Resources: 9545
+  |line 84, col 24 to line 84, col 24 of module Resources: 8553
+  line 84, col 32 to line 84, col 50 of module Resources: 6695
+  |line 84, col 32 to line 84, col 38 of module Resources: 5703
+  line 84, col 55 to line 84, col 72 of module Resources: 4070
+  |line 84, col 55 to line 84, col 68 of module Resources: 3078
+  line 85, col 5 to line 85, col 28 of module Resources: 2182
+  |line 85, col 5 to line 85, col 16 of module Resources: 1190
+  |line 85, col 20 to line 85, col 28 of module Resources: 1190
+  line 85, col 33 to line 85, col 48 of module Resources: 1984
+  |line 85, col 33 to line 85, col 44 of module Resources: 992
+  line 86, col 5 to line 86, col 118 of module Resources: 992
+  |line 86, col 10 to line 86, col 118 of module Resources: 992
+  ||line 86, col 11 to line 86, col 11 of module Resources: 992
+  ||line 86, col 32 to line 86, col 99 of module Resources: 992
+  |||line 86, col 39 to line 86, col 99 of module Resources: 992:2440
+  ||||line 86, col 40 to line 86, col 98 of module Resources: 992
+  ||line 86, col 102 to line 86, col 117 of module Resources: 992
+<CleanupDone line 87, col 1 to line 87, col 11 of module Resources>: 197:212
+  line 87, col 19 to line 87, col 22 of module Resources: 3063
+  |line 87, col 19 to line 87, col 19 of module Resources: 2851
+  line 87, col 27 to line 87, col 45 of module Resources: 2113
+  |line 87, col 27 to line 87, col 33 of module Resources: 1901
+  line 87, col 67 to line 87, col 84 of module Resources: 2702
+  |line 87, col 67 to line 87, col 80 of module Resources: 2066
+  line 87, col 59 to line 87, col 63 of module Resources: 1026
+  line 88, col 5 to line 88, col 38 of module Resources: 212
+<Crash line 89, col 1 to line 89, col 5 of module Resources>: 429:951
+  line 89, col 13 to line 89, col 16 of module Resources: 3802
+  |line 89, col 13 to line 89, col 13 of module Resources: 2851
+  line 89, col 21 to line 89, col 33 of module Resources: 2852
+  |line 89, col 21 to line 89, col 29 of module Resources: 1901
+  line 89, col 38 to line 89, col 80 of module Resources: 951
+<Recover line 90, col 1 to line 90, col 7 of module Resources>: 242:950
+  line 90, col 15 to line 90, col 19 of module Resources: 3801
+  |line 90, col 16 to line 90, col 19 of module Resources: 2851
+  line 90, col 24 to line 90, col 50 of module Resources: 950
+<TypeOK line 98, col 1 to line 98, col 6 of module Resources>
+  line 98, col 11 to line 99, col 79 of module Resources: 2850
+  |line 98, col 11 to line 98, col 94 of module Resources: 2850
+  |line 99, col 14 to line 99, col 79 of module Resources: 2850
+  ||line 99, col 31 to line 99, col 79 of module Resources: 8550
+  ||line 99, col 23 to line 99, col 27 of module Resources: 2850
+<IdempotentCreate line 100, col 1 to line 100, col 16 of module Resources>
+  line 100, col 21 to line 100, col 54 of module Resources: 2850
+  |line 100, col 38 to line 100, col 54 of module Resources: 8550
+  |line 100, col 30 to line 100, col 34 of module Resources: 2850
+<CommitOwnedFenced line 101, col 1 to line 101, col 17 of module Resources>
+  line 101, col 22 to line 101, col 133 of module Resources: 2850
+  |line 101, col 43 to line 101, col 133 of module Resources: 48
+  |line 101, col 31 to line 101, col 39 of module Resources: 2850
+<IndependentDisk line 102, col 1 to line 102, col 15 of module Resources>
+  line 102, col 20 to line 102, col 51 of module Resources: 2850
+  |line 102, col 41 to line 102, col 51 of module Resources: 48
+  |line 102, col 29 to line 102, col 37 of module Resources: 2850
+<CorrectContents line 103, col 1 to line 103, col 15 of module Resources>
+  line 103, col 20 to line 103, col 86 of module Resources: 2850
+  |line 103, col 41 to line 103, col 86 of module Resources: 48
+  |line 103, col 29 to line 103, col 37 of module Resources: 2850
+<FreshControl line 104, col 1 to line 104, col 12 of module Resources>
+  line 104, col 17 to line 104, col 61 of module Resources: 2850
+  |line 104, col 38 to line 104, col 61 of module Resources: 48
+  |line 104, col 26 to line 104, col 34 of module Resources: 2850
+<CommitBeforeAccess line 105, col 1 to line 105, col 18 of module Resources>
+  line 105, col 23 to line 105, col 68 of module Resources: 2850
+  |line 105, col 23 to line 105, col 43 of module Resources: 2850
+  |line 105, col 48 to line 105, col 68 of module Resources: 48
+<CleanupUIDSafe line 106, col 1 to line 106, col 14 of module Resources>
+  line 106, col 19 to line 106, col 58 of module Resources: 2850
+  |line 106, col 40 to line 106, col 58 of module Resources: 1548
+  |line 106, col 28 to line 106, col 36 of module Resources: 2850
+End of statistics.
+8962 states generated, 2850 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 15.
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 7 and the 95th percentile is 3).
+Finished in 02s at (2026-10-04 03:49:34)

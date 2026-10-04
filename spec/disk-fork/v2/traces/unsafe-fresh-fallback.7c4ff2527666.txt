@@ -1,0 +1,768 @@
+{"config": "unsafe-fresh-fallback", "module": "Resources", "run": "7c4ff2527666", "inputs_sha256": {"Resources.tla": "599bf269a708d22cefc30adf75acc50fe88f0e0e9bcfbc6af22dedca2e5996bb", "unsafe-fresh-fallback.cfg": "06359d5650b954fd579ceed65c83b55be8c4b32d1dc19604034f9fb06ca17224", "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"}, "tools_sha256": {"tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239", "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"}, "timeout_seconds": 180, "command": ["/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2", "--library-path", "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib", "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java", "-XX:+UseParallelGC", "-Xmx512m", "-cp", "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar", "tlc2.TLC", "-workers", "1", "-coverage", "1", "-metadir", "/data/chrome/home/.cache/disk-fork-tlc/states-v2-7c4ff2527666", "-config", "unsafe-fresh-fallback.cfg", "Resources"], "log": "traces/unsafe-fresh-fallback.7c4ff2527666.txt"}
+TLC2 Version 2026.10.04.025638 (rev: 1813307)
+Running breadth-first search Model-Checking with fp 126 and seed -6770513514729491498 with 1 worker on 2 cores with 455MB heap and 64MB offheap memory [pid: 1528] (Linux 4.19.0-gvisor amd64, Eclipse Adoptium 17.0.13 64bit, MSBDiskFPSet, DiskStateQueue).
+Parsing file /data/chrome/home/computer-use-fork-work/spec/disk-fork/v2/Resources.tla
+Parsing file /tmp/tlc-17101810010439548513/Naturals.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/Naturals.tla)
+Parsing file /tmp/tlc-17101810010439548513/Integers.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/Integers.tla)
+Parsing file /tmp/tlc-17101810010439548513/FiniteSets.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/FiniteSets.tla)
+Parsing file /tmp/tlc-17101810010439548513/TLC.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/TLC.tla)
+Parsing file /tmp/tlc-17101810010439548513/_TLCTrace.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/_TLCTrace.tla)
+Parsing file /tmp/tlc-17101810010439548513/Sequences.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/Sequences.tla)
+Parsing file /tmp/tlc-17101810010439548513/TLCExt.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/TLCExt.tla)
+Semantic processing of module Naturals
+Semantic processing of module Integers
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module TLCExt
+Semantic processing of module _TLCTrace
+Semantic processing of module Resources
+Linting of module TLCExt
+Linting of module _TLCTrace
+Linting of module Resources
+Starting... (2026-10-04 03:54:28)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-04 03:54:28.
+Error: Invariant CorrectContents is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+s = [ phase |-> "snapshot",
+  obj |->
+      [ snapshot |->
+            [ uid |-> 0,
+              owner |-> 0,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 0,
+              ready |-> FALSE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        pvc |->
+            [ uid |-> 0,
+              owner |-> 0,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 0,
+              ready |-> FALSE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        child |->
+            [ uid |-> 0,
+              owner |-> 0,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 0,
+              ready |-> FALSE,
+              cold |-> FALSE,
+              access |-> FALSE ] ],
+  seen |-> [snapshot |-> 0, pvc |-> 0, child |-> 0],
+  creates |-> [snapshot |-> 0, pvc |-> 0, child |-> 0],
+  lost |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  commits |-> {},
+  deletes |-> {} ]
+
+State 2: <CreateSnapshot(FALSE) line 12, col 25 to line 16, col 68 of module Resources>
+s = [ phase |-> "snapshot",
+  obj |->
+      [ snapshot |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> 7,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        pvc |->
+            [ uid |-> 0,
+              owner |-> 0,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 0,
+              ready |-> FALSE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        child |->
+            [ uid |-> 0,
+              owner |-> 0,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 0,
+              ready |-> FALSE,
+              cold |-> FALSE,
+              access |-> FALSE ] ],
+  seen |-> [snapshot |-> 1, pvc |-> 0, child |-> 0],
+  creates |-> [snapshot |-> 1, pvc |-> 0, child |-> 0],
+  lost |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  commits |-> {},
+  deletes |-> {} ]
+
+State 3: <ReconcileSnapshot line 19, col 22 to line 21, col 79 of module Resources>
+s = [ phase |-> "pvc",
+  obj |->
+      [ snapshot |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> 7,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        pvc |->
+            [ uid |-> 0,
+              owner |-> 0,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 0,
+              ready |-> FALSE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        child |->
+            [ uid |-> 0,
+              owner |-> 0,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 0,
+              ready |-> FALSE,
+              cold |-> FALSE,
+              access |-> FALSE ] ],
+  seen |-> [snapshot |-> 1, pvc |-> 0, child |-> 0],
+  creates |-> [snapshot |-> 1, pvc |-> 0, child |-> 0],
+  lost |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  commits |-> {},
+  deletes |-> {} ]
+
+State 4: <CreatePVC(FALSE) line 22, col 20 to line 26, col 63 of module Resources>
+s = [ phase |-> "pvc",
+  obj |->
+      [ snapshot |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> 7,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        pvc |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 0,
+              ready |-> FALSE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        child |->
+            [ uid |-> 0,
+              owner |-> 0,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 0,
+              ready |-> FALSE,
+              cold |-> FALSE,
+              access |-> FALSE ] ],
+  seen |-> [snapshot |-> 1, pvc |-> 1, child |-> 0],
+  creates |-> [snapshot |-> 1, pvc |-> 1, child |-> 0],
+  lost |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  commits |-> {},
+  deletes |-> {} ]
+
+State 5: <BindPVC line 31, col 12 to line 36, col 79 of module Resources>
+s = [ phase |-> "pvc",
+  obj |->
+      [ snapshot |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> 7,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        pvc |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 20,
+              contents |-> 0,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        child |->
+            [ uid |-> 0,
+              owner |-> 0,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 0,
+              ready |-> FALSE,
+              cold |-> FALSE,
+              access |-> FALSE ] ],
+  seen |-> [snapshot |-> 1, pvc |-> 1, child |-> 0],
+  creates |-> [snapshot |-> 1, pvc |-> 1, child |-> 0],
+  lost |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  commits |-> {},
+  deletes |-> {} ]
+
+State 6: <ReconcilePVC line 37, col 17 to line 41, col 71 of module Resources>
+s = [ phase |-> "child",
+  obj |->
+      [ snapshot |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> 7,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        pvc |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 20,
+              contents |-> 0,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        child |->
+            [ uid |-> 0,
+              owner |-> 0,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 0,
+              ready |-> FALSE,
+              cold |-> FALSE,
+              access |-> FALSE ] ],
+  seen |-> [snapshot |-> 1, pvc |-> 1, child |-> 0],
+  creates |-> [snapshot |-> 1, pvc |-> 1, child |-> 0],
+  lost |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  commits |-> {},
+  deletes |-> {} ]
+
+State 7: <CreateChild(FALSE) line 42, col 22 to line 46, col 65 of module Resources>
+s = [ phase |-> "child",
+  obj |->
+      [ snapshot |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> 7,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        pvc |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 20,
+              contents |-> 0,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        child |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 20,
+              ready |-> FALSE,
+              cold |-> TRUE,
+              access |-> FALSE ] ],
+  seen |-> [snapshot |-> 1, pvc |-> 1, child |-> 1],
+  creates |-> [snapshot |-> 1, pvc |-> 1, child |-> 1],
+  lost |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  commits |-> {},
+  deletes |-> {} ]
+
+State 8: <ReadyChild line 49, col 15 to line 51, col 88 of module Resources>
+s = [ phase |-> "child",
+  obj |->
+      [ snapshot |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> 7,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        pvc |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 20,
+              contents |-> 0,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        child |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 1,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 20,
+              ready |-> TRUE,
+              cold |-> TRUE,
+              access |-> FALSE ] ],
+  seen |-> [snapshot |-> 1, pvc |-> 1, child |-> 1],
+  creates |-> [snapshot |-> 1, pvc |-> 1, child |-> 1],
+  lost |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  commits |-> {},
+  deletes |-> {} ]
+
+State 9: <ReconcileChild line 52, col 19 to line 55, col 74 of module Resources>
+s = [ phase |-> "commit",
+  obj |->
+      [ snapshot |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> 7,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        pvc |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 20,
+              contents |-> 0,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        child |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 1,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 20,
+              ready |-> TRUE,
+              cold |-> TRUE,
+              access |-> FALSE ] ],
+  seen |-> [snapshot |-> 1, pvc |-> 1, child |-> 1],
+  creates |-> [snapshot |-> 1, pvc |-> 1, child |-> 1],
+  lost |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  commits |-> {},
+  deletes |-> {} ]
+
+State 10: <Commit line 60, col 11 to line 69, col 102 of module Resources>
+s = [ phase |-> "committed",
+  obj |->
+      [ snapshot |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 0,
+              contents |-> 7,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        pvc |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 0,
+              disk |-> 20,
+              contents |-> 0,
+              control |-> 0,
+              ready |-> TRUE,
+              cold |-> FALSE,
+              access |-> FALSE ],
+        child |->
+            [ uid |-> 1,
+              owner |-> 1,
+              source |-> 0,
+              mount |-> 1,
+              disk |-> 0,
+              contents |-> -1,
+              control |-> 20,
+              ready |-> TRUE,
+              cold |-> TRUE,
+              access |-> TRUE ] ],
+  seen |-> [snapshot |-> 1, pvc |-> 1, child |-> 1],
+  creates |-> [snapshot |-> 1, pvc |-> 1, child |-> 1],
+  lost |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  commits |->
+      { [ owner |-> 1,
+          disk |-> 20,
+          contents |-> 0,
+          control |-> 20,
+          cold |-> TRUE,
+          childUID |-> 1,
+          childSeen |-> 1,
+          pvcUID |-> 1,
+          pvcSeen |-> 1,
+          mountedUID |-> 1,
+          sourceUID |-> 0,
+          snapshotSeen |-> 1 ] },
+  deletes |-> {} ]
+
+The coverage statistics at 2026-10-04 03:54:29 (see https://explain.tlapl.us/module-coverage-statistics for how to interpret the following statistics).
+<s line 4, col 10 to line 4, col 10 of module Resources>: 684
+<Init line 9, col 1 to line 9, col 4 of module Resources>: 3:3
+  line 9, col 9 to line 11, col 85 of module Resources: 3
+  |line 9, col 13 to line 11, col 85 of module Resources: 3
+  ||line 9, col 44 to line 9, col 66 of module Resources: 3:9
+  |||line 9, col 61 to line 9, col 65 of module Resources: 9
+  |||line 9, col 51 to line 9, col 55 of module Resources: 3
+  ||line 10, col 23 to line 10, col 41 of module Resources: 3:9
+  |||line 10, col 30 to line 10, col 34 of module Resources: 3
+  ||line 10, col 56 to line 10, col 74 of module Resources: 3:9
+  |||line 10, col 63 to line 10, col 67 of module Resources: 3
+  ||line 11, col 14 to line 11, col 24 of module Resources: 3
+  ||line 11, col 27 to line 11, col 37 of module Resources: 3
+  ||line 11, col 55 to line 11, col 68 of module Resources: 3:2728
+  ||line 11, col 71 to line 11, col 84 of module Resources: 3:546
+<CreateSnapshot line 12, col 1 to line 12, col 20 of module Resources>: 2:6
+  line 12, col 28 to line 12, col 31 of module Resources: 890
+  |line 12, col 28 to line 12, col 28 of module Resources: 884
+  line 12, col 36 to line 12, col 55 of module Resources: 622
+  |line 12, col 36 to line 12, col 42 of module Resources: 616
+  line 12, col 60 to line 12, col 84 of module Resources: 32
+  |line 12, col 60 to line 12, col 80 of module Resources: 26
+  line 13, col 5 to line 16, col 68 of module Resources: 6
+  |line 13, col 10 to line 16, col 68 of module Resources: 6
+  ||line 13, col 11 to line 13, col 11 of module Resources: 6
+  ||line 13, col 20 to line 13, col 108 of module Resources: 6
+  ||line 14, col 20 to line 14, col 48 of module Resources: 6
+  ||line 15, col 20 to line 15, col 61 of module Resources: 6
+  ||line 16, col 29 to line 16, col 67 of module Resources: 6
+  |||line 16, col 32 to line 16, col 35 of module Resources: 6
+  |||line 16, col 42 to line 16, col 60 of module Resources: 2
+<ReconcileSnapshot line 19, col 1 to line 19, col 17 of module Resources>: 2:6
+  line 19, col 25 to line 19, col 28 of module Resources: 447
+  |line 19, col 25 to line 19, col 25 of module Resources: 441
+  line 19, col 33 to line 19, col 52 of module Resources: 313
+  |line 19, col 33 to line 19, col 39 of module Resources: 307
+  line 20, col 5 to line 20, col 29 of module Resources: 18
+  |line 20, col 5 to line 20, col 25 of module Resources: 12
+  line 20, col 34 to line 20, col 60 of module Resources: 16
+  |line 20, col 34 to line 20, col 56 of module Resources: 10
+  line 21, col 5 to line 21, col 79 of module Resources: 6
+<CreatePVC line 22, col 1 to line 22, col 15 of module Resources>: 4:10
+  line 22, col 23 to line 22, col 26 of module Resources: 886
+  |line 22, col 23 to line 22, col 23 of module Resources: 876
+  line 22, col 31 to line 22, col 45 of module Resources: 618
+  |line 22, col 31 to line 22, col 37 of module Resources: 608
+  line 22, col 50 to line 22, col 69 of module Resources: 172
+  |line 22, col 50 to line 22, col 65 of module Resources: 162
+  line 23, col 5 to line 23, col 46 of module Resources: 28
+  |line 23, col 5 to line 23, col 25 of module Resources: 18
+  |line 23, col 29 to line 23, col 46 of module Resources: 18
+  line 23, col 51 to line 23, col 77 of module Resources: 20
+  |line 23, col 51 to line 23, col 73 of module Resources: 10
+  line 24, col 5 to line 26, col 63 of module Resources: 10
+  |line 24, col 10 to line 26, col 63 of module Resources: 10
+  ||line 24, col 11 to line 24, col 11 of module Resources: 10
+  ||line 24, col 20 to line 24, col 71 of module Resources: 10
+  ||line 25, col 20 to line 25, col 43 of module Resources: 10
+  ||line 25, col 46 to line 25, col 82 of module Resources: 10
+  ||line 26, col 29 to line 26, col 62 of module Resources: 10
+  |||line 26, col 32 to line 26, col 35 of module Resources: 10
+  |||line 26, col 42 to line 26, col 55 of module Resources: 4
+  ||||line 26, col 49 to line 26, col 55 of module Resources: 4:4
+<BindPVC line 31, col 1 to line 31, col 7 of module Resources>: 6:26
+  line 31, col 15 to line 31, col 18 of module Resources: 463
+  |line 31, col 15 to line 31, col 15 of module Resources: 437
+  line 31, col 23 to line 31, col 37 of module Resources: 329
+  |line 31, col 23 to line 31, col 29 of module Resources: 303
+  line 31, col 42 to line 31, col 63 of module Resources: 106
+  |line 31, col 42 to line 31, col 59 of module Resources: 80
+  line 31, col 68 to line 31, col 86 of module Resources: 76
+  |line 31, col 69 to line 31, col 86 of module Resources: 50
+  line 32, col 5 to line 32, col 29 of module Resources: 52
+  |line 32, col 5 to line 32, col 25 of module Resources: 26
+  line 33, col 5 to line 36, col 79 of module Resources: 26
+<ReconcilePVC line 37, col 1 to line 37, col 12 of module Resources>: 6:48
+  line 37, col 20 to line 37, col 23 of module Resources: 467
+  |line 37, col 20 to line 37, col 20 of module Resources: 435
+  line 37, col 28 to line 37, col 42 of module Resources: 333
+  |line 37, col 28 to line 37, col 34 of module Resources: 301
+  line 37, col 47 to line 37, col 66 of module Resources: 110
+  |line 37, col 47 to line 37, col 62 of module Resources: 78
+  line 37, col 71 to line 37, col 92 of module Resources: 102
+  |line 37, col 71 to line 37, col 88 of module Resources: 70
+  line 38, col 6 to line 38, col 22 of module Resources: 64
+  |line 38, col 6 to line 38, col 18 of module Resources: 48
+  line 38, col 27 to line 38, col 44 of module Resources: 72
+  |line 38, col 27 to line 38, col 38 of module Resources: 48
+  line 39, col 6 to line 39, col 24 of module Resources: 48
+  |line 39, col 7 to line 39, col 24 of module Resources: 40
+  line 39, col 29 to line 39, col 68 of module Resources: 40
+  line 39, col 73 to line 39, col 95 of module Resources: 80
+  |line 39, col 73 to line 39, col 76 of module Resources: 40
+  line 40, col 5 to line 41, col 71 of module Resources: 48
+<CreateChild line 42, col 1 to line 42, col 17 of module Resources>: 8:26
+  line 42, col 25 to line 42, col 28 of module Resources: 890
+  |line 42, col 25 to line 42, col 25 of module Resources: 864
+  line 42, col 33 to line 42, col 49 of module Resources: 622
+  |line 42, col 33 to line 42, col 39 of module Resources: 596
+  line 42, col 54 to line 42, col 75 of module Resources: 164
+  |line 42, col 54 to line 42, col 71 of module Resources: 138
+  line 43, col 5 to line 43, col 36 of module Resources: 68
+  |line 43, col 5 to line 43, col 20 of module Resources: 42
+  |line 43, col 24 to line 43, col 36 of module Resources: 42
+  line 43, col 41 to line 43, col 62 of module Resources: 52
+  |line 43, col 41 to line 43, col 58 of module Resources: 26
+  line 44, col 5 to line 46, col 65 of module Resources: 26
+  |line 44, col 10 to line 46, col 65 of module Resources: 26
+  ||line 44, col 11 to line 44, col 11 of module Resources: 26
+  ||line 44, col 20 to line 44, col 143 of module Resources: 26
+  ||line 45, col 20 to line 45, col 45 of module Resources: 26
+  ||line 45, col 48 to line 45, col 86 of module Resources: 26
+  ||line 46, col 29 to line 46, col 64 of module Resources: 26
+  |||line 46, col 32 to line 46, col 35 of module Resources: 26
+  |||line 46, col 42 to line 46, col 57 of module Resources: 12
+  ||||line 46, col 49 to line 46, col 57 of module Resources: 12:18
+<ReadyChild line 49, col 1 to line 49, col 10 of module Resources>: 20:30
+  line 49, col 18 to line 49, col 21 of module Resources: 461
+  |line 49, col 18 to line 49, col 18 of module Resources: 431
+  line 49, col 26 to line 49, col 42 of module Resources: 327
+  |line 49, col 26 to line 49, col 32 of module Resources: 297
+  line 49, col 47 to line 49, col 70 of module Resources: 98
+  |line 49, col 47 to line 49, col 66 of module Resources: 68
+  line 49, col 75 to line 49, col 95 of module Resources: 70
+  |line 49, col 76 to line 49, col 95 of module Resources: 40
+  line 50, col 5 to line 50, col 24 of module Resources: 60
+  |line 50, col 5 to line 50, col 20 of module Resources: 30
+  line 51, col 5 to line 51, col 88 of module Resources: 30
+<ReconcileChild line 52, col 1 to line 52, col 14 of module Resources>: 12:26
+  line 52, col 22 to line 52, col 25 of module Resources: 451
+  |line 52, col 22 to line 52, col 22 of module Resources: 429
+  line 52, col 30 to line 52, col 46 of module Resources: 317
+  |line 52, col 30 to line 52, col 36 of module Resources: 295
+  line 52, col 51 to line 52, col 72 of module Resources: 88
+  |line 52, col 51 to line 52, col 68 of module Resources: 66
+  line 52, col 77 to line 52, col 100 of module Resources: 68
+  |line 52, col 77 to line 52, col 96 of module Resources: 46
+  line 53, col 6 to line 53, col 24 of module Resources: 54
+  |line 53, col 6 to line 53, col 20 of module Resources: 38
+  line 53, col 29 to line 53, col 48 of module Resources: 48
+  |line 53, col 29 to line 53, col 42 of module Resources: 38
+  line 54, col 5 to line 55, col 74 of module Resources: 26
+<Commit line 60, col 1 to line 60, col 6 of module Resources>: 1:3
+  line 60, col 14 to line 60, col 17 of module Resources: 429
+  |line 60, col 14 to line 60, col 14 of module Resources: 427
+  line 60, col 22 to line 60, col 39 of module Resources: 295
+  |line 60, col 22 to line 60, col 28 of module Resources: 293
+  line 61, col 6 to line 61, col 26 of module Resources: 3
+  line 56, col 21 to line 56, col 56 of module Resources: 5
+  |line 56, col 21 to line 56, col 38 of module Resources: 3
+  |line 56, col 42 to line 56, col 56 of module Resources: 3
+  line 56, col 61 to line 56, col 84 of module Resources: 5
+  |line 56, col 61 to line 56, col 80 of module Resources: 3
+  line 57, col 21 to line 57, col 52 of module Resources: 5
+  |line 57, col 21 to line 57, col 36 of module Resources: 3
+  |line 57, col 40 to line 57, col 52 of module Resources: 3
+  line 57, col 57 to line 57, col 78 of module Resources: 5
+  |line 57, col 57 to line 57, col 74 of module Resources: 3
+  line 58, col 21 to line 58, col 56 of module Resources: 5
+  |line 58, col 21 to line 58, col 40 of module Resources: 3
+  |line 58, col 44 to line 58, col 56 of module Resources: 3
+  line 59, col 22 to line 59, col 61 of module Resources: 3
+  line 59, col 66 to line 59, col 88 of module Resources: 5
+  |line 59, col 66 to line 59, col 69 of module Resources: 3
+  line 69, col 8 to line 69, col 102 of module Resources: 2
+  |line 69, col 13 to line 69, col 102 of module Resources: 3
+  ||line 69, col 14 to line 69, col 14 of module Resources: 3
+  ||line 69, col 58 to line 69, col 71 of module Resources: 3
+  |||line 69, col 65 to line 69, col 71 of module Resources: 3:6
+  ||||line 69, col 66 to line 69, col 70 of module Resources: 3
+  ||line 69, col 74 to line 69, col 101 of module Resources: 3
+<Replace line 70, col 1 to line 70, col 10 of module Resources>: 343:487
+  line 70, col 18 to line 70, col 55 of module Resources: 1759
+  |line 70, col 18 to line 70, col 24 of module Resources: 1272
+  |line 70, col 33 to line 70, col 55 of module Resources: 1272
+  line 70, col 60 to line 70, col 75 of module Resources: 1669
+  |line 70, col 60 to line 70, col 71 of module Resources: 1182
+  line 71, col 5 to line 71, col 116 of module Resources: 487
+<DetectMismatch line 79, col 1 to line 79, col 14 of module Resources>: 0:110
+  line 79, col 22 to line 79, col 25 of module Resources: 512
+  |line 79, col 22 to line 79, col 22 of module Resources: 424
+  line 75, col 16 to line 75, col 64 of module Resources: 378
+  |line 75, col 16 to line 75, col 22 of module Resources: 290
+  |line 75, col 31 to line 75, col 64 of module Resources: 290
+  line 76, col 25 to line 76, col 40 of module Resources: 552
+  |line 76, col 25 to line 76, col 36 of module Resources: 450
+  line 76, col 45 to line 76, col 62 of module Resources: 426
+  |line 76, col 45 to line 76, col 58 of module Resources: 324
+  line 76, col 17 to line 76, col 21 of module Resources: 150
+  line 77, col 11 to line 77, col 28 of module Resources: 150
+  line 77, col 33 to line 77, col 72 of module Resources: 108
+  line 77, col 77 to line 77, col 99 of module Resources: 108
+  line 78, col 11 to line 78, col 30 of module Resources: 158
+  |line 78, col 11 to line 78, col 24 of module Resources: 150
+  line 78, col 35 to line 78, col 70 of module Resources: 24
+  |line 78, col 35 to line 78, col 54 of module Resources: 16
+  |line 78, col 58 to line 78, col 70 of module Resources: 16
+  line 79, col 42 to line 79, col 76 of module Resources: 110
+<Cancel line 80, col 1 to line 80, col 6 of module Resources>: 36:150
+  line 80, col 14 to line 80, col 17 of module Resources: 574
+  |line 80, col 14 to line 80, col 14 of module Resources: 424
+  line 80, col 22 to line 80, col 70 of module Resources: 440
+  |line 80, col 22 to line 80, col 28 of module Resources: 290
+  |line 80, col 37 to line 80, col 70 of module Resources: 290
+  line 81, col 14 to line 81, col 48 of module Resources: 150
+<CleanupReconcile line 82, col 1 to line 82, col 19 of module Resources>: 0:26
+  line 82, col 27 to line 82, col 30 of module Resources: 1298
+  |line 82, col 27 to line 82, col 27 of module Resources: 1272
+  line 82, col 35 to line 82, col 53 of module Resources: 896
+  |line 82, col 35 to line 82, col 41 of module Resources: 870
+  line 82, col 58 to line 82, col 75 of module Resources: 374
+  |line 82, col 58 to line 82, col 71 of module Resources: 348
+  line 82, col 80 to line 82, col 92 of module Resources: 148
+  |line 82, col 80 to line 82, col 88 of module Resources: 122
+  line 83, col 5 to line 83, col 44 of module Resources: 26
+<CleanupDelete line 84, col 1 to line 84, col 16 of module Resources>: 42:96
+  line 84, col 24 to line 84, col 27 of module Resources: 1368
+  |line 84, col 24 to line 84, col 24 of module Resources: 1272
+  line 84, col 32 to line 84, col 50 of module Resources: 966
+  |line 84, col 32 to line 84, col 38 of module Resources: 870
+  line 84, col 55 to line 84, col 72 of module Resources: 444
+  |line 84, col 55 to line 84, col 68 of module Resources: 348
+  line 85, col 5 to line 85, col 28 of module Resources: 218
+  |line 85, col 5 to line 85, col 16 of module Resources: 122
+  |line 85, col 20 to line 85, col 28 of module Resources: 122
+  line 85, col 33 to line 85, col 48 of module Resources: 192
+  |line 85, col 33 to line 85, col 44 of module Resources: 96
+  line 86, col 5 to line 86, col 118 of module Resources: 96
+  |line 86, col 10 to line 86, col 118 of module Resources: 96
+  ||line 86, col 11 to line 86, col 11 of module Resources: 96
+  ||line 86, col 32 to line 86, col 99 of module Resources: 96
+  |||line 86, col 39 to line 86, col 99 of module Resources: 96:272
+  ||||line 86, col 40 to line 86, col 98 of module Resources: 96
+  ||line 86, col 102 to line 86, col 117 of module Resources: 96
+<CleanupDone line 87, col 1 to line 87, col 11 of module Resources>: 29:32
+  line 87, col 19 to line 87, col 22 of module Resources: 456
+  |line 87, col 19 to line 87, col 19 of module Resources: 424
+  line 87, col 27 to line 87, col 45 of module Resources: 322
+  |line 87, col 27 to line 87, col 33 of module Resources: 290
+  line 87, col 67 to line 87, col 84 of module Resources: 340
+  |line 87, col 67 to line 87, col 80 of module Resources: 244
+  line 87, col 59 to line 87, col 63 of module Resources: 116
+  line 88, col 5 to line 88, col 38 of module Resources: 32
+<Crash line 89, col 1 to line 89, col 5 of module Resources>: 105:206
+  line 89, col 13 to line 89, col 16 of module Resources: 630
+  |line 89, col 13 to line 89, col 13 of module Resources: 424
+  line 89, col 21 to line 89, col 33 of module Resources: 496
+  |line 89, col 21 to line 89, col 29 of module Resources: 290
+  line 89, col 38 to line 89, col 80 of module Resources: 206
+<Recover line 90, col 1 to line 90, col 7 of module Resources>: 66:134
+  line 90, col 15 to line 90, col 19 of module Resources: 558
+  |line 90, col 16 to line 90, col 19 of module Resources: 424
+  line 90, col 24 to line 90, col 50 of module Resources: 134
+<TypeOK line 98, col 1 to line 98, col 6 of module Resources>
+  line 98, col 11 to line 99, col 79 of module Resources: 683
+  |line 98, col 11 to line 98, col 94 of module Resources: 683
+  |line 99, col 14 to line 99, col 79 of module Resources: 683
+  ||line 99, col 31 to line 99, col 79 of module Resources: 2049
+  ||line 99, col 23 to line 99, col 27 of module Resources: 683
+<IdempotentCreate line 100, col 1 to line 100, col 16 of module Resources>
+  line 100, col 21 to line 100, col 54 of module Resources: 683
+  |line 100, col 38 to line 100, col 54 of module Resources: 2049
+  |line 100, col 30 to line 100, col 34 of module Resources: 683
+<CommitOwnedFenced line 101, col 1 to line 101, col 17 of module Resources>
+  line 101, col 22 to line 101, col 133 of module Resources: 683
+  |line 101, col 43 to line 101, col 133 of module Resources: 1
+  |line 101, col 31 to line 101, col 39 of module Resources: 683
+<IndependentDisk line 102, col 1 to line 102, col 15 of module Resources>
+  line 102, col 20 to line 102, col 51 of module Resources: 683
+  |line 102, col 41 to line 102, col 51 of module Resources: 1
+  |line 102, col 29 to line 102, col 37 of module Resources: 683
+<CorrectContents line 103, col 1 to line 103, col 15 of module Resources>
+  line 103, col 20 to line 103, col 86 of module Resources: 683
+  |line 103, col 41 to line 103, col 86 of module Resources: 1
+  |line 103, col 29 to line 103, col 37 of module Resources: 683
+<FreshControl line 104, col 1 to line 104, col 12 of module Resources>
+  line 104, col 17 to line 104, col 61 of module Resources: 682
+<CommitBeforeAccess line 105, col 1 to line 105, col 18 of module Resources>
+  line 105, col 23 to line 105, col 68 of module Resources: 682
+<CleanupUIDSafe line 106, col 1 to line 106, col 14 of module Resources>
+  line 106, col 19 to line 106, col 58 of module Resources: 682
+  |line 106, col 40 to line 106, col 58 of module Resources: 152
+  |line 106, col 28 to line 106, col 36 of module Resources: 682
+End of statistics.
+1405 states generated, 683 distinct states found, 257 states left on queue.
+The depth of the complete state graph search is 10.
+Finished in 01s at (2026-10-04 03:54:29)
+Trace exploration spec path: ./Resources_TTrace_1791086068.tla

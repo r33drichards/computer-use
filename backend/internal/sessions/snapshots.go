@@ -310,6 +310,11 @@ func (s *Store) keepOrDropSnapshot(ctx context.Context, obj *unstructured.Unstru
 // draining mark, if any, goes with the sleep, and so does what was said of
 // the session's use.
 func (s *Store) Sleep(ctx context.Context, id, by string, stillWanted func(Session) bool) error {
+	if s.snap != nil {
+		if err := s.CheckForkFence(ctx, id, "sleep:"+by); err != nil {
+			return err
+		}
+	}
 	if !sleepReason(by) {
 		return fmt.Errorf("sleep: unknown reason %q", by)
 	}
@@ -351,7 +356,7 @@ func (s *Store) sleep(ctx context.Context, id, by string, stillWanted func(Sessi
 		}
 	}
 	resized := false
-	err := s.modify(ctx, id, func(obj *unstructured.Unstructured) (bool, error) {
+	err := s.modifyIntent(ctx, id, "sleep:"+by, func(obj *unstructured.Unstructured) (bool, error) {
 		if operatingMode(obj) == "Suspended" || obj.GetDeletionTimestamp() != nil {
 			return false, ErrStateChanged
 		}

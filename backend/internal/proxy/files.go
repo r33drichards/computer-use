@@ -122,7 +122,7 @@ func (p *Proxy) listFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.Host = "localhost:" + strconv.Itoa(browserPort)
-	resp, err := p.quick.RoundTrip(req)
+	resp, err := p.guardedRoundTrip(r.Context(), id, req, p.quick)
 	if err != nil {
 		p.Waker.Invalidate(id)
 		if r.Context().Err() == nil {
@@ -290,7 +290,7 @@ func (p *Proxy) copyFiles(w http.ResponseWriter, r *http.Request) {
 	}
 	req.Host = "localhost:" + strconv.Itoa(browserPort)
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := p.quick.RoundTrip(req)
+	resp, err := p.guardedRoundTrip(r.Context(), id, req, p.quick)
 	if err != nil {
 		p.Waker.Invalidate(id)
 		if r.Context().Err() == nil {

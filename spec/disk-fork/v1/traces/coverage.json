@@ -1,0 +1,1064 @@
+{
+  "atomic-verified.txt": {
+    "Init": {
+      "raw_first": 1,
+      "raw_second": 1
+    },
+    "Submit": {
+      "raw_first": 1432,
+      "raw_second": 5428
+    },
+    "Replay": {
+      "raw_first": 117642,
+      "raw_second": 155968
+    },
+    "Begin": {
+      "raw_first": 808,
+      "raw_second": 34474
+    },
+    "Register": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Execute": {
+      "raw_first": 808,
+      "raw_second": 44122
+    },
+    "Expire": {
+      "raw_first": 808,
+      "raw_second": 44122
+    },
+    "Finish": {
+      "raw_first": 635,
+      "raw_second": 88244
+    },
+    "Gate": {
+      "raw_first": 2260,
+      "raw_second": 18160
+    },
+    "Drain": {
+      "raw_first": 496,
+      "raw_second": 3904
+    },
+    "Unmount": {
+      "raw_first": 496,
+      "raw_second": 3904
+    },
+    "Snapshot": {
+      "raw_first": 496,
+      "raw_second": 3904
+    },
+    "Release": {
+      "raw_first": 376,
+      "raw_second": 3904
+    },
+    "Clone": {
+      "raw_first": 2101,
+      "raw_second": 17208
+    },
+    "Commit": {
+      "raw_first": 2101,
+      "raw_second": 17208
+    },
+    "PruneSnapshot": {
+      "raw_first": 2101,
+      "raw_second": 34416
+    },
+    "UserIntent": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "ApplyIntent": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "UserResume": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "DeleteSource": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "CancelPending": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Fail": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "DeleteChildIntent": {
+      "raw_first": 11649,
+      "raw_second": 94624
+    },
+    "CancelChild": {
+      "raw_first": 8497,
+      "raw_second": 60208
+    },
+    "ReplaceUID": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Cleanup": {
+      "raw_first": 3849,
+      "raw_second": 67512
+    },
+    "DeleteChild": {
+      "raw_first": 2101,
+      "raw_second": 34416
+    },
+    "Crash": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Recover": {
+      "raw_first": 0,
+      "raw_second": 0
+    }
+  },
+  "cap-one-verified.txt": {
+    "Init": {
+      "raw_first": 1,
+      "raw_second": 1
+    },
+    "Submit": {
+      "raw_first": 620,
+      "raw_second": 1140
+    },
+    "Replay": {
+      "raw_first": 40296,
+      "raw_second": 52840
+    },
+    "Begin": {
+      "raw_first": 310,
+      "raw_second": 14234
+    },
+    "Register": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Execute": {
+      "raw_first": 310,
+      "raw_second": 16682
+    },
+    "Expire": {
+      "raw_first": 310,
+      "raw_second": 16682
+    },
+    "Finish": {
+      "raw_first": 254,
+      "raw_second": 33364
+    },
+    "Gate": {
+      "raw_first": 620,
+      "raw_second": 4560
+    },
+    "Drain": {
+      "raw_first": 128,
+      "raw_second": 960
+    },
+    "Unmount": {
+      "raw_first": 128,
+      "raw_second": 960
+    },
+    "Snapshot": {
+      "raw_first": 128,
+      "raw_second": 960
+    },
+    "Release": {
+      "raw_first": 128,
+      "raw_second": 960
+    },
+    "Clone": {
+      "raw_first": 832,
+      "raw_second": 3048
+    },
+    "Commit": {
+      "raw_first": 832,
+      "raw_second": 3048
+    },
+    "PruneSnapshot": {
+      "raw_first": 832,
+      "raw_second": 6096
+    },
+    "UserIntent": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "ApplyIntent": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "UserResume": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "DeleteSource": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "CancelPending": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Fail": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "DeleteChildIntent": {
+      "raw_first": 4952,
+      "raw_second": 18192
+    },
+    "CancelChild": {
+      "raw_first": 3288,
+      "raw_second": 12096
+    },
+    "ReplaceUID": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Cleanup": {
+      "raw_first": 1008,
+      "raw_second": 12408
+    },
+    "DeleteChild": {
+      "raw_first": 552,
+      "raw_second": 6096
+    },
+    "Crash": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Recover": {
+      "raw_first": 0,
+      "raw_second": 0
+    }
+  },
+  "faults-verified.txt": {
+    "Init": {
+      "raw_first": 1,
+      "raw_second": 1
+    },
+    "Submit": {
+      "raw_first": 25,
+      "raw_second": 216
+    },
+    "Replay": {
+      "raw_first": 1033,
+      "raw_second": 22692
+    },
+    "Begin": {
+      "raw_first": 122,
+      "raw_second": 5436
+    },
+    "Register": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Execute": {
+      "raw_first": 122,
+      "raw_second": 13338
+    },
+    "Expire": {
+      "raw_first": 122,
+      "raw_second": 13338
+    },
+    "Finish": {
+      "raw_first": 83,
+      "raw_second": 26676
+    },
+    "Gate": {
+      "raw_first": 357,
+      "raw_second": 864
+    },
+    "Drain": {
+      "raw_first": 84,
+      "raw_second": 320
+    },
+    "Unmount": {
+      "raw_first": 52,
+      "raw_second": 320
+    },
+    "Snapshot": {
+      "raw_first": 52,
+      "raw_second": 256
+    },
+    "Release": {
+      "raw_first": 100,
+      "raw_second": 256
+    },
+    "Clone": {
+      "raw_first": 145,
+      "raw_second": 1000
+    },
+    "Commit": {
+      "raw_first": 145,
+      "raw_second": 1000
+    },
+    "PruneSnapshot": {
+      "raw_first": 145,
+      "raw_second": 2000
+    },
+    "UserIntent": {
+      "raw_first": 8364,
+      "raw_second": 25092
+    },
+    "ApplyIntent": {
+      "raw_first": 668,
+      "raw_second": 4880
+    },
+    "UserResume": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "DeleteSource": {
+      "raw_first": 444,
+      "raw_second": 888
+    },
+    "CancelPending": {
+      "raw_first": 0,
+      "raw_second": 264
+    },
+    "Fail": {
+      "raw_first": 574,
+      "raw_second": 7624
+    },
+    "DeleteChildIntent": {
+      "raw_first": 774,
+      "raw_second": 15840
+    },
+    "CancelChild": {
+      "raw_first": 332,
+      "raw_second": 3812
+    },
+    "ReplaceUID": {
+      "raw_first": 290,
+      "raw_second": 3000
+    },
+    "Cleanup": {
+      "raw_first": 1090,
+      "raw_second": 10552
+    },
+    "DeleteChild": {
+      "raw_first": 145,
+      "raw_second": 2000
+    },
+    "Crash": {
+      "raw_first": 15269,
+      "raw_second": 15269
+    },
+    "Recover": {
+      "raw_first": 15269,
+      "raw_second": 15269
+    }
+  },
+  "liveness-races-verified.txt": {
+    "Init": {
+      "raw_first": 1,
+      "raw_second": 1
+    },
+    "Submit": {
+      "raw_first": 1432,
+      "raw_second": 5376
+    },
+    "Replay": {
+      "raw_first": 42787,
+      "raw_second": 54194
+    },
+    "Begin": {
+      "raw_first": 378,
+      "raw_second": 13114
+    },
+    "Register": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Execute": {
+      "raw_first": 292,
+      "raw_second": 18593
+    },
+    "Expire": {
+      "raw_first": 233,
+      "raw_second": 15201
+    },
+    "Finish": {
+      "raw_first": 211,
+      "raw_second": 27004
+    },
+    "Gate": {
+      "raw_first": 2146,
+      "raw_second": 15115
+    },
+    "Drain": {
+      "raw_first": 430,
+      "raw_second": 2834
+    },
+    "Unmount": {
+      "raw_first": 376,
+      "raw_second": 2293
+    },
+    "Snapshot": {
+      "raw_first": 299,
+      "raw_second": 1761
+    },
+    "Release": {
+      "raw_first": 167,
+      "raw_second": 1305
+    },
+    "Clone": {
+      "raw_first": 805,
+      "raw_second": 5615
+    },
+    "Commit": {
+      "raw_first": 656,
+      "raw_second": 4469
+    },
+    "PruneSnapshot": {
+      "raw_first": 539,
+      "raw_second": 5838
+    },
+    "UserIntent": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "ApplyIntent": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "UserResume": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "DeleteSource": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "CancelPending": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Fail": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "DeleteChildIntent": {
+      "raw_first": 5459,
+      "raw_second": 35861
+    },
+    "CancelChild": {
+      "raw_first": 4455,
+      "raw_second": 24740
+    },
+    "ReplaceUID": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Cleanup": {
+      "raw_first": 1719,
+      "raw_second": 20057
+    },
+    "DeleteChild": {
+      "raw_first": 441,
+      "raw_second": 3970
+    },
+    "Crash": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Recover": {
+      "raw_first": 0,
+      "raw_second": 0
+    }
+  },
+  "liveness-two-forks-verified.txt": {
+    "Init": {
+      "raw_first": 1,
+      "raw_second": 1
+    },
+    "Submit": {
+      "raw_first": 282,
+      "raw_second": 1080
+    },
+    "Replay": {
+      "raw_first": 21464,
+      "raw_second": 28464
+    },
+    "Begin": {
+      "raw_first": 77,
+      "raw_second": 2457
+    },
+    "Register": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Execute": {
+      "raw_first": 77,
+      "raw_second": 3289
+    },
+    "Expire": {
+      "raw_first": 77,
+      "raw_second": 3289
+    },
+    "Finish": {
+      "raw_first": 77,
+      "raw_second": 6578
+    },
+    "Gate": {
+      "raw_first": 396,
+      "raw_second": 3220
+    },
+    "Drain": {
+      "raw_first": 192,
+      "raw_second": 1536
+    },
+    "Unmount": {
+      "raw_first": 192,
+      "raw_second": 1536
+    },
+    "Snapshot": {
+      "raw_first": 192,
+      "raw_second": 1536
+    },
+    "Release": {
+      "raw_first": 132,
+      "raw_second": 1536
+    },
+    "Clone": {
+      "raw_first": 327,
+      "raw_second": 2820
+    },
+    "Commit": {
+      "raw_first": 327,
+      "raw_second": 2816
+    },
+    "PruneSnapshot": {
+      "raw_first": 327,
+      "raw_second": 5644
+    },
+    "UserIntent": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "ApplyIntent": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "UserResume": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "DeleteSource": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "CancelPending": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Fail": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "DeleteChildIntent": {
+      "raw_first": 2097,
+      "raw_second": 17332
+    },
+    "CancelChild": {
+      "raw_first": 1683,
+      "raw_second": 11680
+    },
+    "ReplaceUID": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Cleanup": {
+      "raw_first": 726,
+      "raw_second": 15656
+    },
+    "DeleteChild": {
+      "raw_first": 327,
+      "raw_second": 5632
+    },
+    "Crash": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Recover": {
+      "raw_first": 0,
+      "raw_second": 0
+    }
+  },
+  "liveness-verified.txt": {
+    "Init": {
+      "raw_first": 1,
+      "raw_second": 1
+    },
+    "Submit": {
+      "raw_first": 5,
+      "raw_second": 48
+    },
+    "Replay": {
+      "raw_first": 200,
+      "raw_second": 5190
+    },
+    "Begin": {
+      "raw_first": 16,
+      "raw_second": 471
+    },
+    "Register": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Execute": {
+      "raw_first": 16,
+      "raw_second": 1187
+    },
+    "Expire": {
+      "raw_first": 16,
+      "raw_second": 1179
+    },
+    "Finish": {
+      "raw_first": 12,
+      "raw_second": 2358
+    },
+    "Gate": {
+      "raw_first": 81,
+      "raw_second": 193
+    },
+    "Drain": {
+      "raw_first": 42,
+      "raw_second": 161
+    },
+    "Unmount": {
+      "raw_first": 26,
+      "raw_second": 160
+    },
+    "Snapshot": {
+      "raw_first": 26,
+      "raw_second": 128
+    },
+    "Release": {
+      "raw_first": 50,
+      "raw_second": 128
+    },
+    "Clone": {
+      "raw_first": 38,
+      "raw_second": 211
+    },
+    "Commit": {
+      "raw_first": 38,
+      "raw_second": 208
+    },
+    "PruneSnapshot": {
+      "raw_first": 38,
+      "raw_second": 424
+    },
+    "UserIntent": {
+      "raw_first": 1620,
+      "raw_second": 4872
+    },
+    "ApplyIntent": {
+      "raw_first": 202,
+      "raw_second": 1934
+    },
+    "UserResume": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "DeleteSource": {
+      "raw_first": 174,
+      "raw_second": 348
+    },
+    "CancelPending": {
+      "raw_first": 0,
+      "raw_second": 74
+    },
+    "Fail": {
+      "raw_first": 158,
+      "raw_second": 1872
+    },
+    "DeleteChildIntent": {
+      "raw_first": 196,
+      "raw_second": 3700
+    },
+    "CancelChild": {
+      "raw_first": 98,
+      "raw_second": 932
+    },
+    "ReplaceUID": {
+      "raw_first": 76,
+      "raw_second": 624
+    },
+    "Cleanup": {
+      "raw_first": 308,
+      "raw_second": 2984
+    },
+    "DeleteChild": {
+      "raw_first": 38,
+      "raw_second": 416
+    },
+    "Crash": {
+      "raw_first": 3475,
+      "raw_second": 3504
+    },
+    "Recover": {
+      "raw_first": 3475,
+      "raw_second": 3475
+    }
+  },
+  "unsafe-check-verified.txt": {
+    "Init": {
+      "raw_first": 3,
+      "raw_second": 3
+    },
+    "Submit": {
+      "raw_first": 52,
+      "raw_second": 158
+    },
+    "Replay": {
+      "raw_first": 36,
+      "raw_second": 56
+    },
+    "Begin": {
+      "raw_first": 5,
+      "raw_second": 91
+    },
+    "Register": {
+      "raw_first": 5,
+      "raw_second": 49
+    },
+    "Execute": {
+      "raw_first": 3,
+      "raw_second": 13
+    },
+    "Expire": {
+      "raw_first": 1,
+      "raw_second": 1
+    },
+    "Finish": {
+      "raw_first": 1,
+      "raw_second": 1
+    },
+    "Gate": {
+      "raw_first": 34,
+      "raw_second": 46
+    },
+    "Drain": {
+      "raw_first": 4,
+      "raw_second": 4
+    },
+    "Unmount": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Snapshot": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Release": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Clone": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Commit": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "PruneSnapshot": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "UserIntent": {
+      "raw_first": 188,
+      "raw_second": 228
+    },
+    "ApplyIntent": {
+      "raw_first": 24,
+      "raw_second": 48
+    },
+    "UserResume": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "DeleteSource": {
+      "raw_first": 1,
+      "raw_second": 1
+    },
+    "CancelPending": {
+      "raw_first": 0,
+      "raw_second": 4
+    },
+    "Fail": {
+      "raw_first": 26,
+      "raw_second": 52
+    },
+    "DeleteChildIntent": {
+      "raw_first": 30,
+      "raw_second": 56
+    },
+    "CancelChild": {
+      "raw_first": 0,
+      "raw_second": 4
+    },
+    "ReplaceUID": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Cleanup": {
+      "raw_first": 4,
+      "raw_second": 8
+    },
+    "DeleteChild": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Crash": {
+      "raw_first": 86,
+      "raw_second": 86
+    },
+    "Recover": {
+      "raw_first": 13,
+      "raw_second": 13
+    }
+  },
+  "unsafe-lease-snapshot-verified.txt": {
+    "Init": {
+      "raw_first": 3,
+      "raw_second": 3
+    },
+    "Submit": {
+      "raw_first": 414,
+      "raw_second": 4942
+    },
+    "Replay": {
+      "raw_first": 2182,
+      "raw_second": 13168
+    },
+    "Begin": {
+      "raw_first": 50,
+      "raw_second": 3370
+    },
+    "Register": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Execute": {
+      "raw_first": 14,
+      "raw_second": 5646
+    },
+    "Expire": {
+      "raw_first": 6,
+      "raw_second": 2027
+    },
+    "Finish": {
+      "raw_first": 6,
+      "raw_second": 2860
+    },
+    "Gate": {
+      "raw_first": 2086,
+      "raw_second": 3498
+    },
+    "Drain": {
+      "raw_first": 420,
+      "raw_second": 1150
+    },
+    "Unmount": {
+      "raw_first": 150,
+      "raw_second": 458
+    },
+    "Snapshot": {
+      "raw_first": 59,
+      "raw_second": 159
+    },
+    "Release": {
+      "raw_first": 30,
+      "raw_second": 44
+    },
+    "Clone": {
+      "raw_first": 4,
+      "raw_second": 4
+    },
+    "Commit": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "PruneSnapshot": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "UserIntent": {
+      "raw_first": 9172,
+      "raw_second": 15040
+    },
+    "ApplyIntent": {
+      "raw_first": 493,
+      "raw_second": 1528
+    },
+    "UserResume": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "DeleteSource": {
+      "raw_first": 115,
+      "raw_second": 134
+    },
+    "CancelPending": {
+      "raw_first": 0,
+      "raw_second": 980
+    },
+    "Fail": {
+      "raw_first": 1160,
+      "raw_second": 9172
+    },
+    "DeleteChildIntent": {
+      "raw_first": 738,
+      "raw_second": 12296
+    },
+    "CancelChild": {
+      "raw_first": 256,
+      "raw_second": 2564
+    },
+    "ReplaceUID": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Cleanup": {
+      "raw_first": 716,
+      "raw_second": 4008
+    },
+    "DeleteChild": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Crash": {
+      "raw_first": 8343,
+      "raw_second": 8343
+    },
+    "Recover": {
+      "raw_first": 3361,
+      "raw_second": 3361
+    }
+  },
+  "unsafe-lease-verified.txt": {
+    "Init": {
+      "raw_first": 3,
+      "raw_second": 3
+    },
+    "Submit": {
+      "raw_first": 282,
+      "raw_second": 2470
+    },
+    "Replay": {
+      "raw_first": 996,
+      "raw_second": 4628
+    },
+    "Begin": {
+      "raw_first": 14,
+      "raw_second": 1702
+    },
+    "Register": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Execute": {
+      "raw_first": 6,
+      "raw_second": 2027
+    },
+    "Expire": {
+      "raw_first": 6,
+      "raw_second": 587
+    },
+    "Finish": {
+      "raw_first": 6,
+      "raw_second": 777
+    },
+    "Gate": {
+      "raw_first": 936,
+      "raw_second": 1526
+    },
+    "Drain": {
+      "raw_first": 182,
+      "raw_second": 458
+    },
+    "Unmount": {
+      "raw_first": 59,
+      "raw_second": 167
+    },
+    "Snapshot": {
+      "raw_first": 18,
+      "raw_second": 44
+    },
+    "Release": {
+      "raw_first": 4,
+      "raw_second": 4
+    },
+    "Clone": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Commit": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "PruneSnapshot": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "UserIntent": {
+      "raw_first": 4204,
+      "raw_second": 6424
+    },
+    "ApplyIntent": {
+      "raw_first": 273,
+      "raw_second": 756
+    },
+    "UserResume": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "DeleteSource": {
+      "raw_first": 53,
+      "raw_second": 58
+    },
+    "CancelPending": {
+      "raw_first": 0,
+      "raw_second": 364
+    },
+    "Fail": {
+      "raw_first": 526,
+      "raw_second": 3392
+    },
+    "DeleteChildIntent": {
+      "raw_first": 406,
+      "raw_second": 4392
+    },
+    "CancelChild": {
+      "raw_first": 80,
+      "raw_second": 828
+    },
+    "ReplaceUID": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Cleanup": {
+      "raw_first": 292,
+      "raw_second": 1336
+    },
+    "DeleteChild": {
+      "raw_first": 0,
+      "raw_second": 0
+    },
+    "Crash": {
+      "raw_first": 3361,
+      "raw_second": 3361
+    },
+    "Recover": {
+      "raw_first": 1142,
+      "raw_second": 1142
+    }
+  }
+}

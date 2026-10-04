@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/r33drichards/computer-use/backend/internal/diskfork"
+	jsonpatch "gopkg.in/evanphx/json-patch.v4"
 	"log/slog"
 	"strings"
 	"text/template"
@@ -19,7 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/yaml"
 )
@@ -312,6 +313,9 @@ func (s *Store) Update(ctx context.Context, id string, name *string, action stri
 	if len(annotations) == 0 {
 		return nil
 	}
+	if err := s.CheckForkFence(ctx, id, action); err != nil {
+		return err
+	}
 	if action == ActionResume {
 		// A resize that was waiting for this start, and room to start in.
 		if _, err := s.start(ctx, id); err != nil {
@@ -343,7 +347,17 @@ func (s *Store) Update(ctx context.Context, id string, name *string, action stri
 	if err != nil {
 		return err
 	}
-	_, err = s.client.Patch(ctx, id, types.MergePatchType, body, metav1.PatchOptions{})
+	err = s.modifyIntent(ctx, id, action, func(obj *unstructured.Unstructured) (bool, error) {
+		original, err := json.Marshal(obj.Object)
+		if err != nil {
+			return false, err
+		}
+		merged, err := jsonpatch.MergePatch(original, body)
+		if err != nil {
+			return false, err
+		}
+		return true, json.Unmarshal(merged, &obj.Object)
+	})
 	if apierrors.IsNotFound(err) {
 		return ErrNotFound
 	}
@@ -473,11 +487,27 @@ const modifyAttempts = 5
 // change runs again on a new read, so its decision is always made on the
 // state it is about to replace. change returns false to write nothing.
 func (s *Store) modify(ctx context.Context, id string, change func(obj *unstructured.Unstructured) (bool, error)) error {
+	return s.modifyIntent(ctx, id, "", change)
+}
+func (s *Store) modifyIntent(ctx context.Context, id, intent string, change func(*unstructured.Unstructured) (bool, error)) error {
 	var err error
 	for range modifyAttempts {
 		var obj *unstructured.Unstructured
 		if obj, err = s.client.Get(ctx, id, metav1.GetOptions{}); err != nil {
 			break
+		}
+		changed, fenceErr := diskfork.IntentOnFence(obj, intent)
+		if fenceErr != nil {
+			if !changed {
+				return fenceErr
+			}
+			if _, err = s.client.Update(ctx, obj, metav1.UpdateOptions{}); apierrors.IsConflict(err) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			return fenceErr
 		}
 		var write bool
 		if write, err = change(obj); err != nil || !write {
@@ -498,6 +528,9 @@ func (s *Store) modify(ctx context.Context, id string, change func(obj *unstruct
 // snapshots: first, so that a failure leaves a session to delete again
 // rather than a snapshot nobody knows of.
 func (s *Store) Delete(ctx context.Context, id string) error {
+	if err := s.CheckForkFence(ctx, id, "delete"); err != nil {
+		return err
+	}
 	if s.snap != nil {
 		if _, err := s.snap.prune(ctx, id, ""); err != nil {
 			return err
@@ -505,7 +538,15 @@ func (s *Store) Delete(ctx context.Context, id string) error {
 	}
 	err := s.releaseClaim(ctx, id)
 	if err == nil {
-		err = s.client.Delete(ctx, id, metav1.DeleteOptions{})
+		obj, readErr := s.client.Get(ctx, id, metav1.GetOptions{})
+		if readErr != nil {
+			return readErr
+		}
+		if fenceErr := diskfork.Fence(obj); fenceErr != nil {
+			return fenceErr
+		}
+		uid, rv := obj.GetUID(), obj.GetResourceVersion()
+		err = s.client.Delete(ctx, id, metav1.DeleteOptions{Preconditions: &metav1.Preconditions{UID: &uid, ResourceVersion: &rv}})
 	}
 	if apierrors.IsNotFound(err) {
 		return ErrNotFound
@@ -523,7 +564,7 @@ func (s *Store) SetDraining(ctx context.Context, id, reason string) error {
 	if reason != "" && (!sleepReason(reason) || reason == StoppedByIdle) {
 		return fmt.Errorf("draining: unknown reason %q", reason)
 	}
-	return s.modify(ctx, id, func(obj *unstructured.Unstructured) (bool, error) {
+	return s.modifyIntent(ctx, id, "billing:"+reason, func(obj *unstructured.Unstructured) (bool, error) {
 		ann := obj.GetAnnotations()
 		if reason == "" {
 			if ann[AnnDraining] == "" && ann[AnnDrainingSince] == "" {

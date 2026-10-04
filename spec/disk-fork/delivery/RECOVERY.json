@@ -1,0 +1,31 @@
+{
+  "source_sha256": {
+    ".gitignore": "773a820e7fa4b9eb5122db11ab5522b9b4a851b9d681e10f0c57328c6afcfbbc",
+    "backend/internal/api/api.go": "d1fe5ccffa01c61aa82f87bd1e84a19e68040e34b0b2475946fbd22108209f8d",
+    "backend/internal/api/disk_fork.go": "3a838645e1fe7a23ea894a12a4de8ba3f3dda5179592f41149407ebf6ca7efb5",
+    "backend/internal/api/disk_fork_test.go": "3773c2667f84d3be4695e0a56d43ee37c117669ffe9e53ce13e76a6f6b1bcbcd",
+    "backend/internal/diskfork/barrier.go": "2eca2ef018a7fc1107f8c1ac52ae0f14b933da6bcdf28072c69c21a0843bd535",
+    "backend/internal/diskfork/barrier_test.go": "b8da7c7d395d749f9457dcd47d8beaf1de32af7f02b285d6872b2f534c2c3e93",
+    "docs/contracts/disk-fork.md": "4b8d3b643c27e64c320ff6e824143bd0e4378ae871fca223c322f6716cc3d30b",
+    "test/disk-fork/preflight.py": "741c4fc06caba65defc5862a20e6c13dbe382af12a46cc8cc90117baa9bed09a",
+    "test/disk-fork/test_preflight.py": "96bb6d2d746d94d6f743e6ad3fba4c399dccaf551b7763e622870de7c7f27e51"
+  },
+  "cleanup": [
+    {
+      "path": "/data/chrome/home/computer-use-fork-work/.tools/gocache",
+      "file_bytes": 1637418032
+    },
+    {
+      "path": "/data/chrome/home/computer-use-fork-work/.tools/tmp",
+      "file_bytes": 0
+    }
+  ],
+  "completed_tests": [
+    "baseline API/sessions/proxy passed",
+    "prior diskfork/API race passed; predates final source edits",
+    "3 Python offline tests passed",
+    "28 TLC runs completed expected outcomes"
+  ],
+  "incomplete_validation": "final broad command failed in go vet with ENOSPC before final go test and race stages",
+  "free_bytes_after": 2724438016
+}
