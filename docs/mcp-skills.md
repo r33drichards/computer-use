@@ -14,7 +14,7 @@ including the site's clean URLs. Names retain nested topics in the source path.
 The sole MCP image serves these skills for every session. The container
 build checks isolation, name collisions, resource links, and SEP-2640 limits.
 It compiles the reviewed upstream implementation at immutable commit
-`df7ff14823861941bfe1d9f245a39c045a243e86`; the pin is in
+`723fe32d4cc31c18f8255af2639059f7d8450324`; the pin is in
 `images/mcp-js/Dockerfile`.
 
 Build from the repository root:

@@ -11,4 +11,4 @@ See the run_js tool description for the memory conventions, file uploads, and br
 
 Save reusable scripts under /data/scripts/ and maintain /data/scripts/INDEX.md with each script’s purpose and arguments. Browser scripts can be read with fs and passed to browser_execute evaluate.
 
-External ES module imports are enabled: use version-pinned `npm:`, `jsr:`, or HTTPS specifiers with `import` or `await import()`. Packages must be compatible with this V8 runtime; native addons require execution on the desktop. See the run_js description for examples and limits.
+External ES module imports are enabled: use version-pinned `npm:`, `jsr:`, or HTTPS specifiers with `import` or `await import()`. Packages must be compatible with this V8 runtime; native addons require execution on the desktop. `npm:pngjs@7.0.0` supports PNG encoding and decoding; see the run_js description for examples and limits.

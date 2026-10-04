@@ -2,7 +2,7 @@
 # The sole session MCP image: skills, runtime imports, and policy-gated fetch.
 # Build the reviewed upstream skills implementation at an immutable commit.
 FROM rust:trixie AS builder
-ARG MCP_JS_COMMIT=df7ff14823861941bfe1d9f245a39c045a243e86
+ARG MCP_JS_COMMIT=723fe32d4cc31c18f8255af2639059f7d8450324
 RUN apt-get update && apt-get install -y --no-install-recommends git python3 pkg-config libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
