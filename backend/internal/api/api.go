@@ -189,7 +189,15 @@ type sessionHandler func(w http.ResponseWriter, r *http.Request, id string)
 // session additionally requires the caller to be allowed to use {id}: its
 // owner, or an admin. Denied and missing both answer 404 so session IDs
 // don't leak.
-func (a *API) session(next sessionHandler) http.HandlerFunc {
+func (a *API) session(next sessionHandler) http.HandlerFunc { return a.sessionWithScopeFence(next, "") }
+
+// sessionMutation classifies effect-bearing routes explicitly at registration.
+// Authorization/scopes precede the installed-fence check; this is a precheck,
+// not an atomic transaction with the policy/operator effect.
+func (a *API) sessionMutation(next sessionHandler, scope string) http.HandlerFunc {
+	return a.sessionWithScopeFence(next, scope)
+}
+func (a *API) sessionWithScopeFence(next sessionHandler, mutationScope string) http.HandlerFunc {
 	return a.user(func(w http.ResponseWriter, r *http.Request, u auth.User) {
 		id := r.PathValue("id")
 		if !sessions.ValidID(id) {
@@ -206,7 +214,17 @@ func (a *API) session(next sessionHandler) http.HandlerFunc {
 			writeError(w, http.StatusNotFound, "session not found")
 			return
 		}
-		if r.Method != "GET" && r.Method != "HEAD" && strings.Contains(r.URL.Path, "/policy") {
+		if mutationScope != "" {
+			if u.Token != nil {
+				if !u.Token.Has(mutationScope) {
+					writeError(w, http.StatusForbidden, "this token lacks the scope "+mutationScope)
+					return
+				}
+				if u.Token.Session != "" && u.Token.Session != id {
+					writeError(w, http.StatusForbidden, "this token is for another session")
+					return
+				}
+			}
 			if fences, ok := a.store.(interface {
 				CheckForkFence(context.Context, string, string) error
 			}); ok {

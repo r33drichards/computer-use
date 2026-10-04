@@ -500,3 +500,234 @@ nonce-use/result before ACK; replay may retrieve identical prior result, never
 execute a second effect. Rebuilt nodeUID/key/brokerBootID invalidates old sessions.
 Actual custom protocol/issuer/proxy source is not yet written or reviewed; these
 selected details are falsifiable implementation requirements, not existing APIs.
+
+
+## E37 amendment: selected durable/wire/effect protocol for architecture review
+
+This amendment adopts the concrete advisory remedies as a PREIMPLEMENTATION
+contract. Unwritten components/absent physical results are not alone design
+rejection reasons; the approval question is whether authority, ordering, recovery,
+isolation and evidence obligations are enforceable/falsifiable. No architecture
+approval, implementation completion, physical proof, GKE eligibility or live
+privilege approval is asserted here. This section supersedes vague earlier epoch/
+receipt statements where inconsistent, without reducing the mandatory full goal.
+
+### E37 installed-fence source correction
+
+Route registration explicitly classifies PUT/DELETE webhook, PUT/DELETE policy
+and PUT policy management as mutations. The common session boundary checks owner
+and token scope/session authorization before the installed-fence precheck, BEFORE
+operator validation or SessionPolicy patches. GET uses the read wrapper. An
+installed gate returns409; malformed/copied identity uses the existing generic
+cluster-error500 behavior without leaking private contents. Tests use actual app
+and API hosts and synthetic canaries, retry refusals and prove no operator
+validation/policy patch. This fixes a missing precheck, NOT the later separate
+Sandbox-check/SessionPolicy-effect race. Protected apply-time checks below are
+still future requirements, not provided by this source fix.
+
+### Authoritative records: identity and transition schema
+
+All records use API-server resourceVersion CAS. Admission makes identity fields
+immutable and restricts transitions to explicit controller roles. Names locate
+objects; UIDs identify them. Manager leadership lease is availability only and
+never authority for a stale manager to dispatch effects.
+
+* OwnerControl: immutable owner+recordUID; monotonic owner/billing revision;
+  state OPEN/DENY_PENDING/DENIED; sourceMembershipGeneration; shared create/fork
+  reservation IDs and request-digest/idempotency tombstones; owner-wide barrier
+  operation and per-source acknowledged membership revision.
+* SourceControl: sourceSandboxUID and OwnerControlUID; managerTerm, admissionEpoch;
+  acceptedIntent(seq,value), pendingIntent(seq,value), ownerRevision; gate;
+  brokerIncarnation; enrolled guard identities/registration generations; complete
+  writer and service inventory; issued permits; pending effects/settled receipts.
+* DiskForkOperation: immutable owner/sourceUID/requestDigest; reservationID;
+  captured policy+size revisions; source/writer/storage bindings; snapshot,
+  restorePVC/PV/child UIDs; phase; commitGeneration; childAccess state;
+  cleanupGeneration and owned-resource UID/generation records.
+
+Reference node journal selection: root-private SQLite WAL, synchronous=FULL,
+transactions committed before ACK/dispatch authorization, persistent node-private
+storage outside guest PVC, root0600 files/private directory. Validate actual
+filesystem/SQLite/fsync durability on selected node image; journal loss, disk
+errors or rebuilt node are UNKNOWN, not a successful empty ledger. SourceControl
+is control authority; SQLite is local ordering/uncertainty. Neither replaces the
+other. Bound capacity and initially retain tombstones; fail closed when full,
+never expiry-based execution completion or speculative receipt GC.
+
+Effect states: PREPARED -> ARMED -> DISPATCHED -> SETTLED. SETTLED classification
+is APPLIED, REFUSED_BEFORE_DISPATCH, ABORTED or UNKNOWN. Durable DISPATCHED is
+written BEFORE external IO. Crash there cannot tell 'not invoked' from 'invoked,
+response lost': UNKNOWN. One-shot means one dispatch authorization, not exactly-
+once external effects. Reconcile only the SAME effectID/immutable digest through
+an audited idempotent API; no fresh child/snapshot/permit/fallback to evade loss.
+
+### Versioned typed envelope and message schemas
+
+Proposed NEW custom messages, not upstream CRI/CSI functionality. Protocol v1 has
+no generic dial/host path/runtime command/gRPC passthrough. Fixed protobuf fields,
+no maps in signed payloads; sorted keyed lists with unique keys. Reject unknown
+fields, duplicate/ambiguous encodings, unsupported versions and bytes unequal
+to canonical re-encoding. Sign domain/method/direction, payload length+bytes,
+requestDigest, challenge and classification; exact role mTLS AND signature checks.
+
+Common envelope: version, method, direction, requestID, canonical requestDigest;
+senderRole/identity/intendedReceiver; OwnerControlUID/ownerRevision;
+SourceControlUID/sourceSandboxUID/operationUID; managerTerm/admissionEpoch/
+acceptedIntentSeq; brokerIncarnation/nodeUID/nodeBootID/guardIncarnation;
+permitID/effectID/challenge32. Writer binding: PodUID, CRI sandboxID, containerID,
+creation/attempt identity, runtime identity, root-held kernel scope identity and
+registrationGeneration. Storage binding: PVCUID/PVUID/driver/opaque volumeHandle,
+node, publish/staging record identities, attachmentUID/generation where applicable.
+
+Selected methods and payloads:
+- RegisterWriter(envelope, externallyVerifiedWriter, serviceKind, storageBindings)
+  returns enrollment generation; caller metadata alone cannot establish identity.
+- InstallGate(envelope, denyPolicy, inventoryRevision) returns durable gate receipt,
+  current writer/permit/effect inventory and installed managerTerm/epoch.
+- ArmEffect(envelope, typedEffect, exactBindings, expectedIntentAndOwnerRevision)
+  returns one-shot authorization only after durable ARMED; no generic payload.
+- QueryEffect(envelope, effectID,digest) returns stored state/outcome and separately
+  identified fresh reconciliation evidence, never re-dispatch permission.
+- PrepareStream(envelope, streamKind, writerBinding) returns a guard-owned opaque
+  capability; RedeemStream(envelope, capabilityID) durably consumes at actual use.
+- DrainScope(envelope, permitID, prescribedShutdown) requests closure; not proof.
+- StopBound(envelope, exactWriterBinding) invokes only the recorded incarnation.
+- ObserveBound(envelope, expectedWriterAndStorageBindings) returns challenge-bound
+  individual observations with PROVEN/ABORTED/UNKNOWN, not a blanket guest ACK.
+
+Journal(effectID,digest,originalIncarnation,dispatchState,outcome) before ACK.
+Same ID/digest retrieves the recorded result, not another action; different digest
+conflicts. Old epoch/incarnation cannot actuate. A persisted historical result is
+NOT fresh eligibility proof after restart: require new challenge/current guard
+incarnation observations. Restart creates new broker/guard incarnation and durable
+term/epoch advancement, default CLOSED; retired keys/terms cannot reopen scopes.
+
+### Returned Exec/Attach endpoint and complete method classification
+
+CRI Exec and Attach PREPARE endpoints; admission at preparation alone is wrong.
+For a protected source, the frontdoor keeps the raw runtime URL/token private and
+returns its OWN endpoint with one-use capability. Persist prepared digest, writer
+incarnation, epoch/intent/owner revision, stream operation and lifetime permit.
+At connection/HTTP upgrade/first dispatch serialize RedeemStream with InstallGate,
+recheck all bindings and commit redemption before any stream byte is forwarded.
+Gate invalidates unredeemed capabilities, including ones prepared earlier. Raw
+runtime streaming server, direct containerd/shim endpoints and alternate paths
+must be inaccessible except approved runtime/guard actors. Redeemed streams stay
+outstanding until independent termination observation; disconnect is not drain.
+Account for open Attach/VNC/browser/PortForward, queued writes and server callbacks.
+
+Required pinned-RPC table in implementation review: explicitly classify EACH
+RuntimeService method. RunPodSandbox/CreateContainer/StartContainer and checkpoint/
+restore equivalents require typed launch authority; ExecSync requires execution
+permit; Exec/Attach/PortForward require preparation AND redemption; Stop/Remove/
+resource update/checkpoint methods require typed lifecycle effects; status/list
+queries are identity-scoped read-only. Deny unclassified methods for protected
+sources. Exact CSI publish/stage/expand/snapshot/detach methods likewise require
+protected binding+effect ticket. A readonly-mounted CRI socket remains runtime-
+administrator power: actual role/method enforcement and exclusivity are required.
+
+### Externally established identity and closed accounting interval
+
+Authority reads actual Sandbox/Pod/PVC/PV objects and verifies immutable UID,
+references/spec. Authenticated kubelet/runtime creation registers exact sandbox/
+container incarnation. Root adapter corroborates task start, node boot identity,
+namespace/cgroup references and registration generation, holding kernel scope
+references against path/PID reuse. Resolve cgroup paths through TRUSTED runtime
+state; do not adopt a guest path or reopen an old path as if it were old scope.
+Inventory every writer/service/mount. Foreign/unregistered writer => UNKNOWN/
+abort, never kill another owner's writer to fabricate safety.
+
+Reference requires private PID namespaces, root-owned cgroupv2, no guest migration,
+hostPID/shared namespace/privileged escape/writable ancestor scope/alternate launch.
+Per-exec placement is ATOMIC BEFORE untrusted execution (audited runtime or
+CLONE_INTO_CGROUP), not a later move vulnerable to descendant escape. Protected
+V8/module and signer authority stays outside arbitrary exec. Autonomous browser
+and V8 timers, queued file/network work and upgrades are full lifetime permits.
+Guest subreaper reports remain non-authoritative telemetry.
+
+### Pending vs ACCEPTED intent: concrete order and owner-wide recovery
+
+Receive: CAS pending intent; caller may get Pending, NOT accepted/applied ACK.
+Close: SourceControl DENY_PENDING, prohibit conflicting ArmEffect/RedeemStream.
+Barrier: every enrolled gateway/runtime/storage actor journals the new deny
+revision, invalidates unconsumed capabilities and reports outstanding effects.
+Settle: dispatched effects finish/reconcile before acceptance; cancellation request
+alone does not settle. Unreachable/ambiguous remains pending/UNKNOWN and closed.
+Accept: CAS acceptedIntent seq/value only after required barrier+settlement, then
+ACK authoritative acceptance. Actuate: new tickets bind accepted seq/owner revision.
+Do not ACK new accepted delete/stop with an old resume ticket still usable. This
+orders effects; it is not a Kubernetes/runtime/CSI/billing atomic transaction.
+
+OwnerControl enters DENY_PENDING before owner-wide billing barrier. Block create/
+fork reservations AND new membership, capture membershipGeneration, barrier each
+source and reconcile changes at same owner revision, settle conflicts, then accept
+revision. Unavailable sources remain pending/UNKNOWN/ineligible for resume.
+Ordering: owner actor CAS-denies/freezes enrollment, releases transaction before
+waiting on source barriers; source actor never waits for an owner lock while
+holding its guard-settlement lock. Source ACKs carry ownerRevision/membershipGen;
+owner accepts only matching aggregate. On crash, reread membership+receipts and
+resume same barrier operation, not a new open owner. External provider acceptance
+is not internal effect authorization. If product/API requires immediate accepted
+status without barriers, revise semantics or keep automatic resume unsupported.
+
+Enforcement path map: source wake/resume/suspend/delete/resize -> typed lifecycle
++sourceUID/RV+accepted intent; policy/webhook -> mutation admission AND protected
+activation version/epoch at gateway/operator effect; PVC/claim -> owned effects
++UID/RV with conflicting transitions waiting; snapshot/restore -> guarded driver
++storage epoch/op identity; new/adopted/restarted Pod -> API enrollment AND CRI/CSI
+effect-time gate; stage/mount/publish/expand -> trusted publish records/tickets;
+stream -> preparation/redemption/queued writes/lifetime; child access -> dedicated
+commit-generation gate, not readiness; late cleanup -> ownership/commit/current
+intent/UID-RV conditional effect. All legacy writers use authority or are denied;
+a new controller alongside unrestricted legacy controllers is NOT implementation.
+
+### Positive SnapshotEligible conjunction and storage limitations
+
+Require individually evidenced predicates: (1) durable closed gates ALL actors,
+no unconsumed launch cap; (2) actual bound closed scopes ended/all services and
+descendants counted/no relaunch; (3) trusted prescribed graceful shutdown/normal
+completion, escalation or ambiguous death ABORTED/UNKNOWN; (4) exact task wait/state
+AND kernel observations under audited containment; (5) application shutdown plus
+successful trusted sync of identified backing filesystem; (6) exact driver unpublish/
+unstage plus no live writer mounts/holder scopes; (7) exclusive launch/mount fence,
+foreign/unreachable writer not declared absent; (8) snapshot request/source/driver
+identity, ready/size/class and lost-response reconciliation; (9) new independent
+PVC/PV/handle/cold child, fresh controls/no memory restore/access withheld to commit.
+Backing-storage administrative references are not guest writer mounts, but cannot
+provide an untracked write route. CSI idempotent success/status, forceDelete, API404,
+NotReady, PID groups/proc scan, lease expiry/EOF/HTTP/guest ACK/fresh empty journal
+are never these predicates. Hostpath archive fixture tests protocol/data identity,
+NOT PD flush/detach/cross-node fencing. Runc observations are NOT runsc evidence.
+
+### Explicit crash/partition/access/cleanup transitions
+
+Before PREPARED: no authorization. After ARMED but before DISPATCHED: recover
+closed/invalidate old incarnation dispatch. After DISPATCHED before result:
+UNKNOWN/query same effect identity. After result durable before ACK: retrieve
+same digest result. Stale leader: higher managerTerm, old tickets fail at guards,
+no open until inventory/barriers reconcile. Observer death/partition: no fresh
+eligibility, ongoing work may continue but no snapshot/access/resume certificate.
+Journal loss/rebuilt node: UNKNOWN/new incarnation. Name reuse: UID refusal.
+Lost commit response: reconcile commitGeneration/access before cleanup. Late
+precommit cleanup cannot delete same-UID healthy committed child: cleanup and
+publication serialize in operation/access authority, unless newer accepted child-
+delete authorizes exact generation. Ambiguous delete reconciles original owned UID;
+never delete replacement or allocate fresh fallback. Source/child independence
+must survive either side's write/delete, crashes and latest accepted intent races.
+
+Architecture decisions requiring fresh approval: pending/accepted lifecycle+billing
+semantics; immutable schemas/manager fencing/SQLite durability/replay; complete CRI
+stream/method and CSI tables; atomic scope placement/enrollment; service-specific
+graceful/holder evidence; access/cleanup and owner reservation recovery; privileged
+operator/runtime/storage assumptions and excluded malicious administrator actions.
+No physical code is demanded before approval; later deterministic adversarial tests
+must falsify each specified transition, followed by isolated real-platform tests.
+
+Production GKE/gVisor/PD remains mandatory UNSUPPORTED: actual versions/identities,
+managed-node compatible protected interfaces/operator permission decisions, runsc
+sentry/gofer/FD teardown, actual PVC/PV/PD handle/attachment, vetted snapshot class
+and flush/unpublish/fence under partition, all restart/mount gates and independent
+cold restore/write/delete/late-cleanup evidence. Bind ACTUAL source volume class/
+size: manifests include historical balanced and newer session HDD defaults. If
+managed platform cannot support authority, obtain explicit supported architecture
+choice; do not replace production goal with hostpath-copy or fake certificates.

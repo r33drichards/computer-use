@@ -24,12 +24,12 @@ func (a *API) registerPolicies(mux *http.ServeMux) {
 	}
 	p := a.policies
 	mux.HandleFunc("GET /api/sessions/{id}/webhook", a.session(p.GetWebhook))
-	mux.HandleFunc("PUT /api/sessions/{id}/webhook", a.session(p.PutWebhook))
-	mux.HandleFunc("DELETE /api/sessions/{id}/webhook", a.session(p.DeleteWebhook))
+	mux.HandleFunc("PUT /api/sessions/{id}/webhook", a.sessionMutation(p.PutWebhook, auth.ScopeSessionsWrite))
+	mux.HandleFunc("DELETE /api/sessions/{id}/webhook", a.sessionMutation(p.DeleteWebhook, auth.ScopeSessionsWrite))
 	mux.HandleFunc("GET /api/sessions/{id}/policy", a.session(p.Get))
-	mux.HandleFunc("PUT /api/sessions/{id}/policy", a.session(p.Put))
-	mux.HandleFunc("DELETE /api/sessions/{id}/policy", a.session(p.Delete))
-	mux.HandleFunc("PUT /api/sessions/{id}/policy/management", a.session(p.PutManagement))
+	mux.HandleFunc("PUT /api/sessions/{id}/policy", a.sessionMutation(p.Put, auth.ScopePoliciesWrite))
+	mux.HandleFunc("DELETE /api/sessions/{id}/policy", a.sessionMutation(p.Delete, auth.ScopePoliciesWrite))
+	mux.HandleFunc("PUT /api/sessions/{id}/policy/management", a.sessionMutation(p.PutManagement, auth.ScopePoliciesWrite))
 	mux.HandleFunc("POST /api/policies/validate", a.user(p.Validate))
 	mux.HandleFunc("POST /api/policies/evaluate", a.user(p.Evaluate))
 	mux.HandleFunc("GET /api/policy-presets", a.user(p.PresetList))
