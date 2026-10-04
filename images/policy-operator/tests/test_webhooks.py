@@ -7,6 +7,7 @@ import json
 from unittest.mock import AsyncMock
 
 import pytest
+import redis
 
 from policy_operator.operator import Operator
 from policy_operator.server import make_app
@@ -64,11 +65,11 @@ async def test_batch_filter_duplicates_and_session_isolation(cfg):
     hooks = Webhooks(cfg)
     await hooks.configure(SID, {**DEST, "filter": H + 'allow_tool_call if input.tool == "exec"'})
     hooks._send = AsyncMock(return_value=True)
-    assert hooks.ingest([event(1), event(1), event(2, "browser_execute"), {**event(3), "session_id": "s-bbbbb"}])
+    assert await hooks.ingest([event(1), event(1), event(2, "browser_execute"), {**event(3), "session_id": "s-bbbbb"}])
     await drained(hooks)
     sent = json.loads(hooks._send.await_args.args[1])
     assert [e["id"] for e in sent["events"]] == ["1"]
-    assert hooks.ingest([event(1)]) and not hooks.outbox.groups()
+    assert await hooks.ingest([event(1)]) and not hooks.outbox.groups()
     await hooks.close()
 
 
@@ -76,7 +77,7 @@ async def test_partial_batch_and_retries_keep_identical_body(cfg):
     hooks = Webhooks(cfg)
     await hooks.configure(SID, DEST)
     hooks._send = AsyncMock(side_effect=[False, True])
-    assert hooks.ingest([event(1)])
+    assert await hooks.ingest([event(1)])
     await drained(hooks, 4)
     first, second = hooks._send.await_args_list
     assert first.args[1:] == second.args[1:]
@@ -88,7 +89,7 @@ async def test_queue_pressure_is_atomic(cfg, monkeypatch):
     hooks = Webhooks(cfg)
     await hooks.configure(SID, DEST)
     monkeypatch.setattr(module, "MAX_PENDING_BYTES", 1)
-    assert not hooks.ingest([event(1), event(2)])
+    assert not await hooks.ingest([event(1), event(2)])
     assert not hooks.outbox.groups()
     assert not hooks.outbox.db.hlen(hooks.outbox.key("receipts"))
     await hooks.close()
@@ -106,6 +107,7 @@ async def test_first_pass_restores_settings(cfg):
 async def test_opa_gzip_ingestion_auth_and_denied_decision(cfg, aiohttp_client):
     op = Operator(cfg)
     op.ready = True
+    op.hook_pods["127.0.0.1"] = (SID, "test-pod")
     await op.webhooks.configure(SID, DEST)
     client = await aiohttp_client(make_app(op))
     raw = {"decision_id": "decision-1", "path": f"browserjs/decision/{SID}/mcp_tools",
@@ -147,9 +149,9 @@ async def test_full_batch_wakes_partial_batch_timer(cfg):
     hooks = Webhooks(cfg)
     await hooks.configure(SID, {**DEST, "flush_interval_seconds": 60})
     hooks._send = AsyncMock(return_value=True)
-    assert hooks.ingest([event(1)])
+    assert await hooks.ingest([event(1)])
     await asyncio.sleep(0.01)
-    assert hooks.ingest([event(2)])
+    assert await hooks.ingest([event(2)])
     await drained(hooks, 1)
     hooks._send.assert_awaited_once()
     await hooks.close()
@@ -159,7 +161,7 @@ async def test_recovery_without_current_configuration_and_durable_duplicates(cfg
     hooks = Webhooks(cfg)
     await hooks.configure(SID, {**DEST, "batch_size": 1})
     # Crash after persistence, before the worker runs.
-    assert hooks.ingest([event(1)])
+    assert await hooks.ingest([event(1)])
     await hooks.close()
     recovered = Webhooks(cfg)
     recovered._send = AsyncMock(return_value=True)
@@ -167,7 +169,7 @@ async def test_recovery_without_current_configuration_and_durable_duplicates(cfg
     await drained(recovered)
     assert json.loads(recovered._send.await_args.args[1])["events"][0]["id"] == "1"
     await recovered.configure(SID, {**DEST, "batch_size": 1})
-    assert recovered.ingest([event(1)]) and not recovered.outbox.groups()
+    assert await recovered.ingest([event(1)]) and not recovered.outbox.groups()
     await recovered.close()
 
 
@@ -181,7 +183,7 @@ async def test_crash_after_receiver_accepts_replays_same_batch(cfg, tmp_path):
         observed.set()
         await asyncio.Future()  # process dies before observing acknowledgement
     hooks._send = lost_ack
-    assert hooks.ingest([event(1)])
+    assert await hooks.ingest([event(1)])
     await asyncio.wait_for(observed.wait(), 1)
     await hooks.close()
     recovered = Webhooks(cfg)
@@ -195,9 +197,9 @@ async def test_crash_after_receiver_accepts_replays_same_batch(cfg, tmp_path):
 async def test_configuration_change_and_disable_preserve_original_destination(cfg):
     hooks = Webhooks(cfg)
     await hooks.configure(SID, {**DEST, "batch_size": 1})
-    assert hooks.ingest([event(1)])
+    assert await hooks.ingest([event(1)])
     await hooks.configure(SID, {**DEST, "url": "https://new.example.com", "batch_size": 1})
-    assert hooks.ingest([event(2)])
+    assert await hooks.ingest([event(2)])
     await hooks.remove(SID)
     hooks._send = AsyncMock(return_value=True)
     await drained(hooks)
@@ -211,7 +213,7 @@ async def test_filter_error_retains_events_for_retry(cfg, monkeypatch):
     import policy_operator.webhooks as module
     monkeypatch.setattr(module.opa, "eval_many", lambda *args: None)
     hooks._send = AsyncMock(return_value=True)
-    assert hooks.ingest([event(1)])
+    assert await hooks.ingest([event(1)])
     await asyncio.sleep(0.05)
     assert hooks.outbox.groups()
     hooks._send.assert_not_called()
@@ -249,6 +251,7 @@ def test_nondurable_redis_is_rejected(cfg):
 async def test_config_version_mismatch_is_not_acknowledged(cfg, aiohttp_client):
     op = Operator(cfg)
     op.ready = True
+    op.hook_pods["127.0.0.1"] = (SID, "test-pod")
     await op.webhooks.configure(SID, DEST)
     client = await aiohttp_client(make_app(op))
     body = {"events": [event(1)], "webhook": {**DEST, "url": "https://new.example.com"}}
@@ -266,6 +269,7 @@ async def test_native_pre_hook_never_allows_when_durable_commit_fails(cfg, aioht
     import redis
     op = Operator(cfg)
     op.ready = True
+    op.hook_pods["127.0.0.1"] = (SID, "test-pod")
     await op.webhooks.configure(SID, DEST)
     def fail(events): raise redis.RedisError("Redis unavailable")
     monkeypatch.setattr(op.webhooks.outbox, "ingest", fail)
@@ -279,6 +283,7 @@ async def test_native_pre_hook_never_allows_when_durable_commit_fails(cfg, aioht
 async def test_native_pre_hook_persists_attempt_without_authorizing(cfg, aiohttp_client):
     op = Operator(cfg)
     op.ready = True
+    op.hook_pods["127.0.0.1"] = (SID, "test-pod")
     await op.webhooks.configure(SID, DEST)
     client = await aiohttp_client(make_app(op))
     response = await client.post(f"/v1/data/browserjs/hooks/{SID}/mcp_tools/pre", json={"input": {"operation": "mcp_call_tool", "server": "exec", "tool": "exec", "arguments": {"bin": "ls"}}})
@@ -295,6 +300,7 @@ async def test_native_pre_hook_persists_attempt_without_authorizing(cfg, aiohttp
 async def test_native_pre_hook_unconfigured_session_needs_no_redis_write(cfg, aiohttp_client, monkeypatch):
     op = Operator(cfg)
     op.ready = True
+    op.hook_pods["127.0.0.1"] = (SID, "test-pod")
     monkeypatch.setattr(op.webhooks.outbox, "ingest", lambda _: pytest.fail("unconfigured session wrote to Redis"))
     client = await aiohttp_client(make_app(op))
     response = await client.post(f"/v1/data/browserjs/hooks/{SID}/mcp_tools/pre", json={"input": {"operation": "mcp_call_tool"}})
@@ -314,11 +320,11 @@ async def test_reconciliation_never_leaves_an_unrecorded_execution_window(cfg, m
     monkeypatch.setattr(hooks, "validate", validate)
     update = asyncio.create_task(hooks.configure(SID, {**DEST, "url": "https://new.example.com"}))
     await entered.wait()
-    assert not hooks.ingest([event(1)])
+    assert not await hooks.ingest([event(1)])
     assert not hooks.outbox.groups()
     resume.set()
     await update
-    assert hooks.ingest([event(1)])
+    assert await hooks.ingest([event(1)])
     await hooks.close()
 
 
@@ -326,7 +332,105 @@ async def test_invalid_direct_configuration_refuses_new_calls(cfg):
     hooks = Webhooks(cfg)
     await hooks.configure(SID, DEST)
     await hooks.configure(SID, {**DEST, "filter": "package INVALID"})
-    assert not hooks.ingest([event(1)])
+    assert not await hooks.ingest([event(1)])
     await hooks.configure(SID, DEST)
-    assert hooks.ingest([event(1)])
+    assert await hooks.ingest([event(1)])
     await hooks.close()
+
+
+async def test_native_hook_rejects_cross_session_and_forwarded_identity(cfg, aiohttp_client):
+    op = Operator(cfg)
+    op.ready = True
+    op.hook_pods["127.0.0.1"] = ("s-other", "pod-other")
+    await op.webhooks.configure(SID, DEST)
+    client = await aiohttp_client(make_app(op))
+    response = await client.post(f"/v1/data/browserjs/hooks/{SID}/mcp_tools/pre",
+        headers={"X-Forwarded-For": "10.0.0.1"}, json={"input": {"operation": "mcp_call_tool"}})
+    assert response.status == 403
+    assert not op.webhooks.outbox.groups()
+    await op.close()
+
+
+async def test_real_filter_builtin_error_keeps_event(cfg):
+    hooks = Webhooks(cfg)
+    await hooks.configure(SID, {**DEST, "batch_size": 1,
+        "filter": H + 'allow_tool_call if json.unmarshal(input.arguments.invalid) == {}'})
+    hooks._send = AsyncMock(return_value=True)
+    assert await hooks.ingest([{**event(1), "arguments": {"invalid": "not json"}}])
+    await asyncio.sleep(.4)
+    assert hooks.outbox.groups()
+    assert hooks.outbox.count(hooks.outbox.groups()[0]) == 1
+    hooks._send.assert_not_called()
+    await hooks.close()
+
+
+async def test_worker_configuration_failure_can_restart(cfg, monkeypatch):
+    hooks = Webhooks(cfg)
+    await hooks.configure(SID, {**DEST, "batch_size": 1})
+    hooks._send = AsyncMock(return_value=True)
+    assert hooks.outbox.ingest([(event(1), configuration({**DEST, "batch_size": 1}))])
+    group = hooks.outbox.groups()[0]
+    original = hooks.outbox.configuration
+    def unavailable(_):
+        raise redis.RedisError("temporary failure")
+    monkeypatch.setattr(hooks.outbox, "configuration", unavailable)
+    hooks.tasks[group] = asyncio.create_task(hooks._worker(group))
+    await hooks.tasks[group]
+    assert group not in hooks.tasks
+    monkeypatch.setattr(hooks.outbox, "configuration", original)
+    hooks.start()
+    await drained(hooks, 3)
+    hooks._send.assert_awaited_once()
+    await hooks.close()
+
+
+async def test_native_hook_large_arguments_are_recorded_as_truncated(cfg, aiohttp_client):
+    op = Operator(cfg)
+    op.ready = True
+    op.hook_pods["127.0.0.1"] = (SID, "test-pod")
+    await op.webhooks.configure(SID, {**DEST, "flush_interval_seconds": 60})
+    client = await aiohttp_client(make_app(op))
+    response = await client.post(f"/v1/data/browserjs/hooks/{SID}/mcp_tools/pre",
+        json={"input": {"operation": "mcp_call_tool", "arguments": {"large": "x" * (3 * 1024 * 1024)}}})
+    assert response.status == 200
+    recorded = op.webhooks.outbox.events(op.webhooks.outbox.groups()[0], 1, 10000)[0][1]
+    assert recorded["arguments_truncated"] is True
+    assert "arguments" not in recorded
+    await op.close()
+
+
+async def test_redis_stall_does_not_block_unconfigured_hook(cfg, monkeypatch):
+    import threading
+    hooks = Webhooks(cfg)
+    await hooks.configure(SID, DEST)
+    entered, release = threading.Event(), threading.Event()
+    original = hooks.outbox.ingest
+    def stalled(events):
+        entered.set()
+        release.wait(2)
+        return original(events)
+    monkeypatch.setattr(hooks.outbox, "ingest", stalled)
+    capture = asyncio.create_task(hooks.ingest([event(1)]))
+    try:
+        assert await asyncio.to_thread(entered.wait, 1)
+        assert await asyncio.wait_for(hooks.ingest([{**event(2), "session_id": "s-other"}]), .1)
+    finally:
+        release.set()
+        assert await capture
+        await hooks.close()
+
+
+async def test_session_pod_identity_tracks_replacement_and_deletion(cfg, monkeypatch):
+    from policy_operator import handlers
+    op = Operator(cfg)
+    monkeypatch.setattr(handlers, "OPERATOR", op)
+    body = {"metadata": {"name": SID, "uid": "pod-1"}, "status": {"podIPs": [{"ip": "10.0.0.1"}]}}
+    await handlers.session_pod_identity({"type": "ADDED"}, body)
+    assert op.hook_pods == {"10.0.0.1": (SID, "pod-1")}
+    replacement = {"metadata": {"name": SID, "uid": "pod-2"}, "status": {"podIPs": [{"ip": "10.0.0.1"}]}}
+    await handlers.session_pod_identity({"type": "ADDED"}, replacement)
+    await handlers.session_pod_identity({"type": "DELETED"}, body)
+    assert op.hook_pods == {"10.0.0.1": (SID, "pod-2")}
+    await handlers.session_pod_identity({"type": "DELETED"}, replacement)
+    assert not op.hook_pods
+    await op.close()

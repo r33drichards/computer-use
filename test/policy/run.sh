@@ -264,7 +264,7 @@ sleep 10 # several readiness periods
 is "an OPA pod with no bundle is running but not ready" "false false" \
   "$(k get pods -l app=opa -o jsonpath='{range .items[*]}{.status.containerStatuses[0].ready} {end}' | xargs)"
 is "the Service has no ready address" "" \
-  "$(k get endpointslices -l kubernetes.io/service-name=opa-engine -o json | jq -r '[.items[].endpoints[]? | select(.conditions.ready) | .addresses[]] | join(" ")')"
+  "$(k get endpointslices -l kubernetes.io/service-name=opa -o json | jq -r '[.items[].endpoints[]? | select(.conditions.ready) | .addresses[]] | join(" ")')"
 got="$(call $P_WITH url 3)"
 is "a browser call is denied while no OPA is ready" denied "$(outcome "$got")"
 note "" && note "### No OPA replica ready (none has a bundle yet)" && note "" &&

@@ -38,7 +38,7 @@ func TestWebhookSettingsOwnershipScopesAndSecret(t *testing.T) {
 			t.Fatalf("%+v: %d %s", test, got.Code, got.Body)
 		}
 	}
-	body := `{"url":"https://example.com/hook","batch_size":2,"filter":"","signing_secret":"sixteen-byte-secret"}`
+	body := `{"url":"https://example.com/hook","batch_size":2,"filter":"previous-filter","signing_secret":"sixteen-byte-secret"}`
 	if rec := f.do(alice, "PUT", path, body); rec.Code != 204 {
 		t.Fatalf("save: %d %s", rec.Code, rec.Body)
 	}
@@ -48,6 +48,11 @@ func TestWebhookSettingsOwnershipScopesAndSecret(t *testing.T) {
 	}
 	if rec := f.do(alice, "PUT", path, `{"url":"https://new.example.com"}`); rec.Code != 204 {
 		t.Fatalf("update: %d %s", rec.Code, rec.Body)
+	}
+	read := f.do(alice, "GET", path, "")
+	var updated map[string]any
+	if err := json.Unmarshal(read.Body.Bytes(), &updated); err != nil || updated["filter"] != "" || updated["batch_size"] != float64(100) || updated["flush_interval_seconds"] != float64(5) {
+		t.Fatalf("PUT defaults not persisted: %s", read.Body)
 	}
 	sent := f.operator.sent("/v1/webhooks/validate")
 	if sent["signing_secret"] != "sixteen-byte-secret" {

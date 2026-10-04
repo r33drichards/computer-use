@@ -129,6 +129,13 @@ try:
 
     update()
     ready('opa')
+    with subtest('native hooks reject cross-session identity and forwarded headers'):
+        attack = 'import json, urllib.request, urllib.error; ' + \
+            'r=urllib.request.Request("http://policy-operator:8080/v1/data/browserjs/hooks/s-other/mcp_tools/pre", data=json.dumps({"input":{"operation":"mcp_call_tool"}}).encode(), headers={"Content-Type":"application/json","X-Forwarded-For":"127.0.0.1"}); ' + \
+            '\ntry: urllib.request.urlopen(r); raise AssertionError("forged hook accepted")\nexcept urllib.error.HTTPError as e: assert e.code == 403, e.code'
+        cluster.succeed(k + 'exec ' + pod() + ' -- python -c ' + shlex.quote(attack))
+        assert not state()['effects']
+
     with subtest('real CRD watcher, Services, native hooks, signed HTTPS full batch'):
         verdict(True)
         call('first', 'ran')

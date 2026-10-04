@@ -8,7 +8,7 @@ metadata:
 ---
 # Pomerium's and Dex's ConfigMaps and every Secret are in this namespace
 # too. The operator reads none of them: its rights name the policy resource,
-# events, and the EndpointSlices it finds OPA's replicas with.
+# events, session pod identities, and OPA EndpointSlices.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -20,6 +20,9 @@ rules:
   - apiGroups: ["browserjs.dev"]
     resources: ["sessionpolicies/status"]
     verbs: ["get", "patch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["create"]

@@ -169,7 +169,7 @@ async def tool_events(request: web.Request) -> web.Response:
         events = [event for item in doc if (event := decision_event(item)) is not None]
     else:
         events = [item for item in doc if isinstance(item, dict)]
-    if not op.webhooks.ingest(events):
+    if not await op.webhooks.ingest(events):
         return web.Response(status=503)
     return web.Response(status=204)
 
@@ -183,12 +183,14 @@ async def tool_pre_hook(request: web.Request) -> web.Response:
         return web.Response(status=404)
     if request.query:
         return web.Response(status=403)
+    # CNI preserves the source pod IP; never trust forwarded headers. The
+    # Kubernetes watch binds that IP to the current session pod identity.
+    if op.hook_pods.get(request.remote, (None, None))[0] != sid:
+        return web.Response(status=403)
     if not op.ready:
         return web.Response(status=503)
     try:
         raw = await request.read()
-        if len(raw) > MAX_INPUT_BYTES + 1024:
-            return web.Response(status=413)
         doc = json.loads(raw)
         args = doc.get("input") if isinstance(doc, dict) else None
         if not isinstance(args, dict) or args.get("operation") != "mcp_call_tool":
@@ -199,7 +201,7 @@ async def tool_pre_hook(request: web.Request) -> web.Response:
              "timestamp": datetime.now(timezone.utc).isoformat(), "type": "tool_call",
              "stage": "attempt", "server": args.get("server"),
              "tool": args.get("tool"), "arguments": args.get("arguments")}
-    if not op.webhooks.ingest([event]):
+    if not await op.webhooks.ingest([event]):
         return _error("tool event could not be durably recorded", 503)
     # Native hooks unwrap result. true permits the remaining policy chain;
     # it does not grant authorization or modify the operation's input.

@@ -93,6 +93,7 @@ class Operator:
         self.cfg = cfg
         self.webhooks = Webhooks(cfg, offline=offline)
         self.sessions: dict[str, Entry] = {}
+        self.hook_pods: dict[str, tuple[str, str]] = {}
         self.publisher = Publisher()
         # True once every SessionPolicy that existed at start is in `sessions`
         # and a bundle of them is published. Until then nothing is published:

@@ -228,6 +228,7 @@ async def test_native_hook_capture_precedes_independent_opa_verdict(stack):
     assert await until(lambda: decide(url, "s-aaaaa", {}) == {"result": {"allow": False}})
     hook = f"http://127.0.0.1:{op.cfg.http_port}"
     for sid, allowed in [("s-aaaaa", True), ("s-bbbbb", False)]:
+        op.hook_pods["127.0.0.1"] = (sid, "test-pod")
         status, body = await asyncio.to_thread(http, f"{hook}/v1/data/browserjs/hooks/{sid}/mcp_tools/pre",
                                              json.dumps({"input": CALL}).encode(), method="POST")
         assert status == 200 and json.loads(body) == {"result": True}

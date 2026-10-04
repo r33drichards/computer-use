@@ -199,8 +199,11 @@ old events keep their original configuration. Deleting a session also preserves
 its accepted backlog.
 
 Deploy the updated CRD, network policies, session hook templates, backend, and
-policy-operator image together. Roll existing session pods to install the hooks; warm-pool templates carry the
-pod name as the session ID. The recorder is on the pre-hook path: while the
+policy-operator image together. Recreate existing sessions from the updated blueprint to install the hooks;
+restarting a pod retains its stored Sandbox template. warm-pool templates carry the
+pod name as the session ID. Hook ingestion verifies the source pod IP against
+Kubernetes-watched session pods. Forwarded headers are ignored;
+this requires the cluster CNI to preserve pod source IPs and prevent IP spoofing. The recorder is on the pre-hook path: while the
 singleton operator is unavailable, hooked nested calls are refused, including
 for sessions without exports. Do not use `emptyDir` for Redis or
 scale the operator above one replica. Redis has a 1 GiB memory limit and no

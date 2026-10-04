@@ -61,6 +61,12 @@ func (h *Handlers) PutWebhook(w http.ResponseWriter, r *http.Request, id string)
 		clusterError(w, err)
 		return
 	}
+	// PUT replaces all ordinary settings; only the secret supports omission.
+	for key, value := range map[string]any{"filter": "", "batch_size": 100, "flush_interval_seconds": 5} {
+		if _, given := doc[key]; !given {
+			doc[key] = value
+		}
+	}
 	_, secretGiven := doc["signing_secret"]
 	// Omission preserves the current secret; an explicit empty string clears it.
 	if _, given := doc["signing_secret"]; !given {

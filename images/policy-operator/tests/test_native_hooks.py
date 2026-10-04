@@ -24,6 +24,7 @@ async def test_native_hook_records_before_policy_and_fails_closed(cfg, aiohttp_s
     import redis
     op = Operator(cfg)
     op.ready = True
+    op.hook_pods["127.0.0.1"] = (SID, "test-pod")
     await op.webhooks.configure(SID, {"url": "https://example.com/hook", "batch_size": 100, "flush_interval_seconds": 60})
     collector = await aiohttp_server(make_app(op))
     if scenario == "redis_failure":

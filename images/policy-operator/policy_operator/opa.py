@@ -108,7 +108,7 @@ def eval_many(opa_bin: str, capabilities: Path, source: str, inputs: list, deadl
         Path(d, "input.json").write_text(json.dumps({"probes": inputs}), encoding="utf-8")
         proc = run(
             opa_bin,
-            ["eval", "--format", "json", "--capabilities", str(capabilities),
+            ["eval", "--strict-builtin-errors", "--format", "json", "--capabilities", str(capabilities),
              "--timeout", f"{deadline}s", "-d", "policy.rego", "-i", "input.json", query],
             d, timeout=deadline + 3,
         )

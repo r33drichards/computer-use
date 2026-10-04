@@ -80,6 +80,7 @@ class Webhooks:
         self.http: aiohttp.ClientSession | None = None
         self.closed = False
         self.evaluations = asyncio.Semaphore(4)
+        self.redis_io = asyncio.Semaphore(4)
         self.supervisor: asyncio.Task | None = None
 
     def start(self) -> None:
@@ -87,13 +88,16 @@ class Webhooks:
             return
         if self.supervisor is None and not self.closed:
             self.supervisor = asyncio.create_task(self._supervise())
-        self._schedule()
 
-    def _schedule(self) -> None:
-        for group in self.outbox.groups():
+    async def _redis(self, method, *args):
+        async with self.redis_io:
+            return await asyncio.to_thread(method, *args)
+
+    async def _schedule(self) -> None:
+        for group in await self._redis(self.outbox.groups):
             wake = self.wake.setdefault(group, asyncio.Event())
-            _, cfg = self.outbox.configuration(group)
-            if self.outbox.count(group) >= cfg["batch_size"]:
+            _, cfg = await self._redis(self.outbox.configuration, group)
+            if await self._redis(self.outbox.count, group) >= cfg["batch_size"]:
                 wake.set()
             if group not in self.tasks:
                 self.tasks[group] = asyncio.create_task(self._worker(group))
@@ -102,7 +106,7 @@ class Webhooks:
         while not self.closed:
             await asyncio.sleep(1)
             try:
-                self._schedule()
+                await self._schedule()
             except redis.RedisError:
                 log.exception("webhook outbox unavailable; accepted events retained")
 
@@ -143,7 +147,7 @@ class Webhooks:
         self.settings.pop(sid, None)
         self.blocked.discard(sid)
 
-    def ingest(self, events: list[dict]) -> bool:
+    async def ingest(self, events: list[dict]) -> bool:
         if self.closed:
             return False
         pending = []
@@ -168,9 +172,10 @@ class Webhooks:
         if not pending:
             return True
         try:
-            accepted = self.outbox.ingest(pending)
+            accepted = await self._redis(self.outbox.ingest, pending)
             if accepted:
                 self.start()
+                await self._schedule()
             return accepted
         except redis.RedisError:
             log.exception("webhook outbox write failed; ingestion not acknowledged")
@@ -194,19 +199,19 @@ class Webhooks:
             return False
 
     async def _worker(self, group: str) -> None:
-        sid, cfg = self.outbox.configuration(group)
         try:
-            while group in self.outbox.groups() and not self.closed:
-                batch = self.outbox.batch(group)
+            sid, cfg = await self._redis(self.outbox.configuration, group)
+            while not self.closed and group in await self._redis(self.outbox.groups):
+                batch = await self._redis(self.outbox.batch, group)
                 if batch is None:
                     wake = self.wake[group]
-                    if self.outbox.count(group) < cfg["batch_size"]:
+                    if await self._redis(self.outbox.count, group) < cfg["batch_size"]:
                         try:
                             await asyncio.wait_for(wake.wait(), cfg["flush_interval_seconds"])
                         except asyncio.TimeoutError:
                             pass
                     wake.clear()
-                    rows = self.outbox.events(group, cfg["batch_size"], MAX_BATCH_BYTES - 1024)
+                    rows = await self._redis(self.outbox.events, group, cfg["batch_size"], MAX_BATCH_BYTES - 1024)
                     events = [event for _, event in rows]
                     mask = [True] * len(events)
                     if cfg["filter"]:
@@ -220,21 +225,21 @@ class Webhooks:
                             log.warning("webhook filter evaluation failed; events retained for retry", extra={"session": sid})
                             await asyncio.sleep(5)
                             continue
-                    self.outbox.prepare(group, rows, mask)
-                    batch = self.outbox.batch(group)
+                    await self._redis(self.outbox.prepare, group, rows, mask)
+                    batch = await self._redis(self.outbox.batch, group)
                     if batch is None:
                         continue
                 bid, body, attempts, next_attempt = batch
                 delay = next_attempt - time.time()
                 if delay > 0:
                     await asyncio.sleep(delay)
-                self.outbox.confirm()
+                await self._redis(self.outbox.confirm)
                 if await self._send(cfg, body, bid):
                     # A crash before this commit replays the identical batch.
-                    self.outbox.acknowledge(bid)
+                    await self._redis(self.outbox.acknowledge, bid)
                 else:
                     attempts += 1
-                    self.outbox.retry(bid, attempts, time.time() + min(2 ** min(attempts - 1, 9), 300))
+                    await self._redis(self.outbox.retry, bid, attempts, time.time() + min(2 ** min(attempts - 1, 9), 300))
                     log.warning("webhook delivery failed; retry scheduled", extra={"session": sid, "batch_id": bid, "attempts": attempts})
         except redis.RedisError:
             log.exception("webhook outbox unavailable; supervisor will retry")
@@ -251,7 +256,8 @@ class Webhooks:
         await asyncio.gather(*tasks, *([self.supervisor] if self.supervisor else []), return_exceptions=True)
         if self.http:
             await self.http.close()
-        self.outbox.close() if self.outbox else None
+        if self.outbox:
+            await self._redis(self.outbox.close)
 
 
 def decision_event(doc: object) -> dict | None:

@@ -146,3 +146,24 @@ async def gone(event, name, **_):
     # hand, say) is still out of the bundle.
     if event.get("type") == "DELETED" and OPERATOR is not None:
         await OPERATOR.remove(name)
+
+
+@kopf.on.event("", "v1", "pods", labels={"app": "browserjs-session"})
+async def session_pod_identity(event, body, **_):
+    """Trust API-server pod identities, not a caller-supplied session ID."""
+    op = OPERATOR
+    if op is None:
+        return
+    meta = body.get("metadata") or {}
+    sid, uid = meta.get("name"), meta.get("uid")
+    # The controller names session pods after their Sandbox. A differently
+    # named pod cannot claim a session merely by copying its labels. Session
+    # workloads cannot create or rename Kubernetes pods.
+    from .check import SESSION_ID
+    valid = isinstance(sid, str) and SESSION_ID.fullmatch(sid) and uid
+    for address, identity in list(op.hook_pods.items()):
+        if identity[1] == uid:
+            del op.hook_pods[address]
+    if event.get("type") != "DELETED" and valid and not meta.get("deletionTimestamp"):
+        for address in (body.get("status") or {}).get("podIPs") or []:
+            op.hook_pods[address["ip"]] = (sid, uid)
