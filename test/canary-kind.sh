@@ -49,6 +49,22 @@ policies=0
 images="$(awk '$1 == "image:" { n = split($2, p, "/"); sub(/:.*/, "", p[n]); printf "%s%s=%s", sep, p[n], $2; sep = "," }' deploy/local/blueprint.yaml)"
 failed=""
 
+# A backend restart can leave Envoy briefly using an old headless-Service
+# endpoint even after Kubernetes reports the replacement pod ready. Wait
+# for the API route itself, retaining the canary's unauthenticated 401 check.
+echo "Waiting for the API route through Pomerium"
+edge_deadline=$((SECONDS + 90))
+while :; do
+  edge_status="$(curl -s --cacert "$LOCAL_DIR/tls/ca.crt" --connect-timeout 2 --max-time 5 \
+    -o /dev/null -w '%{http_code}' https://api.localtest.me/v1/sessions)" || edge_status=000
+  [ "$edge_status" != 401 ] || break
+  if [ "$SECONDS" -ge "$edge_deadline" ]; then
+    echo "API edge did not become ready: HTTP $edge_status, expected 401" >&2
+    exit 1
+  fi
+  sleep 2
+done
+
 echo "=== through the edge: Pomerium, the API host"
 CANARY_API_TOKEN="$token" DOMAIN=localtest.me SITE_URL="" CA_FILE="$LOCAL_DIR/tls/ca.crt" \
   EXPECT_STATE_SAVED=0 EXPECT_POLICIES="$policies" \
