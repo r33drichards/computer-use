@@ -134,6 +134,16 @@ class LifecycleTests(unittest.TestCase):
         self.assertTrue(all(removed_tag in call.args for call in deletions))
         self.assertTrue(all(active_tag not in call.args for call in deletions))
 
+    def test_missing_registry_packages_are_empty_but_permission_failures_propagate(self):
+        absent = subprocess.CalledProcessError(1, "gcloud", stderr='{"error":{"status":"NOT_FOUND"}}')
+        with patch.object(preview, "live_previews", return_value=[]), patch.object(lifecycle, "cloud_command", side_effect=[absent] + ["[]"] * 4) as cloud:
+            lifecycle.gc_image_tags()
+            self.assertEqual(cloud.call_count, 5)
+        denied = subprocess.CalledProcessError(1, "gcloud", stderr='{"error":{"status":"PERMISSION_DENIED"}}')
+        with patch.object(preview, "live_previews", return_value=[]), patch.object(lifecycle, "cloud_command", side_effect=denied):
+            with self.assertRaises(subprocess.CalledProcessError):
+                lifecycle.gc_image_tags()
+
     def test_quota_and_network_policy_are_applied_before_deployments(self):
         images = {name: f"{publish.REGISTRY}/{name}@sha256:" + "a" * 64 for name in preview.IMAGES}
         kinds = [obj["kind"] for obj in preview.render("154", SHA, images)]
