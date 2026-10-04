@@ -72,7 +72,10 @@ can be used by a preview pod. Production image repositories are unchanged.
    enabling preview workflows. The DNS and certificate names are deliberately
    fixed to this repository's GKE deployment, as in `deploy/gke`.
 4. Set `PREVIEWS_ENABLED=true`. Label a same-repository, non-draft PR `preview`.
-   The workflow builds and creates its environment. Fork PRs are refused.
+   The workflow builds and creates its environment. For branches created
+   before preview support landed (such as the theme PR), update from main
+   first so the branch includes the preview-aware site build settings. Fork
+   PRs are refused.
 
 The workflows need no new repository secrets. Existing GCP Workload
 Identity Federation allows the two new identities only on `refs/heads/main`.
