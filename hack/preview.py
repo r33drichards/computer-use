@@ -9,6 +9,7 @@ import datetime as dt
 import json
 import os
 import tempfile
+import time
 import re
 import subprocess
 from pathlib import Path
@@ -203,6 +204,25 @@ def reconcile_manifest_file(path):
     return False
 
 
+def wait_edge_sync(revision, timeout=600):
+    # A route-only commit needs an exact successful sync. Unrelated production
+    # rollout health is gated by the release workflow, not preview deployment.
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        app = json.loads(kubectl("-n", "argocd", "get", "application", "computer-use-production", "-o", "json"))
+        status = app.get("status", {})
+        sync = status.get("sync", {})
+        operation = status.get("operationState", {})
+        phase = operation.get("phase")
+        if operation.get("syncResult", {}).get("revision") == revision and phase in {"Failed", "Error"}:
+            raise RuntimeError("Argo CD preview route sync failed")
+        if (sync.get("revision") == revision and sync.get("status") == "Synced"
+                and not app.get("operation") and phase not in {"Running", "Terminating"}):
+            return
+        time.sleep(5)
+    raise TimeoutError("Argo CD did not sync the preview routes before the deadline")
+
+
 def sync_gitops_edge():
     # The normal push is a compare-and-swap: refuse to overwrite another writer.
     # Trusted lifecycle and production releases also share a workflow lock.
@@ -224,7 +244,7 @@ def sync_gitops_edge():
         finally:
             git("worktree", "remove", "--force", tree)
     kubectl("-n", "argocd", "annotate", "application", "computer-use-production", "argocd.argoproj.io/refresh=hard", "--overwrite")
-    subprocess.run(["python3", str(ROOT / "hack/gitops/wait.py"), revision, "600"], check=True)
+    wait_edge_sync(revision)
 
 
 def sync_edge():

@@ -109,7 +109,9 @@ images shared by another active preview remain tagged and are protected.
 
 With Argo CD enabled, reconciliation commits only the mounted Pomerium
 ConfigMap's routes in `production/manifests.yaml` on the `production` branch,
-then waits for Argo CD to sync that exact revision. Its ConfigMap name and
+then waits for Argo CD to sync that exact revision. An unrelated production
+rollout may remain Progressing; its full health gate belongs to the production
+release workflow. Failed route sync operations still fail deployment. Its ConfigMap name and
 all non-preview resources and routes remain intact. Lifecycle jobs have
 contents-write permission only on trusted main code; PR builds do not.
 Normal Git pushes reject concurrent changes, and preview lifecycle jobs and
