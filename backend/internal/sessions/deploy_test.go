@@ -70,22 +70,6 @@ func TestWarmPoolTemplateMatchesBlueprint(t *testing.T) {
 		t.Errorf("networkPolicyManagement = %v, want Unmanaged", spec["networkPolicyManagement"])
 	}
 	delete(spec, "networkPolicyManagement")
-	// Spare-only placement is removed on adoption, leaving the blueprint.
-	packed := &unstructured.Unstructured{Object: map[string]any{"spec": spec}}
-	annotation, _, _ := unstructured.NestedString(packed.Object, "spec", "podTemplate", "metadata", "annotations", sessions.WarmPacking)
-	if annotation != "true" {
-		t.Fatal("warm template must mark spare-only packing")
-	}
-	required, _, _ := unstructured.NestedSlice(packed.Object, "spec", "podTemplate", "spec", "affinity", "podAffinity", "requiredDuringSchedulingIgnoredDuringExecution")
-	if len(required) != 1 {
-		t.Fatal("warm template must pack on existing session nodes")
-	}
-	wantPacking := []any{map[string]any{"labelSelector": map[string]any{"matchLabels": map[string]any{"app": "browserjs-session"}}, "topologyKey": "kubernetes.io/hostname"}}
-	if !reflect.DeepEqual(required, wantPacking) {
-		t.Fatal("warm affinity must match session pods by node hostname")
-	}
-	unstructured.RemoveNestedField(packed.Object, "spec", "podTemplate", "metadata", "annotations", sessions.WarmPacking)
-	unstructured.RemoveNestedField(packed.Object, "spec", "podTemplate", "spec", "affinity")
 	containers := spec["podTemplate"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
 	mcp := containers[1].(map[string]any)
 	env := mcp["env"].([]any)

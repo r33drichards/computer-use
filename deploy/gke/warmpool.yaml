@@ -43,21 +43,20 @@ spec:
     metadata:
       annotations:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
-        browserjs.dev/warm-packing: "true"
       labels:
         app: browserjs-session
     spec:
       # The managed add-on's sandbox-core-policy requires gVisor; the label and
       # taint are what GKE puts on the sessions node pool.
-      # Warm pods join a node already hosting session pods. Self-affinity
-      # permits the first warm pod when the cluster has no session pods.
-      # Cold starts have no such restriction and can trigger autoscaling.
+      # Prefer packing beside existing sessions, but allow a new node.
       affinity:
         podAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchLabels: {app: browserjs-session}
-              topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels: {app: browserjs-session}
+                topologyKey: kubernetes.io/hostname
       runtimeClassName: gvisor
       nodeSelector:
         sandbox.gke.io/runtime: gvisor

@@ -33,14 +33,6 @@ func TestCreateAdoptsAWarmSandbox(t *testing.T) {
 	store.EnableWarmPool(sessionstest.WarmPoolName, time.Second)
 	sessionstest.PlayClaimController(t, client, "s-bcdfg")
 
-	// Spare-only packing must not constrain this session's later wakes.
-	pooled := raw(t, client, "s-bcdfg")
-	_ = unstructured.SetNestedStringMap(pooled.Object, map[string]string{sessions.WarmPacking: "true", "cluster-autoscaler.kubernetes.io/safe-to-evict": "false"}, "spec", "podTemplate", "metadata", "annotations")
-	_ = unstructured.SetNestedMap(pooled.Object, map[string]any{"podAffinity": map[string]any{"requiredDuringSchedulingIgnoredDuringExecution": []any{map[string]any{"topologyKey": "kubernetes.io/hostname"}}}}, "spec", "podTemplate", "spec", "affinity")
-	if _, err := client.Resource(sessions.SandboxGVR).Namespace(sessionstest.Namespace).Update(ctx, pooled, metav1.UpdateOptions{}); err != nil {
-		t.Fatal(err)
-	}
-
 	before := time.Now().Add(-time.Second)
 	s, err := store.Create(ctx, " research ", "user-1")
 	if err != nil {
@@ -59,14 +51,6 @@ func TestCreateAdoptsAWarmSandbox(t *testing.T) {
 	}
 
 	obj := raw(t, client, s.ID)
-	if affinity, found, _ := unstructured.NestedMap(obj.Object, "spec", "podTemplate", "spec", "affinity"); found {
-		t.Fatalf("adopted session retained warm affinity: %v", affinity)
-	}
-	annotations, _, _ := unstructured.NestedStringMap(obj.Object, "spec", "podTemplate", "metadata", "annotations")
-	if annotations[sessions.WarmPacking] != "" || annotations["cluster-autoscaler.kubernetes.io/safe-to-evict"] != "false" {
-		t.Fatalf("adoption changed eviction protection or retained packing marker: %v", annotations)
-	}
-
 	if obj.GetLabels()[sessions.LabelOwner] != sessions.OwnerLabel("user-1") || obj.GetAnnotations()[sessions.AnnOwner] != "user-1" {
 		t.Errorf("owner label %q, annotation %q", obj.GetLabels()[sessions.LabelOwner], obj.GetAnnotations()[sessions.AnnOwner])
 	}

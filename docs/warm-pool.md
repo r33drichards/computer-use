@@ -104,10 +104,10 @@ admits pending pods within the configured two-node ceiling; GKE Cluster
 Autoscaler provisions the second node when no existing node can schedule them.
 Requests beyond that ceiling return `409 no_capacity`.
 
-Warm pods use required pod affinity to join nodes already hosting session
-pods. Self-affinity allows the first warm pod when no session pods exist.
-Adoption removes this spare-only affinity from the Sandbox template, so a
-future wake can use a new node. All session pods opt out of autoscaler eviction
+Session pods prefer nodes already hosting sessions, without requiring it,
+so cold starts and wakes can use a new node. The warm controller accounts
+for live stopping pods and pauses replenishment during termination, so
+replacement spares prefer the remaining occupied nodes. All session pods opt out of autoscaler eviction
 to preserve live memory. Surplus nodes become eligible for scale-down after
 their sessions are deleted or suspended; warm spares pack beside remaining
 sessions rather than repopulating an empty surplus node.
