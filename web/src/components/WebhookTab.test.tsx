@@ -12,9 +12,9 @@ describe("session webhook", () => {
     const put = vi.spyOn(api, "putWebhook").mockResolvedValue(undefined)
     render(<WebhookTab sessionId="s-abcdefghij" />)
     await screen.findByText(/A secret is configured/)
-    fireEvent.change(screen.getByLabelText("Rego filter (optional)"), { target: { value: "package browserjs.policy\nallow_tool_call := true" } })
+    fireEvent.change(screen.getByLabelText("Rego filter (optional)"), { target: { value: "package computeruse.policy\nallow_tool_call := true" } })
     fireEvent.click(screen.getByRole("button", { name: "Save webhook" }))
-    await waitFor(() => expect(put).toHaveBeenCalledWith("s-abcdefghij", { url: "https://example.com/hook", filter: "package browserjs.policy\nallow_tool_call := true", batch_size: 100, flush_interval_seconds: 5 }))
+    await waitFor(() => expect(put).toHaveBeenCalledWith("s-abcdefghij", { url: "https://example.com/hook", filter: "package computeruse.policy\nallow_tool_call := true", batch_size: 100, flush_interval_seconds: 5 }))
     await screen.findByText(/Webhook saved/)
   })
 

@@ -10,7 +10,7 @@ let
     spec = {
       sessionRef.name = "s-abcde";
       kind = "rego";
-      source = "package browserjs.policy\nimport rego.v1\nallow_tool_call := true\n";
+      source = "package computeruse.policy\nimport rego.v1\nallow_tool_call := true\n";
       webhook = { url = "https://webhook.example.test/events"; batch_size = 2;
         flush_interval_seconds = 5; signing_secret = "container-signing-secret"; filter = ""; };
     };

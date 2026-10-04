@@ -71,7 +71,7 @@ with subtest('native hook, full batch, HTTPS, HMAC, and actual execution'):
     assert executions() == 2
 
 with subtest('denied attempts are exported, without executing the tool'):
-    resource['spec']['source'] = 'package browserjs.policy\nimport rego.v1\nallow_tool_call := false\n'
+    resource['spec']['source'] = 'package computeruse.policy\nimport rego.v1\nallow_tool_call := false\n'
     update()
     verdict(False)
     call('denied', 'denied')
@@ -81,8 +81,8 @@ with subtest('denied attempts are exported, without executing the tool'):
     assert state()['effects'][-1]['arguments']['bin'] == 'denied'
 
 with subtest('Rego filter selects exports without denying execution'):
-    resource['spec']['source'] = 'package browserjs.policy\nimport rego.v1\nallow_tool_call := true\n'
-    resource['spec']['webhook']['filter'] = 'package browserjs.policy\nimport rego.v1\nallow_tool_call if input.arguments.bin == "keep"\n'
+    resource['spec']['source'] = 'package computeruse.policy\nimport rego.v1\nallow_tool_call := true\n'
+    resource['spec']['webhook']['filter'] = 'package computeruse.policy\nimport rego.v1\nallow_tool_call if input.arguments.bin == "keep"\n'
     update()
     verdict(True)
     call('exclude', 'ran')

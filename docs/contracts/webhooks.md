@@ -79,7 +79,7 @@ guaranteed.
 ## Rego filters
 
 An empty filter includes every event. Otherwise, use the existing restricted
-Rego policy contract: `package browserjs.policy`, define `allow_tool_call`,
+Rego policy contract: `package computeruse.policy`, define `allow_tool_call`,
 no references to `data`, no `with`, and the enforcement capabilities allowlist.
 The filter's `input` is one event from the schema above. Only boolean `true`
 includes it; false, undefined, or other values omit it. Evaluation errors and
@@ -89,7 +89,7 @@ Filtering selects delivery without changing the authorization verdict.
 Export nested browser or shell attempts:
 
 ```rego
-package browserjs.policy
+package computeruse.policy
 import rego.v1
 
 default allow_tool_call := false
@@ -103,7 +103,7 @@ allow_tool_call if {
 Export outer calls and shell calls:
 
 ```rego
-package browserjs.policy
+package computeruse.policy
 import rego.v1
 
 allow_tool_call if input.server in {"mcp-js", "exec"}

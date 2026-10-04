@@ -12,14 +12,14 @@ results and screenshots are excluded.
 ## Filter which events are sent
 
 Leave **Rego filter** empty to export every event. To select events, write a
-module with `package browserjs.policy` and an `allow_tool_call` rule. The
+module with `package computeruse.policy` and an `allow_tool_call` rule. The
 filter receives one event as `input`, and includes it only when the rule
 returns boolean `true`.
 
 For example, send only nested browser or shell attempts:
 
 ```rego
-package browserjs.policy
+package computeruse.policy
 import rego.v1
 
 default allow_tool_call := false
@@ -33,7 +33,7 @@ allow_tool_call if {
 To send only shell calls:
 
 ```rego
-package browserjs.policy
+package computeruse.policy
 import rego.v1
 
 allow_tool_call if input.server == "exec"

@@ -33,9 +33,9 @@ try:
         return cluster.succeed(command + shlex.quote('http://' + backend + path))
 
 
-    print(api('POST', '/v1/policies/validate', {'kind': 'rego', 'source': 'package browserjs.policy\nimport rego.v1\nallow_tool_call := true\n'}))
+    print(api('POST', '/v1/policies/validate', {'kind': 'rego', 'source': 'package computeruse.policy\nimport rego.v1\nallow_tool_call := true\n'}))
     created = json.loads(api('POST', '/v1/sessions', {'name': 'webhook-integration', 'policy': {
-        'kind': 'rego', 'source': 'package browserjs.policy\nimport rego.v1\nallow_tool_call := true\n'}}))
+        'kind': 'rego', 'source': 'package computeruse.policy\nimport rego.v1\nallow_tool_call := true\n'}}))
     sid = created['id']
     cluster.wait_until_succeeds(k + 'get sandbox ' + sid + ' -o json | jq -e '
         + shlex.quote('.status.conditions[] | select(.type == "Ready") | .status == "True"'), timeout=180)
@@ -127,7 +127,7 @@ try:
         assert executions() == 2
 
     with subtest('policy updates deny execution while exporting denied attempts'):
-        resource['spec']['source'] = 'package browserjs.policy\nimport rego.v1\nallow_tool_call := false\n'
+        resource['spec']['source'] = 'package computeruse.policy\nimport rego.v1\nallow_tool_call := false\n'
         update()
         verdict(False)
         call('denied', 'denied')
@@ -136,8 +136,8 @@ try:
         assert executions() == 2
 
     with subtest('Rego export filter is independent of execution authorization'):
-        resource['spec']['source'] = 'package browserjs.policy\nimport rego.v1\nallow_tool_call := true\n'
-        resource['spec']['webhook']['filter'] = 'package browserjs.policy\nimport rego.v1\nallow_tool_call if input.arguments.bin == "keep"\n'
+        resource['spec']['source'] = 'package computeruse.policy\nimport rego.v1\nallow_tool_call := true\n'
+        resource['spec']['webhook']['filter'] = 'package computeruse.policy\nimport rego.v1\nallow_tool_call if input.arguments.bin == "keep"\n'
         update()
         restart('policy-operator')
         verdict(True)
