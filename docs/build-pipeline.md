@@ -15,19 +15,16 @@ which Google hands only to workflows running on `refs/heads/main`.
 | Image | Build context | Dockerfile | Rebuilt when these change |
 |---|---|---|---|
 | `backend` | repository root | `Dockerfile` | `Dockerfile`, `.dockerignore`, `backend/**`, `web/**` |
-| `mcp-js` | `images/mcp-js` | `images/mcp-js/Dockerfile` | `images/mcp-js/**` |
+| `mcp-js` | repository root | `images/mcp-js/Dockerfile` | `images/mcp-js/**`, public documentation sections in `site/` |
 | `browser` | `images/browser` | `images/browser/Dockerfile` | `images/browser/**` |
 | `site` | `site` | `site/Dockerfile` | `site/**` |
 
 All are built for `linux/amd64` only, which is what the cluster's nodes are.
 
-A change to `images.yml` itself rebuilds all four.
+A change to `images.yml` itself rebuilds all six images.
 
 `site` is the public site (landing page, docs, blog): VitePress builds static
 files and nginx serves them. It is not a session image and is in no blueprint.
-
-The root `Dockerfile` does not exist yet. Until it does, `backend` is skipped
-with a notice in the run, not failed.
 
 ## What triggers what
 

@@ -27,8 +27,6 @@ def render(source, previous, artifacts, output):
         item = json.loads(path.read_text())
         if item['source_sha'] != source:
             raise ValueError('image artifact is from another commit')
-        if item['name'] == 'mcp-js-skills':
-            continue  # The opt-in skills rollout owns this separate image.
         validate_image(item['name'], item['image'])
         images[item['name']] = item['image']
     if not re.fullmatch(r'[0-9a-f]{40}', source):
