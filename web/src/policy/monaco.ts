@@ -51,5 +51,20 @@ export function setupMonaco(): typeof monaco {
       "editorBracketHighlight.unexpectedBracket.foreground": "#111111",
     },
   })
+  monaco.editor.defineTheme("wireframe-dark", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "", foreground: "eeeeee" },
+      { token: "comment", foreground: "aaaaaa", fontStyle: "italic" },
+      { token: "keyword", foreground: "eeeeee", fontStyle: "bold" },
+      { token: "string", foreground: "cccccc" },
+      { token: "number", foreground: "eeeeee" },
+      { token: "delimiter", foreground: "eeeeee" },
+      { token: "type.identifier", foreground: "eeeeee", fontStyle: "underline" },
+      { token: "constant", foreground: "eeeeee", fontStyle: "italic" },
+    ],
+    colors: { "editor.background": "#181818", "editor.foreground": "#eeeeee" },
+  })
   return monaco
 }

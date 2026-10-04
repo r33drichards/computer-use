@@ -1,6 +1,12 @@
 /* The app's wireframe look (web/src/wireframe.css): black on white,
    outlined boxes, nothing filled or shadowed. */
-:root {
+:root,
+:root.dark {
+  --paper: #fff;
+  --soft: #f4f4f4;
+  --hover: #eee;
+  --active: #ddd;
+  --secondary: #444;
   --ink: #111;
   --pencil: #6b6b6b;
   /* An uneven radius reads as hand-drawn. */
@@ -9,12 +15,12 @@
   --vp-font-family-base: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --vp-font-family-mono: ui-monospace, Menlo, Consolas, monospace;
 
-  --vp-c-bg: #fff;
-  --vp-c-bg-alt: #fff;
-  --vp-c-bg-soft: #f4f4f4;
-  --vp-c-bg-elv: #fff;
+  --vp-c-bg: var(--paper);
+  --vp-c-bg-alt: var(--paper);
+  --vp-c-bg-soft: var(--soft);
+  --vp-c-bg-elv: var(--paper);
   --vp-c-text-1: var(--ink);
-  --vp-c-text-2: #444;
+  --vp-c-text-2: var(--secondary);
   --vp-c-text-3: var(--pencil);
   --vp-c-divider: var(--ink);
   --vp-c-gutter: var(--ink);
@@ -23,39 +29,39 @@
   --vp-c-brand-1: var(--ink);
   --vp-c-brand-2: var(--ink);
   --vp-c-brand-3: var(--ink);
-  --vp-c-brand-soft: #eee;
+  --vp-c-brand-soft: var(--hover);
 
   --vp-home-hero-name-color: var(--ink);
-  --vp-sidebar-bg-color: #fff;
+  --vp-sidebar-bg-color: var(--paper);
   --vp-code-color: var(--ink);
-  --vp-code-block-bg: #fff;
+  --vp-code-block-bg: var(--paper);
   --vp-code-block-color: var(--ink);
 
-  --vp-button-brand-bg: #fff;
+  --vp-button-brand-bg: var(--paper);
   --vp-button-brand-text: var(--ink);
   --vp-button-brand-border: var(--ink);
-  --vp-button-brand-hover-bg: #eee;
+  --vp-button-brand-hover-bg: var(--hover);
   --vp-button-brand-hover-text: var(--ink);
   --vp-button-brand-hover-border: var(--ink);
-  --vp-button-brand-active-bg: #ddd;
+  --vp-button-brand-active-bg: var(--active);
   --vp-button-brand-active-text: var(--ink);
   --vp-button-brand-active-border: var(--ink);
-  --vp-button-alt-bg: #fff;
+  --vp-button-alt-bg: var(--paper);
   --vp-button-alt-text: var(--ink);
   --vp-button-alt-border: var(--ink);
-  --vp-button-alt-hover-bg: #eee;
+  --vp-button-alt-hover-bg: var(--hover);
   --vp-button-alt-hover-text: var(--ink);
   --vp-button-alt-hover-border: var(--ink);
-  --vp-button-alt-active-bg: #ddd;
+  --vp-button-alt-active-bg: var(--active);
   --vp-button-alt-active-text: var(--ink);
   --vp-button-alt-active-border: var(--ink);
 
-  --vp-custom-block-tip-bg: #fff;
+  --vp-custom-block-tip-bg: var(--paper);
   --vp-custom-block-tip-border: var(--ink);
   --vp-custom-block-tip-text: var(--ink);
-  --vp-custom-block-info-bg: #fff;
+  --vp-custom-block-info-bg: var(--paper);
   --vp-custom-block-info-border: var(--ink);
-  --vp-custom-block-warning-bg: #fff;
+  --vp-custom-block-warning-bg: var(--paper);
   --vp-custom-block-warning-border: var(--ink);
   --vp-custom-block-warning-text: var(--ink);
 
@@ -76,7 +82,7 @@
 .vp-doc div[class*="language-"] {
   border: 2px solid var(--ink) !important;
   border-radius: var(--wobble) !important;
-  background: #fff !important;
+  background: var(--paper) !important;
   box-shadow: none !important;
 }
 .vp-doc .custom-block.warning {
@@ -88,7 +94,7 @@
   border-radius: 4px !important;
 }
 .vp-doc :not(pre) > code {
-  background: #fff;
+  background: var(--paper);
   border: 1px solid var(--pencil);
   border-radius: 2px;
 }
@@ -101,7 +107,7 @@
 .VPNavBar,
 .VPNavBar .content-body,
 .VPNavBar.has-sidebar .title {
-  background: #fff !important;
+  background: var(--paper) !important;
 }
 .VPNavBar .divider-line {
   background: none;
@@ -122,7 +128,7 @@
 .vp-doc th,
 .vp-doc td,
 .vp-doc tr {
-  background: #fff !important;
+  background: var(--paper) !important;
   border-color: var(--ink) !important;
 }
 
@@ -156,3 +162,17 @@
 .wf-posts p {
   margin: 4px 0 0;
 }
+
+:root.dark {
+  --paper: #181818;
+  --ink: #eee;
+  --pencil: #aaa;
+  --secondary: #ccc;
+  --soft: #242424;
+  --hover: #303030;
+  --active: #404040;
+}
+.VPNavBarAppearance, .VPNavScreenAppearance { display: none !important; }
+.theme-settings { display: flex; align-items: center; gap: 8px; padding: 12px; }
+.theme-settings select { font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--pencil); border-radius: 2px; padding: 3px; }
+@media (max-width: 767px) { .theme-desktop { display: none; } }
