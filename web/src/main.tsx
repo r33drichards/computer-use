@@ -4,10 +4,10 @@ import ReactDOM from "react-dom/client"
 import { RouterProvider, createBrowserRouter } from "react-router-dom"
 import { App } from "./App"
 import { MeProvider } from "./auth/MeProvider"
-import { applyWireframeTheme } from "./theme"
+import { initializeTheme } from "./theme"
 import "./wireframe.css"
 
-applyWireframeTheme()
+initializeTheme()
 
 // A data router, so pages with unsaved work can hold a navigation (useBlocker).
 // The routes themselves are in App.
