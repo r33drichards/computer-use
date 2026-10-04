@@ -87,4 +87,5 @@ metadata:
   name: session-slot-storage-quota
 spec:
   hard:
+    count/sandboxes.agents.x-k8s.io: "3"
     browserjs-zonal.storageclass.storage.k8s.io/requests.storage: 97Gi

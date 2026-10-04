@@ -223,6 +223,9 @@ func (s *Store) CreateSized(ctx context.Context, name, owner, size string, asked
 	}}
 	created, err := s.client.Create(ctx, obj, metav1.CreateOptions{})
 	if err != nil {
+		if apierrors.IsForbidden(err) && strings.Contains(err.Error(), "exceeded quota") {
+			return Session{}, &NoCapacityError{Size: size}
+		}
 		return Session{}, err
 	}
 	if policy != nil {
