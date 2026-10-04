@@ -35,7 +35,7 @@ The environment:
                        bind. 0: a deployment with session policies off.
   EXPECT_MCP_CAPABILITIES  1 (default): verify skills, fetch and editable fetch
                        permissions. 0: baseline/rollback checks of old releases.
-  FETCH_URL            URL to fetch (public site robots.txt, or localhost in kind).
+  FETCH_URL            URL to fetch (public site home page, or localhost in kind).
   SESSION_HOOK         a command run once the session is running, with
                        SESSION_ID in its environment (the release workflow
                        checks the pod's images with it). Its failure fails
@@ -65,7 +65,7 @@ API_HOST = os.environ.get("API_HOST", "")
 TOKEN = os.environ.get("CANARY_API_TOKEN", "")
 EXPECT_STATE_SAVED = os.environ.get("EXPECT_STATE_SAVED", "1") != "0"
 EXPECT_MCP_CAPABILITIES = os.environ.get("EXPECT_MCP_CAPABILITIES", "1") != "0"
-FETCH_URL = os.environ.get("FETCH_URL", (SITE + "/robots.txt") if SITE else "http://127.0.0.1:8081/healthz")
+FETCH_URL = os.environ.get("FETCH_URL", (SITE + "/") if SITE else "http://127.0.0.1:8081/healthz")
 EXPECT_POLICIES = os.environ.get("EXPECT_POLICIES", "1") != "0"
 START_TIMEOUT = int(os.environ.get("START_TIMEOUT", "420"))
 # Sessions this script made are named so, and it deletes any it finds.
