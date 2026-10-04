@@ -13,7 +13,7 @@ export { api } from "./api"
 declare global {
   interface Window {
     // Served by the backend at /config.js, so one build works in every environment.
-    __BROWSERJS_CFG__?: { signOutUrl?: string; siteUrl?: string; supportEmail?: string }
+    __BROWSERJS_CFG__?: { signOutUrl?: string; siteUrl?: string; supportEmail?: string; githubConnections?: boolean }
   }
 }
 
@@ -89,6 +89,7 @@ export function ShellHeader() {
             <Link to="/tokens">API tokens</Link> ·{" "}
           </>
         )}
+        {window.__BROWSERJS_CFG__?.githubConnections && <><Link to="/connections">Connections</Link> ·{" "}</>}
         {me.email} · <a href={window.__BROWSERJS_CFG__?.signOutUrl ?? "/.pomerium/sign_out"}>sign out</a>
       </span>
     </header>

@@ -7,6 +7,7 @@ import { SessionsList } from "./pages/SessionsList"
 
 // The pages around the list and the session load when first visited, so the
 // two everyone opens stay as small as they were.
+const Connections = lazy(() => import("./pages/Connections").then(m => ({ default: m.Connections })))
 const CreateSession = lazy(() => import("./pages/CreateSession").then(m => ({ default: m.CreateSession })))
 const CreateToken = lazy(() => import("./pages/CreateToken").then(m => ({ default: m.CreateToken })))
 const EditPolicy = lazy(() => import("./pages/EditPolicy").then(m => ({ default: m.EditPolicy })))
@@ -36,6 +37,7 @@ export function App() {
       <Route path="/sessions/create" element={<CreateSession />} />
       <Route path="/sessions/:id" element={<SessionDetailRoute />} />
       <Route path="/sessions/:id/policy/edit" element={<EditPolicyRoute />} />
+      <Route path="/connections" element={<Connections />} />
       <Route path="/tokens" element={<Tokens />} />
       <Route path="/tokens/create" element={<CreateToken />} />
       {/* Redirects to / where billing is off. */}

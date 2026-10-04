@@ -1,5 +1,5 @@
 # A session pod runs whatever its user's agent tells it to. It is reached
-# only by the backend, and reaches only the internet.
+# only by the backend, and reaches the internet, OPA and the credential broker.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -49,6 +49,14 @@ spec:
           protocol: UDP
         - port: 53
           protocol: TCP
+    # Session-bound GitHub credentials, on a port that accepts no browser identity.
+    - to:
+        - podSelector:
+            matchLabels:
+              app: backend
+      ports:
+        - port: 8082
+          protocol: TCP
     # The internet, but not the cluster, the node's network or the metadata
     # address (169.254.169.254).
     - to:
@@ -60,7 +68,7 @@ spec:
               - 192.168.0.0/16
               - 100.64.0.0/10
               - 169.254.0.0/16
-    # The one thing in the cluster a session reaches: the shared OPA, which
+    # The shared OPA, which
     # its mcp-js asks for a decision on every browser call. OPA's API gives a
     # session nothing but decisions (docs/contracts/policy/system-authz.rego).
     - to:
@@ -271,4 +279,23 @@ spec:
         - port: 443
           protocol: TCP
         - port: 6443
+          protocol: TCP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: github-broker
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: browserjs-session
+      ports:
+        - port: 8082
           protocol: TCP

@@ -144,7 +144,12 @@
 
           # What a terminal on the desktop has to work with. Python and Node
           # are the ones websockify and the MCP server already run on.
+          git-credential-computeruse = pkgs.writeShellScriptBin "git-credential-computeruse" ''
+            exec ${pkgs.python3}/bin/python3 ${./browser/git-credential-computeruse.py} "$@"
+          '';
+
           shell-tools = [
+            git-credential-computeruse
             pkgs.bashInteractive
             pkgs.coreutils
             pkgs.findutils

@@ -15,7 +15,9 @@ import (
 )
 
 type Config struct {
-	Addr string // listen address
+	GitHubClientID, GitHubAppSlug, GitHubBrokerAddr, GitHubBrokerURL string
+	GitHubClientSecret, GitHubEncryptionKey                          Secret
+	Addr                                                             string // listen address
 	// MetricsAddr is where /metrics is served (METRICS_ADDR), on a port of
 	// its own that Pomerium does not route to. "off" for none.
 	MetricsAddr string
@@ -270,6 +272,9 @@ func FromEnv(get func(string) string) (Config, error) {
 		return Config{}, err
 	}
 	if err := c.stripeFromEnv(get); err != nil {
+		return Config{}, err
+	}
+	if err := c.githubFromEnv(get); err != nil {
 		return Config{}, err
 	}
 	return c, nil
