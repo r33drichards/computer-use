@@ -6,7 +6,9 @@ import { App } from "./App"
 import { MeProvider } from "./auth/MeProvider"
 import { initializeTheme } from "./theme"
 import "./wireframe.css"
+import { installChunkRecovery } from "./chunkRecovery"
 
+installChunkRecovery(window, import.meta.url)
 initializeTheme()
 
 // A data router, so pages with unsaved work can hold a navigation (useBlocker).
