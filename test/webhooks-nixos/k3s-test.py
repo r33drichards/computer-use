@@ -5,6 +5,7 @@ k = 'kubectl -n browserjs-sessions '
 
 try:
     start_all()
+    print(cluster.succeed('cat /proc/1/cgroup; cat /sys/fs/cgroup/cgroup.controllers; cat /sys/fs/cgroup/cgroup.subtree_control'))
     cluster.wait_for_unit('k3s.service', timeout=180)
     cluster.wait_for_unit('webhook-receiver.service')
     cluster.succeed('mkdir -p /root/.kube; ln -sf /etc/rancher/k3s/k3s.yaml /root/.kube/config')
@@ -66,7 +67,7 @@ try:
 
     def effects(count):
         cluster.wait_until_succeeds('curl -fsS http://localhost:9000/state | jq -e '
-            + shlex.quote('.effects | length == ' + str(count)))
+            + shlex.quote('.effects | length == ' + str(count)), timeout=120)
 
 
     def drained():
@@ -86,7 +87,7 @@ try:
     def verdict(allowed):
         # Wait for the real CRD watcher and OPA bundle rollout, not a fixed delay.
         cluster.wait_until_succeeds(k + 'get sessionpolicy ' + sid + ' -o json | jq -e '
-            + shlex.quote('.status.conditions[] | select(.type == "Ready") | .status == "True"'))
+            + shlex.quote('. as $doc | .status.conditions[] | select(.type == "Ready") | .status == "True" and .observedGeneration == $doc.metadata.generation'))
         address = cluster.succeed(k + 'get service opa -o jsonpath={.spec.clusterIP}').strip()
         doc = {'input': {'operation': 'mcp_call_tool', 'server': 'exec', 'tool': 'exec', 'arguments': {'bin': 'test', 'args': []}}}
         cluster.wait_until_succeeds('curl -fsS -H "Content-Type: application/json" -d '

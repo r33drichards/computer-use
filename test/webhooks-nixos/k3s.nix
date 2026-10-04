@@ -9,13 +9,19 @@ let
 in pkgs.testers.runNixOSTest {
   name = "webhooks-k3s-nspawn";
   nodes = {};
-  containers.cluster = { ... }: {
+  containers.cluster = { lib, ... }: {
     system.stateVersion = "26.05";
     documentation.enable = false;
     documentation.man.enable = false;
     documentation.nixos.enable = false;
     networking.firewall.enable = false;
-    virtualisation.systemd-nspawn.options = [ "--capability=all" ];
+    # The generic sandbox helper uses --keep-unit. A nested kubelet needs
+    # a dedicated scope with delegated controllers, rather than sharing
+    # the test driver's unit and its processes.
+    virtualisation.systemd-nspawn.options = lib.mkForce [
+      "--private-network" "--machine=cluster" "--bind-ro=/nix/store:/nix/store"
+      "--private-users=no" "--register=no" "--notify-ready=yes" "--capability=all"
+    ];
     services.k3s = {
       enable = true;
       package = pkgs.k3s_1_34;
