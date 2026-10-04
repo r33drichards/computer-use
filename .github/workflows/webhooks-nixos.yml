@@ -47,10 +47,17 @@ jobs:
         with:
           extra_nix_config: |
             auto-allocate-uids = true
+            use-cgroups = true
             extra-system-features = nixos-test uid-range
             extra-experimental-features = nix-command flakes auto-allocate-uids cgroups
       - name: Enable unprivileged namespaces for nspawn test containers
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Delegate cgroup controllers to the Nix daemon
+        run: |
+          sudo systemctl set-property nix-daemon.service Delegate=yes
+          sudo systemctl restart nix-daemon.service
+          systemctl show nix-daemon.service -p Delegate -p ControlGroup
+          cat /sys/fs/cgroup/cgroup.controllers
       - name: Load kernel modules for nested k3s networking
         run: sudo modprobe dummy overlay br_netfilter ip_tables iptable_nat nf_conntrack
       - name: Run container integration test

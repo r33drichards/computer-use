@@ -41,9 +41,12 @@ Nix daemon settings:
 
 ```ini
 auto-allocate-uids = true
+use-cgroups = true
 extra-system-features = nixos-test uid-range
 extra-experimental-features = nix-command flakes auto-allocate-uids cgroups
 ```
+
+The Nix daemon systemd service must delegate cgroup controllers (`Delegate=yes`).
 
 macOS can evaluate the check, but execution requires a Linux builder. CI uploads
 the driver report, resource state, service logs, and build log. The smaller
