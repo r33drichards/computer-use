@@ -88,10 +88,7 @@ The **preview build** workflow runs when the `preview` label is added and
 on subsequent commits, reopening, or making a labelled PR ready for review.
 Its artifacts contain Docker images; the trusted **preview deploy** workflow
 verifies the source repository, workflow, PR label and current head SHA
-before publishing or applying anything. Its manual dispatch accepts a successful
-preview build run ID, reusing that run's artifacts for deployment recovery or
-initial activation. The same ownership, workflow, label and exact-head checks
-apply to retries. Stale and superseded runs do not
+before publishing or applying anything. Stale and superseded runs do not
 replace a newer preview. The app and docs URLs appear in a PR comment and
 GitHub deployment record, naming the exact previewed commit.
 
@@ -109,9 +106,7 @@ images shared by another active preview remain tagged and are protected.
 
 With Argo CD enabled, reconciliation commits only the mounted Pomerium
 ConfigMap's routes in `production/manifests.yaml` on the `production` branch,
-then waits for Argo CD to sync that exact revision. An unrelated production
-rollout may remain Progressing; its full health gate belongs to the production
-release workflow. Failed route sync operations still fail deployment. Its ConfigMap name and
+then waits for Argo CD to sync that exact revision. Its ConfigMap name and
 all non-preview resources and routes remain intact. Lifecycle jobs have
 contents-write permission only on trusted main code; PR builds do not.
 Normal Git pushes reject concurrent changes, and preview lifecycle jobs and
