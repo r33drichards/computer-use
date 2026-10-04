@@ -21,6 +21,7 @@ in pkgs.testers.runNixOSTest {
     virtualisation.systemd-nspawn.options = lib.mkForce [
       "--private-network" "--machine=cluster" "--bind-ro=/nix/store:/nix/store"
       "--private-users=no" "--register=no" "--notify-ready=yes" "--capability=all"
+      "--bind-ro=/dev/kmsg" "--bind-ro=/lib/modules"
     ];
     services.k3s = {
       enable = true;
