@@ -111,6 +111,8 @@ export BROWSER_RESTORE_FLAG="$RESTORE_FLAG"
 export BROWSER_LAUNCHER=chromium
 # The session bus XFCE keeps its settings on (xfconfd is started through it).
 export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+# Only the control socket is ephemeral; encrypted keyrings live in HOME.
+export GNOME_KEYRING_CONTROL="$XDG_RUNTIME_DIR/keyring"
 # The same environment for a shell that was not started from the desktop
 # (kubectl exec, docker exec): `. /tmp/runtime/session-env`.
 (umask 077 && export -p >"$XDG_RUNTIME_DIR/session-env")
@@ -203,6 +205,25 @@ for _ in $(seq 1 50); do
   [ -S "$XDG_RUNTIME_DIR/bus" ] && break
   sleep 0.1
 done
+
+# The default runtime has Secret Service before clients start. There is no
+# startup password: persistent encrypted collections stay locked on cold boot.
+bash "$KEYRING_SERVER" &
+pids+=($!)
+keyring_ready=""
+for _ in $(seq 1 100); do
+  if dbus-send --session --print-reply --dest=org.freedesktop.DBus \
+    /org/freedesktop/DBus org.freedesktop.DBus.NameHasOwner \
+    string:org.freedesktop.secrets 2>/dev/null | grep -q 'boolean true'; then
+    keyring_ready=1
+    break
+  fi
+  sleep 0.1
+done
+if [ -z "$keyring_ready" ]; then
+  echo "error: the desktop's Secret Service did not start" >&2
+  exit 1
+fi
 
 # XFCE, one program at a time rather than through xfce4-session: there is no
 # login to end, and nothing to restore that Chromium does not restore itself.

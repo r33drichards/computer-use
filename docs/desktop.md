@@ -14,6 +14,8 @@ has only been checked under Docker.
 | Desktop | `xfdesktop`: wallpaper and icons | entrypoint, restarted |
 | Settings | `xfsettingsd` (theme, fonts, shortcuts), `xfconfd` (the settings store) | entrypoint; `xfconfd` through D-Bus |
 | Session bus | `dbus-daemon --session` on `$XDG_RUNTIME_DIR/bus` | entrypoint, a core process |
+| Secret Service | `gnome-keyring-daemon --foreground --components=secrets` | entrypoint, a core process; after the session bus |
+| Passwords and Keys | Seahorse (`seahorse`) | on demand; create, unlock and lock keyrings |
 | Browser | Chromium | on demand: the first `browser_execute` call, or its launcher |
 | Terminal | `xfce4-terminal` | on demand |
 | File manager | Thunar | on demand |
@@ -137,6 +139,38 @@ alternative, a second `subPath` for the home, needs the same change in
 
 Not kept: `/tmp` (the session bus socket, the X socket, `XDG_RUNTIME_DIR`),
 and anything written elsewhere on the root filesystem.
+
+## The default keyring
+
+Every desktop image includes GNOME Keyring, `secret-tool` (libsecret), and
+Passwords and Keys (`seahorse`). `browser/keyring-server.sh` starts only the
+Secret Service component on the existing desktop D-Bus session before clients
+start. The daemon is supervised; it is not an SSH agent or a privileged
+NixOS wrapper. Gcr’s system prompter is included in `XDG_DATA_DIRS` so
+creating and unlocking a collection can prompt on the visible display.
+
+Encrypted keyrings live under `~/.local/share/keyrings` on the session disk,
+with a mode-700 directory. The control socket is in
+`$XDG_RUNTIME_DIR/keyring` (also mode 700), never on the persistent disk. A
+new desktop has a running service but no pre-created, empty-password keyring.
+Create a password-protected keyring in Passwords and Keys and make it the
+default before saving a CLI credential. A cold start does not unlock it:
+there is no PAM login or supplied startup password. A restored sleep snapshot
+may retain its unlocked state; a stop or cold wake requires explicit unlock.
+
+The keyring protects stored files, not secrets from another program in the
+same unlocked desktop. A tool with shell/desktop access can use unlocked
+secrets. Do not store the unlock password in environment variables, startup
+scripts, or agent memory. This does not provide a WebAuthn/passkey platform
+authenticator, migrate plaintext CLI credentials, or change Chromium’s
+existing `--password-store=basic` setting.
+
+`nix build .#keyring-smoke` in `images/browser` tests the real daemon on an
+isolated bus: no initial keyring, encrypted store/lookup, restart persistence,
+locked cold startup, then explicit unlock and lookup. The Dockerfile runs it
+before building the runtime. The built-image desktop smoke test checks the
+service, private paths, and CLI/UI tools as uid 1000 with all capabilities
+dropped. Production gVisor behavior still needs verification after deployment.
 
 ## The terminal
 

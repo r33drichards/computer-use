@@ -80,6 +80,10 @@
           xfce4-terminal = pkgs.xfce4-terminal.override {
             vte = pkgs.vte.override { systemdSupport = false; };
           };
+          # Scratch containers have no privileged /run/wrappers daemon.
+          # Use the unprivileged binary, including in D-Bus activation files.
+          gnome-keyring = pkgs.gnome-keyring.override { useWrappedDaemon = false; };
+
           xfce4-settings = pkgs.xfce4-settings.override {
             withColord = false;
             xapp = null;
@@ -109,6 +113,12 @@
               xfce4-terminal
               pkgs.mousepad
               pkgs.ristretto
+              gnome-keyring
+              pkgs.seahorse
+              # The keyring's system prompter must be discoverable on D-Bus,
+              # not just present as a transitive store dependency.
+              pkgs.gcr_3
+              pkgs.libsecret
               pkgs.xfce4-appfinder
               pkgs.xfce4-exo
               pkgs.garcon
@@ -251,11 +261,27 @@
               export SHELL=${pkgs.bashInteractive}/bin/bash
               export TZDIR=${pkgs.tzdata}/share/zoneinfo
               export EXEC_SERVER=${./browser/exec-server.sh}
+              export KEYRING_SERVER=${./browser/keyring-server.sh}
               export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
               export FONTCONFIG_FILE=${fonts-conf}
               exec ${pkgs.bash}/bin/bash ${./browser/entrypoint.sh} "$@"
             '';
           };
+
+          # Test the real Secret Service without a display or a PAM login.
+          keyring-smoke = pkgs.runCommand "keyring-smoke"
+            {
+              nativeBuildInputs = [
+                pkgs.bash pkgs.coreutils pkgs.findutils pkgs.gnugrep
+                pkgs.gnused pkgs.dbus pkgs.glib gnome-keyring pkgs.libsecret
+              ];
+            }
+            ''
+              export KEYRING_SERVER=${./browser/keyring-server.sh}
+              dbus-run-session --config-file=${pkgs.dbus}/share/dbus-1/session.conf \
+                -- bash ${./test/keyring-smoke.sh}
+              touch $out
+            '';
 
           # The build-time smoke tests' window manager maximises their
           # terminals; it is not in the image.
@@ -349,6 +375,7 @@
             browser-mcp
             desktop
             exec-smoke
+            keyring-smoke
             runtime
             xvnc
             ;
