@@ -3,6 +3,8 @@ import http.server
 import socket
 import threading
 import time
+import json
+from pathlib import Path
 
 count = 0
 lock = threading.Lock()
@@ -12,7 +14,8 @@ def increment():
 class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, *args): pass
     def do_GET(self):
-        if self.path == '/count': body = str(count).encode()
+        if self.path == '/control': body=json.dumps({'tlsListening':True,'privateNamespacePortStartZero':port_start_zero}).encode()
+        elif self.path == '/count': body = str(count).encode()
         else:
             increment()
             if self.path.startswith('/redirect'):
@@ -27,6 +30,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
 def tls_trap():
     while True:
         conn, _ = server.accept(); increment(); conn.close()
+port_start_zero = Path('/proc/sys/net/ipv4/ip_unprivileged_port_start').read_text().strip() == '0'
+assert port_start_zero, 'owned private namespace low-port setting required'
 # Main-thread bind failure must fail readiness, never disable the transport trap.
 server = socket.socket(); server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1); server.bind(('0.0.0.0', 443)); server.listen()
 threading.Thread(target=tls_trap, daemon=True).start()

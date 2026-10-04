@@ -40,4 +40,19 @@ class SafeReceipt(unittest.TestCase):
             with self.assertRaises(ValueError): receipt.mark('arbitrary raw server error')
             with self.assertRaises(ValueError): receipt.counter('counterAfter',-1)
 
+    def test_owned_state_and_docker_op_strict_whitelist_preserves_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            receipt=mod.Receipt.__new__(mod.Receipt); receipt.path=Path(tmp)/'out.json'
+            receipt.data={'status':'running'}
+            receipt.docker_operation('request')
+            receipt.container_state('fixture',False,1,False,False)
+            receipt.fail(OSError('synthetic forbidden stdout'))
+            receipt.docker_operation('cleanup')
+            out=json.loads(receipt.path.read_text())
+            self.assertEqual(out['dockerOperation'],'request')
+            self.assertEqual(out['containers']['fixture'],{'running':False,'exitCode':1,'oomKilled':False,'portMappingPresent':False})
+            with self.assertRaises(ValueError): receipt.docker_operation('arbitrary stderr')
+            with self.assertRaises(ValueError): receipt.container_state('foreign',False,1,False,False)
+            with self.assertRaises(ValueError): receipt.container_state('fixture','false',1,False,False)
+
 if __name__=='__main__': unittest.main()

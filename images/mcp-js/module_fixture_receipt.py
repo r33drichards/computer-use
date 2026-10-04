@@ -8,9 +8,9 @@ import stat
 import subprocess
 import tempfile
 
-STAGES = {'contract','source','image','network','files','opa-create','http-create','http-ready','opa-ready','grant-spoof','mcp-create','mcp-ready','native','module','probe','counter','mode-complete','complete'}
+STAGES = {'contract','source','image','network','files','opa-create','http-create','client-create','http-ready','opa-ready','grant-spoof','mcp-create','mcp-ready','native','module','probe','counter','mode-complete','complete'}
 MODES = {'restrictive','unrestricted','undefined','legacy','grant-wrongtype','wrongtype','error','timeout'}
-INPUTS = ('images/mcp-js/test-module-policy-image.py','images/mcp-js/test-module-http.py','images/mcp-js/module_fixture_receipt.py','images/mcp-js/modules.rego','images/mcp-js/Dockerfile','docs/contracts/policy/decision-module.rego.tmpl','.github/workflows/images.yml')
+INPUTS = ('images/mcp-js/test-module-policy-image.py','images/mcp-js/test-module-http.py','images/mcp-js/module_fixture_client.py','images/mcp-js/module_fixture_receipt.py','images/mcp-js/modules.rego','images/mcp-js/Dockerfile','docs/contracts/policy/decision-module.rego.tmpl','.github/workflows/images.yml')
 
 def private_write(path, payload):
     encoded = json.dumps(payload, sort_keys=True).encode()
@@ -39,7 +39,7 @@ class Receipt:
         if source != expected: raise ValueError('receipt source mismatch')
         if subprocess.call(['git','diff','--quiet']) or subprocess.call(['git','diff','--cached','--quiet']): raise ValueError('receipt tracked source dirty')
         self.path = path
-        self.data = {'schemaVersion':1,'source':source,'tree':tree,'runId':run,'job':job,'imageTag':'mcp-js:ci','mcpPin':'723fe32d4cc31c18f8255af2639059f7d8450324','opaPin':'sha256:60b6af32b58377718546ac7d4634eecbfe50ec36f7d3ca3f8ebf515f9826c2ac','inputs':{p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in INPUTS},'stage':'source','mode':None,'operation':None,'status':'running','reason':'none','exitCode':None,'counterBefore':None,'counterAfter':None,'imageId':None,'imageSource':None}
+        self.data = {'schemaVersion':1,'source':source,'tree':tree,'runId':run,'job':job,'imageTag':'mcp-js:ci','mcpPin':'723fe32d4cc31c18f8255af2639059f7d8450324','opaPin':'sha256:60b6af32b58377718546ac7d4634eecbfe50ec36f7d3ca3f8ebf515f9826c2ac','inputs':{p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in INPUTS},'stage':'source','mode':None,'operation':None,'status':'running','reason':'none','exitCode':None,'counterBefore':None,'counterAfter':None,'imageId':None,'imageSource':None,'dockerOperation':None,'containers':{}}
         self.flush()
     def flush(self): private_write(self.path, self.data)
     def mark(self, stage, mode=None, operation=None):
@@ -54,6 +54,13 @@ class Receipt:
         if not re.fullmatch('[0-9a-f]{40}', source) or not re.fullmatch('sha256:[0-9a-f]{64}', ident): raise ValueError('image metadata shape')
         self.data.update(imageSource=source,imageId=ident); self.flush()
         if source != self.data['source']: raise AssertionError('image source mismatch')
+    def docker_operation(self, op):
+        if op not in {'create','start','image-inspect','network-create','request','cleanup'}: raise ValueError('docker operation')
+        if self.data.get('status') in {'failure','success'}: return
+        self.data['dockerOperation']=op; self.flush()
+    def container_state(self, role, running, code, oom, mapped):
+        if role not in {'fixture','opa','mcp','client'} or any(type(x) is not bool for x in (running,oom,mapped)) or type(code) is not int or not -128<=code<=255: raise ValueError('container state')
+        self.data.setdefault('containers',{})[role]={'running':running,'exitCode':code,'oomKilled':oom,'portMappingPresent':mapped}; self.flush()
     def fail(self, error):
         # Fixed reasons, not exception text or arbitrary stdout/stderr.
         reason = 'assertion' if isinstance(error, AssertionError) else 'docker-exit' if isinstance(error, subprocess.CalledProcessError) else 'process-timeout' if isinstance(error, subprocess.TimeoutExpired) else 'io-or-http' if isinstance(error, OSError) else 'schema-or-json' if isinstance(error, (ValueError,TypeError,KeyError)) else 'unknown'
