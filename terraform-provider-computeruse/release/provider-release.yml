@@ -5,6 +5,12 @@ on:
       version:
         required: true
         type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Unsigned candidate version (X.Y.Z)
+        required: true
+        type: string
 permissions:
   contents: read
 jobs:
@@ -13,8 +19,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {runner: ubuntu-24.04, os: linux, arch: amd64}
-          - {runner: ubuntu-24.04-arm, os: linux, arch: arm64}
+          - {runner: ubuntu-22.04, os: linux, arch: amd64}
+          - {runner: ubuntu-22.04-arm, os: linux, arch: arm64}
           - {runner: macos-15-intel, os: darwin, arch: amd64}
           - {runner: macos-15, os: darwin, arch: arm64}
     runs-on: ${{ matrix.runner }}
@@ -28,8 +34,8 @@ jobs:
           cache: false
       - name: Matching declared Rust toolchain
         run: |
-          rustup toolchain install 1.91.0 --profile minimal
-          rustup default 1.91.0
+          rustup toolchain install 1.91.1 --profile minimal
+          rustup default 1.91.1
       - name: Native build, vet, tests and runtime dependency inspection
         env:
           VERSION: ${{ inputs.version }}

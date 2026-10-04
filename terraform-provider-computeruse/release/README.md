@@ -37,7 +37,13 @@ Run only the command matching that host. The script rejects Go-only cross compil
 
 The build script records ELF/load-command and runtime dependency output, rejects missing libraries, an SDK shared-library dependency, or Nix-store linkage. Native system libc/frameworks are not stripped away or replaced by mock implementations. Inspect minimum glibc symbol and macOS deployment requirements on each actual runner; runner OS labels alone do not establish a compatibility baseline.
 
-provider-release.yml is an unexecuted reusable workflow candidate, not an enabled publishing workflow. It has four native runners, pinned action revisions, read-only contents permissions, checkout without persisted credentials, tar transport preserving executable modes, and an unsigned artifact assembly job. No workflow was dispatched. Runner availability and action behavior must be checked by the parent. Before use, the parent must bind the workflow invocation to its immutable final candidate revision. It intentionally has no secrets or automatic signing/publishing.
+provider-release.yml is an unexecuted manual-dispatch/reusable build-only candidate, not a publishing workflow. Its Linux native jobs use Ubuntu22.04 amd64 and arm64 runners; its macOS jobs remain native. Rust1.91.1 matches the SDK release workflow. The package assembly job may use Ubuntu24.04 because it does not compile the native binaries. Pinned action revisions, read-only contents permissions, checkout without persisted credentials, executable-mode-preserving tar transport, quoted/validated VERSION input, and unsigned artifact assembly remain unchanged. Runner labels alone still do not establish minimum-libc compatibility: inspect actual requirements and run installed-artifact checks. No workflow has been dispatched; there are no secrets or automatic signing/publishing.
+
+After separate public build-only preparation approval, the workflow must be present on the mirror default branch before manual dispatch. For example:
+
+    gh workflow run provider-release.yml --repo r33drichards/terraform-provider-computeruse --ref APPROVED_MIRROR_REF -f version=VERSION
+
+Use the approved branch/ref and version, verify the actual run head SHA equals the approved immutable mirror commit, and verify release/SOURCE_SHA identifies the approved upstream commit. A reusable caller must execute in the matching mirror repository context. This example is not authorization to push, dispatch, tag, sign, create a release, or publish.
 
 Collect native output directories under dist/binaries, then:
 

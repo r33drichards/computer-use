@@ -30,4 +30,21 @@ class Guards(unittest.TestCase):
   self.assertEqual(subprocess.run(["bash",str(R/"validate-version.sh"),"1.2.3"],capture_output=True).returncode,0)
  def test_workflow_no_shell_interpolation(self):
   s=(R/"provider-release.yml").read_text(); self.assertNotIn("'"+"$"+"{{ inputs.version }}'",s);self.assertIn('"$VERSION"',s)
+ def test_manual_build_baseline_contract(self):
+  import re
+  s=(R/'provider-release.yml').read_text()
+  events=s.split('permissions:',1)[0]
+  for event in ['workflow_call','workflow_dispatch']:
+   with self.subTest(event=event):
+    self.assertIn('  '+event+':',events)
+    block=events.split('  '+event+':',1)[1].split(chr(10)+'  workflow_',1)[0]
+    self.assertRegex(block,re.compile(r'inputs:\s+version:.*required: true.*type: string',re.S))
+  for runner in ['ubuntu-22.04, os: linux, arch: amd64','ubuntu-22.04-arm, os: linux, arch: arm64']:
+   with self.subTest(runner=runner): self.assertIn(runner,s)
+  with self.subTest(toolchain='SDK-matched'):
+   self.assertIn('rustup toolchain install 1.91.1 --profile minimal',s)
+   self.assertIn('rustup default 1.91.1',s)
+  self.assertIn('contents: read',s)
+  for forbidden in ['contents: write','id-token: write','secrets:', 'gh release','git push','sign-checksums.sh dist/']:
+   with self.subTest(boundary=forbidden): self.assertNotIn(forbidden,s)
 if __name__=="__main__": unittest.main()
