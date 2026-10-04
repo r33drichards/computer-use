@@ -227,7 +227,9 @@
               # Owns the clipboard for files put on it (browser/clipboard.js).
               pkgs.xclip
               # Desktop DVR: x11 capture and seekable H.264 clips.
-              pkgs.ffmpeg
+              # The small variant omits XCB/x11grab. Full supplies desktop
+              # capture with shared memory and cursor rendering, plus x264.
+              pkgs.ffmpeg-full
               pkgs.xorg.xdpyinfo
               # The clipboard operations of desktop_execute (nut.js runs it).
               pkgs.xsel
@@ -310,7 +312,7 @@
               '';
 
           history-smoke = pkgs.runCommand "history-smoke"
-            { nativeBuildInputs = [ pkgs.nodejs_22 pkgs.ffmpeg pkgs.xdpyinfo xvnc ]; }
+            { nativeBuildInputs = [ pkgs.nodejs_22 pkgs.ffmpeg-full pkgs.xdpyinfo xvnc ]; }
             ''
               export DISPLAY=:96
               mkdir -p /tmp/.X11-unix

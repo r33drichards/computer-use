@@ -96,14 +96,16 @@ export function createHistory({ dir, display = process.env.DISPLAY || ':99', rec
           '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-c:v', 'libx264', '-preset', 'ultrafast',
           '-crf', '28', '-pix_fmt', 'yuv420p', '-threads', '2', '-fs', String(16 * 1024 * 1024),
           '-movflags', '+faststart', '-f', 'mp4', tmp],
-          { stdio: ['ignore', 'ignore', 'ignore'] });
+          { stdio: ['ignore', 'ignore', 'pipe'] });
         const active = child;
+        let diagnostic = '';
+        active.stderr.on('data', chunk => { diagnostic = (diagnostic + chunk.toString()).slice(-4096); });
         const timeout = setTimeout(() => active.kill('SIGKILL'), 15000);
         active.once('error', reject);
         active.once('close', code => {
           clearTimeout(timeout);
           if (child === active) child = undefined;
-          code === 0 ? resolve() : reject(new Error('capture failed'));
+          code === 0 ? resolve() : reject(new Error(`capture failed (${code}): ${diagnostic.trim()}`));
         });
       });
       if (mine !== generation || stopped) return;
@@ -119,8 +121,11 @@ export function createHistory({ dir, display = process.env.DISPLAY || ':99', rec
       clips.push(clip);
       error = '';
       prune();
-    } catch {
-      if (mine === generation && !stopped) error = 'Desktop recording is unavailable; retrying.';
+    } catch (err) {
+      if (mine === generation && !stopped) {
+        if (!error) console.error('desktop history capture:', err.message);
+        error = 'Desktop recording is unavailable; retrying.';
+      }
     } finally {
       if (tmp) fs.rmSync(tmp, { force: true });
       if (!stopped) timer = setTimeout(capture, seconds ? (error ? 2000 : 50) : 1000);
