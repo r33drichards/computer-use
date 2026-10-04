@@ -1,5 +1,9 @@
 # Image build pipeline
 
+With `ARGOCD_ENABLED=true`, successful main builds feed the
+[Argo CD production release](gitops-deployment.md). CI commits exact image digests
+to the production branch; Argo CD reconciles them and Rollouts gate promotion.
+
 `.github/workflows/images.yml` builds the four container images and pushes
 them to Artifact Registry. No key is stored anywhere: the push job exchanges
 GitHub's OIDC token for the `images-push` service account (Workload Identity

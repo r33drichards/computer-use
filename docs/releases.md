@@ -1,5 +1,10 @@
 # Releases
 
+Production now uses [Argo CD GitOps deployment](gitops-deployment.md): main builds
+publish immutable image references to the production Git branch, Rollouts gate
+promotion, and failures restore Git’s previous desired state and send email.
+The manual procedures below are for bootstrap and recovery after GitOps is disabled.
+
 How a change reaches users without breaking them: a canary before the
 merge; at the deploy, the new backend checked on standby before users reach
 it, the new site on a quarter of its pods, new session images on one

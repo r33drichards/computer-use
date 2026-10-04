@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deployment-alerts
+  namespace: argocd
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deployment-alerts
+  namespace: argocd
+rules:
+- apiGroups:
+  - argoproj.io
+  resources:
+  - applications
+  resourceNames:
+  - computer-use-production
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deployment-alerts
+  namespace: argocd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: deployment-alerts
+subjects:
+- kind: ServiceAccount
+  name: deployment-alerts
+  namespace: argocd
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: deployment-alerts
+  namespace: argocd
+data:
+  alert.py: "#!/usr/bin/env python3\n\"\"\"Emit structured deployment-failure logs\
+    \ for Cloud Monitoring email alerts.\"\"\"\nimport json\nimport ssl\nimport urllib.request\n\
+    from pathlib import Path\n\nroot = Path('/var/run/secrets/kubernetes.io/serviceaccount')\n\
+    url = 'https://kubernetes.default.svc/apis/argoproj.io/v1alpha1/namespaces/argocd/applications/computer-use-production'\n\
+    request = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + (root\
+    \ / 'token').read_text().strip()})\nwith urllib.request.urlopen(request, context=ssl.create_default_context(cafile=str(root\
+    \ / 'ca.crt')), timeout=20) as response:\n    app = json.load(response)\nstatus\
+    \ = app.get('status', {})\noperation = status.get('operationState', {})\nhealth\
+    \ = status.get('health', {}).get('status')\nfailed = (operation.get('syncResult',\
+    \ {}).get('revision') == status.get('sync', {}).get('revision') and operation.get('phase')\
+    \ in {'Failed', 'Error'}) or health == 'Degraded'\nprint(json.dumps({'severity':'ERROR'\
+    \ if failed else 'INFO', 'event':'deployment_failed' if failed else 'deployment_healthy',\
+    \ 'application':app['metadata']['name'], 'revision':status.get('sync', {}).get('revision',\
+    \ ''), 'message':operation.get('message', health or 'Pending')}), flush=True)\n"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: deployment-alerts
+  namespace: argocd
+spec:
+  schedule: '* * * * *'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 45
+      backoffLimit: 1
+      template:
+        spec:
+          serviceAccountName: deployment-alerts
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            fsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+          - name: alerts
+            image: python:3.13-alpine@sha256:2dd78ad5cf13a0b68f5134dc49aa9950203a8cf4b7463431b9f3b398287c5059
+            command:
+            - python3
+            - /scripts/alert.py
+            resources:
+              requests:
+                cpu: 10m
+                memory: 32Mi
+              limits:
+                memory: 64Mi
+            securityContext:
+              readOnlyRootFilesystem: true
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+            volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+          volumes:
+          - name: scripts
+            configMap:
+              name: deployment-alerts

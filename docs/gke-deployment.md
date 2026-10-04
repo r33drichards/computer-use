@@ -1,5 +1,8 @@
 # Deploying to GKE
 
+For automatic workload releases, see [Argo CD GitOps deployment](gitops-deployment.md).
+The manual workflow here is for infrastructure/bootstrap and recovery with GitOps disabled.
+
 How `deploy/gke` gets onto the production cluster, in order, and what to look
 at when a step fails. Written 2026-10-01 without access to the cluster or the
 cloud account: nothing here has run. Claims are marked **VERIFIED** (read in
