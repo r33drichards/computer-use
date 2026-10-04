@@ -199,7 +199,10 @@ old events keep their original configuration. Deleting a session also preserves
 its accepted backlog.
 
 Deploy the updated CRD, network policies, session hook templates, backend, and
-policy-operator image together. Recreate existing sessions from the updated blueprint to install the hooks;
+policy-operator image together. With Argo CD, apply the SessionPolicy CRD
+schema through the bootstrap procedure before releasing; cluster-scoped CRDs
+are excluded from GitOps workload sync. The rendered release installs Redis,
+network policies and namespaced RBAC before starting the operator. Recreate existing sessions from the updated blueprint to install the hooks;
 restarting a pod retains its stored Sandbox template. warm-pool templates carry the
 pod name as the session ID. Hook ingestion verifies the source pod IP against
 Kubernetes-watched session pods. Forwarded headers are ignored;
