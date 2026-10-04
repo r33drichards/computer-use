@@ -347,6 +347,12 @@ rules:
   verbs:
   - list
 - apiGroups:
+  - ''
+  resources:
+  - pods
+  verbs:
+  - list
+- apiGroups:
   - coordination.k8s.io
   resourceNames:
   - session-capacity
@@ -701,25 +707,29 @@ data:
     \ rendered by the\n# backend for each new session: {{ .ID }} is the session's\
     \ ID, {{ .SessionURL }}\n# its own base URL (https://<sessions host>/<id>), {{\
     \ .PublicURL }} the app's. The backend adds operatingMode\n# and the owner label.\n\
-    podTemplate:\n  metadata:\n    labels:\n      app: browserjs-session\n  spec:\n\
-    \    # The managed add-on's sandbox-core-policy requires gVisor; the label and\n\
-    \    # taint are what GKE puts on the sessions node pool.\n    runtimeClassName:\
-    \ gvisor\n    nodeSelector:\n      sandbox.gke.io/runtime: gvisor\n      cloud.google.com/gke-nodepool:\
-    \ sessions-n2d-standard-4\n    tolerations:\n      - key: sandbox.gke.io/runtime\n\
-    \        operator: Equal\n        value: gvisor\n        effect: NoSchedule\n\
-    \    serviceAccountName: session\n    automountServiceAccountToken: false\n  \
-    \  enableServiceLinks: false\n    # Chromium only saves its tabs on a clean exit:\
-    \ the browser's entrypoint\n    # asks it to quit and waits up to 10 s before\
-    \ stopping the rest.\n    terminationGracePeriodSeconds: 30\n    securityContext:\n\
-    \      # mcp-js runs as uid/gid 1000 and writes to the session disk.\n      fsGroup:\
-    \ 1000\n      fsGroupChangePolicy: OnRootMismatch\n      # Nothing in a session\
-    \ runs as root: sandbox-hardening-policy requires\n      # it. uid 1000 is \"\
-    browser\" in the browser image and \"mcpuser\" in\n      # mcp-js; the session\
-    \ disk is group-writable for gid 1000 (fsGroup).\n      runAsNonRoot: true\n \
-    \     runAsUser: 1000\n      runAsGroup: 1000\n      # No seccompProfile: GKE\
-    \ Sandbox does not support seccomp (gVisor is\n      # the system call filter),\
-    \ and the policies do not ask for one.\n    containers:\n      - name: browser\n\
-    \        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/browser@sha256:343c4582c2a6fc5491a7acb2de3b3e04c51c5df4b79bfb8edadacec173293cf7\n\
+    podTemplate:\n  metadata:\n    annotations:\n      cluster-autoscaler.kubernetes.io/safe-to-evict:\
+    \ \"false\"\n    labels:\n      app: browserjs-session\n  spec:\n    # The managed\
+    \ add-on's sandbox-core-policy requires gVisor; the label and\n    # taint are\
+    \ what GKE puts on the sessions node pool.\n    # Prefer packing beside existing\
+    \ sessions, but allow a new node.\n    affinity:\n      podAffinity:\n       \
+    \ preferredDuringSchedulingIgnoredDuringExecution:\n          - weight: 100\n\
+    \            podAffinityTerm:\n              labelSelector:\n                matchLabels:\
+    \ {app: browserjs-session}\n              topologyKey: kubernetes.io/hostname\n\
+    \    runtimeClassName: gvisor\n    nodeSelector:\n      sandbox.gke.io/runtime:\
+    \ gvisor\n    tolerations:\n      - key: sandbox.gke.io/runtime\n        operator:\
+    \ Equal\n        value: gvisor\n        effect: NoSchedule\n    serviceAccountName:\
+    \ session\n    automountServiceAccountToken: false\n    enableServiceLinks: false\n\
+    \    # Chromium only saves its tabs on a clean exit: the browser's entrypoint\n\
+    \    # asks it to quit and waits up to 10 s before stopping the rest.\n    terminationGracePeriodSeconds:\
+    \ 30\n    securityContext:\n      # mcp-js runs as uid/gid 1000 and writes to\
+    \ the session disk.\n      fsGroup: 1000\n      fsGroupChangePolicy: OnRootMismatch\n\
+    \      # Nothing in a session runs as root: sandbox-hardening-policy requires\n\
+    \      # it. uid 1000 is \"browser\" in the browser image and \"mcpuser\" in\n\
+    \      # mcp-js; the session disk is group-writable for gid 1000 (fsGroup).\n\
+    \      runAsNonRoot: true\n      runAsUser: 1000\n      runAsGroup: 1000\n   \
+    \   # No seccompProfile: GKE Sandbox does not support seccomp (gVisor is\n   \
+    \   # the system call filter), and the policies do not ask for one.\n    containers:\n\
+    \      - name: browser\n        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/browser@sha256:343c4582c2a6fc5491a7acb2de3b3e04c51c5df4b79bfb8edadacec173293cf7\n\
     \        env:\n          - name: SESSION_MODE\n            value: \"1\"\n    \
     \      - name: DATA_DIR\n            value: /data\n          - name: TAB_STATE_FILE\n\
     \            value: /data/chrome/browserjs-tabs.json\n        ports:\n       \
@@ -794,42 +804,57 @@ data:
     \ 2850m, memory: 10Gi}\n          limits: {cpu: \"3\", memory: 10Gi}\n      mcp-js:\n\
     \        resources:\n          requests: {cpu: 150m, memory: 1Gi}\n          limits:\
     \ {cpu: 500m, memory: 1Gi}\n        env: {MCP_V8_HEAP_MEMORY_MAX: \"32\"}\n  \
-    \  shm: 4Gi\n\n# One production session node in us-west1-c. Conservative room\
-    \ after node\n# services: three small sessions (1 CPU/2.5 GiB requested each)\
-    \ fit.\ncapacity:\n  nodes: 1\n  cpu: 3213m\n  memory: 12097Mi\n"
+    \  shm: 4Gi\n\n# Up to three production session nodes in us-west1-c. Conservative\
+    \ room after node\n# services: three small sessions (1 CPU/2.5 GiB requested each)\
+    \ fit.\ncapacity:\n  nodes: 3\n  cpu: 3213m\n  memory: 12097Mi\n"
 kind: ConfigMap
 metadata:
-  name: session-blueprint-86h6mmfgh7
+  name: session-blueprint-h4ddb57d96
   namespace: browserjs-sessions
   annotations:
     argocd.argoproj.io/sync-wave: '-3'
 ---
 apiVersion: v1
 data:
-  session-slots.py: "\"\"\"Replenish warm sessions from available CPU and memory.\"\
-    \"\"\nimport json\nfrom datetime import datetime, timezone\nimport os\nimport\
-    \ ssl\nimport time\nimport urllib.request\n\n\ndef quantity(value, memory=False):\n\
-    \    value = str(value)\n    suffixes = {'Gi': 1024, 'Mi': 1, 'Ki': 1 / 1024}\
-    \ if memory else {'m': 1}\n    for suffix, factor in suffixes.items():\n     \
-    \   if value.endswith(suffix):\n            return float(value[:-len(suffix)])\
-    \ * factor\n    return float(value) / (1024 * 1024) if memory else float(value)\
-    \ * 1000\n\n\ndef desired_replicas(sandboxes, reserved=0, reservation=None,\n\
-    \                     cpu=3213, memory=12097):\n    used_cpu, used_memory = reserved\
-    \ * 1000, reserved * 2560\n    excluded = (reservation or {}).get(\"exclude\"\
-    , \"\")\n    for item in sandboxes:\n        name = item['metadata']['name']\n\
-    \        pooled = any(ref.get('kind') == 'SandboxWarmPool' and ref.get('name')\
-    \ == 's'\n                     for ref in item['metadata'].get('ownerReferences',\
-    \ []))\n        if pooled and not item['metadata'].get('deletionTimestamp'):\n\
-    \            continue\n        if name != excluded and item.get('spec', {}).get('operatingMode')\
-    \ != 'Suspended':\n            for container in item.get('spec', {}).get('podTemplate',\
-    \ {}).get('spec', {}).get('containers', []):\n                requests = container.get('resources',\
-    \ {}).get('requests', {})\n                used_cpu += quantity(requests.get('cpu',\
-    \ 0))\n                used_memory += quantity(requests.get('memory', 0), memory=True)\n\
+  session-slots.py: "\"\"\"Keep one node's worth of global warm capacity across all\
+    \ DaemonSet replicas.\n\nEvery replica reconciles the same global inputs and uses\
+    \ resourceVersion CAS.\nDo not multiply the warm budget by the node count: spares\
+    \ must not perpetuate\nnodes provisioned for claimed sessions.\n\"\"\"\nimport\
+    \ json\nfrom datetime import datetime, timezone\nimport os\nimport ssl\nimport\
+    \ time\nimport urllib.request\n\n\ndef quantity(value, memory=False):\n    value\
+    \ = str(value)\n    suffixes = {'Gi': 1024, 'Mi': 1, 'Ki': 1 / 1024} if memory\
+    \ else {'m': 1}\n    for suffix, factor in suffixes.items():\n        if value.endswith(suffix):\n\
+    \            return float(value[:-len(suffix)]) * factor\n    return float(value)\
+    \ / (1024 * 1024) if memory else float(value) * 1000\n\n\ndef requests(containers):\n\
+    \    cpu, memory = 0, 0\n    for container in containers:\n        resources =\
+    \ container.get('resources', {}).get('requests', {})\n        cpu += quantity(resources.get('cpu',\
+    \ 0))\n        memory += quantity(resources.get('memory', 0), memory=True)\n \
+    \   return cpu, memory\n\n\ndef desired_replicas(sandboxes, reserved=0, reservation=None,\n\
+    \                     cpu=3213, memory=12097, pods=()):\n    # Do not place a\
+    \ replacement beside a terminating pod on a surplus node.\n    # Its affinity\
+    \ match must disappear before warm scheduling resumes.\n    if any(pod['metadata'].get('deletionTimestamp')\
+    \ for pod in pods):\n        return 0\n    excluded = (reservation or {}).get(\"\
+    exclude\", \"\")\n    warm, held = set(), {}\n    for item in sandboxes:\n   \
+    \     name = item['metadata']['name']\n        pooled = any(ref.get('kind') ==\
+    \ 'SandboxWarmPool' and ref.get('name') == 's'\n                     for ref in\
+    \ item['metadata'].get('ownerReferences', []))\n        if pooled and not item['metadata'].get('deletionTimestamp'):\n\
+    \            warm.add(name)\n        elif name != excluded and item.get('spec',\
+    \ {}).get('operatingMode') != 'Suspended':\n            held[name] = requests(item.get('spec',\
+    \ {}).get('podTemplate', {}).get('spec', {}).get('containers', []))\n    # A suspended\
+    \ or removed Sandbox can still have a live pod while its\n    # controller drains\
+    \ it. Keep that compute occupied until the pod is gone.\n    for pod in pods:\n\
+    \        name = next((ref['name'] for ref in pod['metadata'].get('ownerReferences',\
+    \ [])\n                     if ref.get('kind') == 'Sandbox'), pod['metadata']['name'])\n\
+    \        if name in warm or name == excluded:\n            continue\n        actual\
+    \ = requests(pod.get('spec', {}).get('containers', []))\n        desired = held.get(name,\
+    \ (0, 0))\n        held[name] = tuple(max(a, b) for a, b in zip(actual, desired))\n\
+    \    used_cpu = reserved * 1000 + sum(value[0] for value in held.values())\n \
+    \   used_memory = reserved * 2560 + sum(value[1] for value in held.values())\n\
     \    if reservation:\n        used_cpu += reservation['cpu']\n        used_memory\
-    \ += reservation['memory']\n    available = min(int((cpu - used_cpu) // 1000),\n\
-    \                    int((memory - used_memory) // 2560))\n    return max(0, available)\n\
-    \n\ndef active_reservation(lease, now=None):\n    spec = lease.get('spec', {})\n\
-    \    if not spec.get('holderIdentity'):\n        return None\n    renewed = datetime.fromisoformat(spec['renewTime'].replace('Z',\
+    \ += reservation['memory']\n    return max(0, min(int((cpu - used_cpu) // 1000),\n\
+    \                      int((memory - used_memory) // 2560)))\n\n\ndef active_reservation(lease,\
+    \ now=None):\n    spec = lease.get('spec', {})\n    if not spec.get('holderIdentity'):\n\
+    \        return None\n    renewed = datetime.fromisoformat(spec['renewTime'].replace('Z',\
     \ '+00:00'))\n    now = now or datetime.now(timezone.utc)\n    if (now - renewed).total_seconds()\
     \ >= spec.get('leaseDurationSeconds', 120):\n        return None\n    ann = lease['metadata'].get('annotations',\
     \ {})\n    return {'cpu': int(ann['browserjs.dev/capacity-cpu']),\n          \
@@ -849,10 +874,11 @@ data:
     \ context=context, timeout=20) as response:\n            return json.load(response)\n\
     \n    pool_path = f'/apis/extensions.agents.x-k8s.io/v1beta1/namespaces/{namespace}/sandboxwarmpools/s'\n\
     \    while True:\n        try:\n            sandboxes = api(f'/apis/agents.x-k8s.io/v1beta1/namespaces/{namespace}/sandboxes')['items']\n\
+    \            pods = api(f'/api/v1/namespaces/{namespace}/pods?labelSelector=app%3Dbrowserjs-session')['items']\n\
     \            lease = api(f'/apis/coordination.k8s.io/v1/namespaces/{namespace}/leases/session-capacity')\n\
     \            wanted = desired_replicas(sandboxes, reserved=int(os.getenv('RESERVED_SLOTS',\
-    \ '0')),\n                                      reservation=active_reservation(lease))\n\
-    \            pool = api(pool_path)\n            if pool['spec'].get('replicas')\
+    \ '0')),\n                                      reservation=active_reservation(lease),\
+    \ pods=pods)\n            pool = api(pool_path)\n            if pool['spec'].get('replicas')\
     \ != wanted:\n                api(pool_path, {'metadata': {'resourceVersion':\
     \ pool['metadata']['resourceVersion']},\n                                'spec':\
     \ {'replicas': wanted}})\n                print(f'Warm sessions: {wanted}', flush=True)\n\
@@ -862,7 +888,7 @@ data:
     \    main()\n"
 kind: ConfigMap
 metadata:
-  name: session-slot-controller-6k6m9hccc2
+  name: session-slot-controller-8g527d6tm4
   namespace: browserjs-sessions
   annotations:
     argocd.argoproj.io/sync-wave: '-3'
@@ -1135,7 +1161,7 @@ spec:
           value: '200'
         - name: SIGNUPS_PER_IP_PER_DAY
           value: '5'
-        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:c916fa1cb5db0ce1595ece12fc1fbe2396e916128f36ae9f4864a728f9c63523
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:e7a7b6b198f1fe5b21bd3ce31b60c6b4a23c8ee823ee914fcab287ad5027a11c
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1193,7 +1219,7 @@ spec:
         projected:
           sources:
           - configMap:
-              name: session-blueprint-86h6mmfgh7
+              name: session-blueprint-h4ddb57d96
           - configMap:
               name: billing-catalogue
           - configMap:
@@ -1968,7 +1994,7 @@ spec:
           name: controller
           readOnly: true
       nodeSelector:
-        cloud.google.com/gke-nodepool: sessions-n2d-standard-4
+        sandbox.gke.io/runtime: gvisor
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
@@ -1982,7 +2008,7 @@ spec:
         value: gvisor
       volumes:
       - configMap:
-          name: session-slot-controller-6k6m9hccc2
+          name: session-slot-controller-8g527d6tm4
         name: controller
 ---
 apiVersion: argoproj.io/v1alpha1
@@ -2233,9 +2259,20 @@ spec:
   networkPolicyManagement: Unmanaged
   podTemplate:
     metadata:
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
       labels:
         app: browserjs-session
     spec:
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: browserjs-session
+              topologyKey: kubernetes.io/hostname
+            weight: 100
       automountServiceAccountToken: false
       containers:
       - env:
@@ -2329,7 +2366,6 @@ spec:
           name: data
       enableServiceLinks: false
       nodeSelector:
-        cloud.google.com/gke-nodepool: sessions-n2d-standard-4
         sandbox.gke.io/runtime: gvisor
       runtimeClassName: gvisor
       securityContext:
