@@ -296,3 +296,13 @@ and `billing-apply` workflows are started by hand.
    that time is free.
 3. Work through "UNVERIFIED on the cluster", starting with one large
    session on an empty second node.
+
+## Current compact production layout
+
+Production keeps one session node in us-west1-c and no warm pool spares.
+Small sessions request 1 CPU and 2.5 GiB in total (browser: 850m/2Gi;
+MCP: 150m/512Mi), and have a combined 3 GiB memory limit. Three small
+sessions fit alongside node services. Each has a 32 GiB persistent disk.
+With two 50 GB node boot disks and the proxy's 1 GiB disk, three sessions
+use approximately 197 GB of the regional 250 GB SSD quota, leaving 53 GB.
+Session templates select the sessions-n2d-standard-4 node pool.

@@ -76,6 +76,6 @@ sizes:
 # pods have theirs: the "left for sessions" row of warmpool.yaml. Raise nodes
 # with the quota.
 capacity:
-  nodes: 2
+  nodes: 1
   cpu: 3213m
   memory: 12097Mi

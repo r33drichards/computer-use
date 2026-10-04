@@ -44,11 +44,10 @@ kubernetes_version = "1.36"
 #   home = "203.0.113.7/32"
 # }
 
-# Session nodes: a 16 GB node holds about ten sessions (packed by their
-# requests in deploy/gke/blueprint.yaml; CPU is overcommitted).
+# Three small sessions share one 4-vCPU/16-GB session node.
 # session_max_nodes is the ceiling on what sessions can cost.
 session_machine_type = "n2-standard-4"
-session_max_nodes    = 3
+session_max_nodes    = 1
 # Spot: cheaper, but Compute Engine can take a node back with 30 seconds'
 # notice; sessions on it restart from their disks (tabs reopen, pages reload).
 session_spot = true
@@ -58,16 +57,13 @@ session_spot = true
 # every session node that is running, at once.
 session_image_streaming = true
 
-# us-west1-a alone had no n2-standard-4 capacity when the first session was
-# created ("GCE out of resources"), so session nodes may start in any zone of
-# the region. A session stays in the zone its disk was created in.
-session_node_zones = ["us-west1-a", "us-west1-b", "us-west1-c"]
+# Existing user disks are in us-west1-c; keep session compute beside them.
+session_node_zones = ["us-west1-c"]
 
 # The same again on other machine series, tried when N2 has no capacity. Each
-# pool scales 0..session_max_nodes, so the ceiling is three pools' worth.
+# pool scales 0..session_max_nodes. Session templates select the N2D pool.
 session_fallback_machine_types = {
   "n2d-standard-4" = "AMD Milan"
-  "c3-standard-4"  = null
 }
 
 # Must match the Sandbox template and PodSnapshotStorageConfig in deploy/.
