@@ -16,11 +16,6 @@ on:
 permissions:
   contents: read
 
-# Serialize shared edge edits with production deployment and cleanup.
-concurrency:
-  group: deploy
-  cancel-in-progress: false
-
 env:
   CLUSTER: browserjs
   CLUSTER_LOCATION: us-west1-a
@@ -114,6 +109,11 @@ jobs:
 
   deploy:
     needs: [verify, publish]
+    # Only cluster and route writes share the production deployment lock.
+    # Verified image publication can run while a production canary is active.
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     environment: previews
