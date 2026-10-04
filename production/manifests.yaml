@@ -496,110 +496,54 @@ metadata:
 ---
 apiVersion: v1
 data:
-  config.yaml: "# Pomerium's configuration for production (computeruse.site). Secrets\n\
-    # (SHARED_SECRET, COOKIE_SECRET, SIGNING_KEY, IDP_CLIENT_SECRET) come from\n#\
-    \ the environment.\naddress: :8443\nhealth_check_addr: 0.0.0.0:28080\ncertificate_file:\
-    \ /tls/tls.crt\ncertificate_key_file: /tls/tls.key\n\nauthenticate_service_url:\
-    \ https://authenticate.computeruse.site\n\n# Users sign in with Dex, which offers\
-    \ Google and GitHub. Pomerium itself\n# fetches this address (discovery, tokens),\
-    \ through its own public name.\nidp_provider: oidc\nidp_provider_url: https://dex.computeruse.site/dex\n\
-    idp_client_id: pomerium\n\n# Sessions, MCP client registrations and MCP refresh\
-    \ tokens: lose these and\n# every user and every MCP client has to sign in again.\n\
-    databroker_storage_type: file\ndatabroker_storage_connection_string: file:///data/databroker\n\
-    \n# v0.33.3 uses this flag for inbound MCP registration and discovery as well\n\
-    # as upstream DCR. Registration creates a client identity, not user access;\n\
-    # the MCP route policy and backend session ownership checks still apply.\nruntime_flags:\n\
-    \  mcp_dynamic_client_registration: true\n\n# MCP clients that identify themselves\
-    \ by a metadata document under these\n# domains may sign users in (Claude's apps\
-    \ and Claude Code).\nmcp_allowed_client_id_domains:\n  - claude.ai\n\n# The whole\
-    \ of a request must arrive within this: an upload is up to 16 MiB.\ntimeout_read:\
-    \ 5m\n\nroutes:\n  # Sessions: one host for all of them, each under its ID\n \
-    \ # (https://sessions.computeruse.site/<id>/...). The backend tells the sessions'\n\
-    \  # host from the app's by Host, so every route keeps the caller's, and the\n\
-    \  # session by the first segment of the path. Each route matches whole\n  # paths;\
-    \ nothing else on this host reaches the backend.\n\n  # mcp-js's one-time upload\
-    \ URL: the token in the path is the credential,\n  # checked by the session's\
-    \ pod.\n  - name: session-upload\n    from: https://sessions.computeruse.site\n\
-    \    regex: '^/s-[a-z0-9]+/api/artifact-uploads/[0-9a-f]+$'\n    to: http://backend\n\
-    \    allow_public_unauthenticated_access: true\n    preserve_host_header: true\n\
-    \    timeout: 5m\n\n  # The session's screen, a websocket: the ticket in the query\
-    \ is the\n  # credential, checked by the backend.\n  - name: session-vnc\n   \
-    \ from: https://sessions.computeruse.site\n    regex: '^/s-[a-z0-9]+/vnc$'\n \
-    \   to: http://backend\n    allow_public_unauthenticated_access: true\n    allow_websockets:\
-    \ true\n    preserve_host_header: true\n\n  # The session's MCP endpoint. Pomerium\
-    \ signs the MCP client's user in and\n  # says who it is; the backend decides\
-    \ whether the session is theirs. The\n  # list of who may sign in is shared with\
-    \ the app's route below.\n  #\n  # Because this host is exact (no wildcard), Pomerium\
-    \ also answers the\n  # OAuth discovery for it: /.well-known/oauth-authorization-server,\
-    \ and\n  # /.well-known/oauth-protected-resource/<id>/mcp, which names\n  # https://sessions.computeruse.site/<id>/mcp\
-    \ as the resource. Its 401 points an\n  # MCP client there.\n  - name: session-mcp\n\
-    \    from: https://sessions.computeruse.site\n    regex: '^/s-[a-z0-9]+/mcp(/.*)?$'\n\
-    \    to: http://backend\n    mcp:\n      server:\n        max_request_bytes: 1048576\n\
-    \    # Who may use the app at all: these email addresses, nobody else.\n    policy:\
-    \ &allowed\n      - allow:\n          or:\n            - email:\n            \
-    \    is: rwendt1337@gmail.com\n            - email:\n                is: browserjs06@gmail.com\n\
-    \    pass_identity_headers: true\n    preserve_host_header: true\n\n  # DEPRECATED:\
-    \ a host per session (https://<id>.sessions.computeruse.site/...),\n  # where\
-    \ sessions were before. Kept so that the MCP URLs and upload URLs\n  # already\
-    \ handed out go on working; no new URL leads here. To retire them,\n  # delete\
-    \ these four routes, LEGACY_SESSION_URL_TEMPLATE on the backend,\n  # backend/internal/proxy/metadata.go,\
-    \ and the wildcard name from the\n  # certificate and from DNS (docs/gke-deployment.md,\
-    \ \"Session URLs\").\n\n  - name: legacy-session-upload\n    from: https://*.sessions.computeruse.site\n\
-    \    prefix: /api/artifact-uploads/\n    to: http://backend\n    allow_public_unauthenticated_access:\
-    \ true\n    preserve_host_header: true\n    timeout: 5m\n\n  - name: legacy-session-vnc\n\
-    \    from: https://*.sessions.computeruse.site\n    path: /vnc\n    to: http://backend\n\
-    \    allow_public_unauthenticated_access: true\n    allow_websockets: true\n \
-    \   preserve_host_header: true\n\n  # OAuth discovery for the MCP endpoint. Pomerium\
-    \ v0.33.3 serves these two\n  # documents itself only on hosts with an exact route,\
-    \ not on wildcard\n  # hosts, so the backend answers them (backend/internal/proxy/metadata.go).\n\
-    \  - name: legacy-session-oauth-metadata\n    from: https://*.sessions.computeruse.site\n\
-    \    prefix: /.well-known/oauth-\n    to: http://backend\n    allow_public_unauthenticated_access:\
-    \ true\n    preserve_host_header: true\n\n  - name: legacy-session-mcp\n    from:\
-    \ https://*.sessions.computeruse.site\n    prefix: /mcp\n    to: http://backend\n\
-    \    mcp:\n      server:\n        max_request_bytes: 1048576\n    policy: *allowed\n\
-    \    pass_identity_headers: true\n    preserve_host_header: true\n\n  # Dex's\
-    \ own pages (sign-in, the callbacks from Google and GitHub).\n  - name: dex\n\
-    \    from: https://dex.computeruse.site\n    to: http://dex:5556\n    allow_public_unauthenticated_access:\
-    \ true\n    preserve_host_header: true\n\n  # The UI and its API.\n  - name: app\n\
-    \    from: https://app.computeruse.site\n    to: http://backend\n    policy: *allowed\n\
-    \    pass_identity_headers: true\n    preserve_host_header: true\n    # A request\
-    \ may wait for a session's pod to answer.\n    timeout: 5m\n\n  # The API host,\
-    \ for clients that cannot sign in (Terraform, scripts, other\n  # services). Nobody\
-    \ signs in here and Pomerium says nothing about the\n  # caller: the credential\
-    \ is an API token, or an access token made from\n  # one, checked by the backend\
-    \ (docs/api-tokens.md). Three routes, each\n  # matching whole paths; nothing\
-    \ else on this host reaches the backend.\n\n  # The API.\n  - name: api\n    from:\
-    \ https://api.computeruse.site\n    prefix: /v1/\n    to: http://backend\n   \
-    \ allow_public_unauthenticated_access: true\n    preserve_host_header: true\n\n\
-    \  # An API token exchanged for an access token (OAuth client credentials).\n\
-    \  - name: api-token\n    from: https://api.computeruse.site\n    path: /oauth/token\n\
-    \    to: http://backend\n    allow_public_unauthenticated_access: true\n    preserve_host_header:\
-    \ true\n\n  # A session's MCP endpoint, as on the sessions' host but with a token\
-    \ in\n  # place of the sign-in. A call may run for minutes and the event stream\n\
-    \  # for as long as its client keeps it.\n  - name: api-mcp\n    from: https://api.computeruse.site\n\
-    \    regex: '^/s-[a-z0-9]+/mcp(/.*)?$'\n    to: http://backend\n    allow_public_unauthenticated_access:\
-    \ true\n    preserve_host_header: true\n    timeout: 0s\n    idle_timeout: 0s\n\
-    \n  # Stripe's webhook. Nobody signs in: the request's signature is the\n  # credential,\
-    \ checked by the backend (docs/contracts/billing/stripe.md).\n  # The backend\
-    \ serves it only while STRIPE_MODE is set.\n  - name: api-stripe-webhook\n   \
-    \ from: https://api.computeruse.site\n    path: /stripe/webhook\n    to: http://backend\n\
-    \    allow_public_unauthenticated_access: true\n    preserve_host_header: true\n\
-    \n  # Metronome's webhook, the same way (docs/contracts/billing/metronome.md).\n\
-    \  # The backend serves it only while BILLING is on.\n  - name: api-metronome-webhook\n\
-    \    from: https://api.computeruse.site\n    path: /metronome/webhook\n    to:\
-    \ http://backend\n    allow_public_unauthenticated_access: true\n    preserve_host_header:\
-    \ true\n\n  # The public site (site.yaml): anyone may read it, signed in or not,\
-    \ and\n  # it is told nothing about who is asking. An exact host of its own, so\
-    \ it\n  # takes nothing from the routes above.\n  - name: site\n    from: https://computeruse.site\n\
-    \    to: http://site\n    allow_public_unauthenticated_access: true\n    pass_identity_headers:\
-    \ false\n\n  # www: a permanent redirect to the site, same path and query. Pomerium\n\
-    \  # answers it itself; nothing in the cluster is asked, and nobody signs in.\n\
-    \  - name: www\n    from: https://www.computeruse.site\n    redirect:\n      host_redirect:\
-    \ computeruse.site\n      https_redirect: true\n      response_code: 301\n   \
-    \ allow_public_unauthenticated_access: true\n"
+  config.yaml: "address: :8443\nhealth_check_addr: 0.0.0.0:28080\ncertificate_file:\
+    \ /tls/tls.crt\ncertificate_key_file: /tls/tls.key\nauthenticate_service_url:\
+    \ https://authenticate.computeruse.site\nidp_provider: oidc\nidp_provider_url:\
+    \ https://dex.computeruse.site/dex\nidp_client_id: pomerium\ndatabroker_storage_type:\
+    \ file\ndatabroker_storage_connection_string: file:///data/databroker\nruntime_flags:\n\
+    \  mcp_dynamic_client_registration: true\nmcp_allowed_client_id_domains:\n- claude.ai\n\
+    timeout_read: 5m\nroutes:\n- name: session-upload\n  from: https://sessions.computeruse.site\n\
+    \  regex: ^/s-[a-z0-9]+/api/artifact-uploads/[0-9a-f]+$\n  to: http://backend\n\
+    \  allow_public_unauthenticated_access: true\n  preserve_host_header: true\n \
+    \ timeout: 5m\n- name: session-vnc\n  from: https://sessions.computeruse.site\n\
+    \  regex: ^/s-[a-z0-9]+/vnc$\n  to: http://backend\n  allow_public_unauthenticated_access:\
+    \ true\n  allow_websockets: true\n  preserve_host_header: true\n- name: session-mcp\n\
+    \  from: https://sessions.computeruse.site\n  regex: ^/s-[a-z0-9]+/mcp(/.*)?$\n\
+    \  to: http://backend\n  mcp:\n    server:\n      max_request_bytes: 1048576\n\
+    \  policy: &id001\n  - allow:\n      or:\n      - email:\n          is: rwendt1337@gmail.com\n\
+    \      - email:\n          is: browserjs06@gmail.com\n  pass_identity_headers:\
+    \ true\n  preserve_host_header: true\n- name: legacy-session-upload\n  from: https://*.sessions.computeruse.site\n\
+    \  prefix: /api/artifact-uploads/\n  to: http://backend\n  allow_public_unauthenticated_access:\
+    \ true\n  preserve_host_header: true\n  timeout: 5m\n- name: legacy-session-vnc\n\
+    \  from: https://*.sessions.computeruse.site\n  path: /vnc\n  to: http://backend\n\
+    \  allow_public_unauthenticated_access: true\n  allow_websockets: true\n  preserve_host_header:\
+    \ true\n- name: legacy-session-oauth-metadata\n  from: https://*.sessions.computeruse.site\n\
+    \  prefix: /.well-known/oauth-\n  to: http://backend\n  allow_public_unauthenticated_access:\
+    \ true\n  preserve_host_header: true\n- name: legacy-session-mcp\n  from: https://*.sessions.computeruse.site\n\
+    \  prefix: /mcp\n  to: http://backend\n  mcp:\n    server:\n      max_request_bytes:\
+    \ 1048576\n  policy: *id001\n  pass_identity_headers: true\n  preserve_host_header:\
+    \ true\n- name: dex\n  from: https://dex.computeruse.site\n  to: http://dex:5556\n\
+    \  allow_public_unauthenticated_access: true\n  preserve_host_header: true\n-\
+    \ name: app\n  from: https://app.computeruse.site\n  to: http://backend\n  policy:\
+    \ *id001\n  pass_identity_headers: true\n  preserve_host_header: true\n  timeout:\
+    \ 5m\n- name: api\n  from: https://api.computeruse.site\n  prefix: /v1/\n  to:\
+    \ http://backend\n  allow_public_unauthenticated_access: true\n  preserve_host_header:\
+    \ true\n- name: api-token\n  from: https://api.computeruse.site\n  path: /oauth/token\n\
+    \  to: http://backend\n  allow_public_unauthenticated_access: true\n  preserve_host_header:\
+    \ true\n- name: api-mcp\n  from: https://api.computeruse.site\n  regex: ^/s-[a-z0-9]+/mcp(/.*)?$\n\
+    \  to: http://backend\n  allow_public_unauthenticated_access: true\n  preserve_host_header:\
+    \ true\n  timeout: 0s\n  idle_timeout: 0s\n- name: api-stripe-webhook\n  from:\
+    \ https://api.computeruse.site\n  path: /stripe/webhook\n  to: http://backend\n\
+    \  allow_public_unauthenticated_access: true\n  preserve_host_header: true\n-\
+    \ name: api-metronome-webhook\n  from: https://api.computeruse.site\n  path: /metronome/webhook\n\
+    \  to: http://backend\n  allow_public_unauthenticated_access: true\n  preserve_host_header:\
+    \ true\n- name: site\n  from: https://computeruse.site\n  to: http://site\n  allow_public_unauthenticated_access:\
+    \ true\n  pass_identity_headers: false\n- name: www\n  from: https://www.computeruse.site\n\
+    \  redirect:\n    host_redirect: computeruse.site\n    https_redirect: true\n\
+    \    response_code: 301\n  allow_public_unauthenticated_access: true\n"
 kind: ConfigMap
 metadata:
-  name: pomerium-config-kmgh47k7fd
+  name: pomerium-config-hk757f4bf4
   namespace: browserjs-sessions
   annotations:
     argocd.argoproj.io/sync-wave: '0'
@@ -1436,7 +1380,7 @@ spec:
     spec:
       automountServiceAccountToken: false
       containers:
-      - image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/site@sha256:43a4c087c9ce6113b3174be39dda987531a7a10e6f03e35f1ecfe60a688b4303
+      - image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/site@sha256:e3cdda74945e3a655e65def3f2108eeaab596db8558dca4d54ed317b9bf87862
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1561,7 +1505,7 @@ spec:
           type: RuntimeDefault
       volumes:
       - configMap:
-          name: pomerium-config-kmgh47k7fd
+          name: pomerium-config-hk757f4bf4
         name: config
       - name: tls
         secret:
