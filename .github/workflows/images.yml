@@ -232,15 +232,31 @@ jobs:
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
+      - name: Path-context receipt tests
+        id: context_test
+        run: python3 -B test/build-context-receipt-test.py
+
       - name: Path-context receipt
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
         env:
           BUILD_NAME: ${{ matrix.name }}
           BUILD_CONTEXT: ${{ matrix.context }}
           BUILD_FILE: ${{ matrix.file }}
           EXPECTED_SOURCE: ${{ steps.source.outputs.sha }}
-        run: |
-          python3 -B test/build-context-receipt-test.py
-          python3 -B test/build-context-receipt.py
+          RECEIPT_RUN_ID: ${{ github.run_id }}
+          RECEIPT_JOB: ${{ github.job }}
+          RECEIPT_TEST_OUTCOME: ${{ steps.context_test.outcome }}
+          RECEIPT_FILE: ${{ runner.temp }}/path-context/${{ matrix.name }}.json
+        run: python3 -B test/build-context-receipt.py
+
+      - name: Upload associated context receipt
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: path-context-${{ github.job }}-${{ matrix.name }}-${{ steps.source.outputs.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/path-context/${{ matrix.name }}.json
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
