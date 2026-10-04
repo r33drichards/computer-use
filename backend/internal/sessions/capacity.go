@@ -63,7 +63,7 @@ func (s *Store) prepareCapacity(ctx context.Context, size string, spec map[strin
 		if old == "" || time.Since(at) > 120*time.Second {
 			cpu, mem := requestsOf(spec)
 			annotations := map[string]string{"browserjs.dev/capacity-cpu": fmt.Sprint(cpu), "browserjs.dev/capacity-memory": fmt.Sprint(mem >> 20), "browserjs.dev/capacity-exclude": exclude, "browserjs.dev/capacity-new-slot": fmt.Sprint(exclude == "")}
-			body, _ := json.Marshal(map[string]any{"metadata": map[string]any{"resourceVersion": lease.GetResourceVersion(), "annotations": annotations}, "spec": map[string]any{"holderIdentity": holder, "leaseDurationSeconds": int64(120), "renewTime": time.Now().UTC().Format(time.RFC3339Nano)}})
+			body, _ := json.Marshal(map[string]any{"metadata": map[string]any{"resourceVersion": lease.GetResourceVersion(), "annotations": annotations}, "spec": map[string]any{"holderIdentity": holder, "leaseDurationSeconds": int64(120), "renewTime": time.Now().UTC().Format(metav1.RFC3339Micro)}})
 			_, err = s.capacityLease.Patch(wait, "session-capacity", types.MergePatchType, body, metav1.PatchOptions{})
 			if err == nil {
 				acquired = true
