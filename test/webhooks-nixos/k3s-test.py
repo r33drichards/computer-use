@@ -228,7 +228,7 @@ try:
         mode('accept')
         effects(9)
         drained()
-        assert not any(e['arguments']['bin'] == 'after-disable' for e in state()['effects'])
+        assert not any(e['arguments'].get('bin') == 'after-disable' for e in state()['effects'])
 finally:
     cluster.succeed('journalctl -u k3s --no-pager > /tmp/k3s.log')
     cluster.copy_from_machine('/tmp/k3s.log')
