@@ -99,23 +99,8 @@ func (s *Store) prepareCapacity(ctx context.Context, size string, spec map[strin
 			release()
 			return nil, err
 		}
-		list, err := s.client.List(wait, metav1.ListOptions{})
-		if err != nil {
-			release()
-			return nil, err
-		}
-		owned := 0
-		for i := range list.Items {
-			if !isWarm(&list.Items[i]) {
-				owned++
-			}
-		}
-		if exclude == "" && owned >= 3 {
-			release()
-			return nil, &NoCapacityError{Size: size}
-		}
 		room := s.room(wait, size, spec, exclude)
-		if room == nil && (exclude != "" || len(list.Items) < 3) {
+		if room == nil {
 			return release, nil
 		}
 		if room != nil && !errors.Is(room, ErrNoCapacity) {

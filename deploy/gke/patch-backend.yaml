@@ -51,7 +51,7 @@ spec:
               value: 2m
             - name: READY_TIMEOUT
               value: 5m
-            # Claim one of the three shared slots; the DaemonSet replenishes releases.
+            # Claim a warm session; the DaemonSet replenishes available compute.
             - name: WARM_CAPACITY
               value: "true"
             - name: FEATURE_FLAGS_PATH

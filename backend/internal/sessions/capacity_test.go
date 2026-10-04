@@ -120,3 +120,29 @@ func TestLargeColdStartReservesCapacityAndWaitsForWarmPodsToYield(t *testing.T) 
 		t.Fatalf("reservation not released: %s", holder)
 	}
 }
+
+// Suspended sessions retain their objects and disks without occupying compute.
+// They must not prevent a fourth session from starting when resources fit.
+func TestColdStartHasNoGlobalSessionCountLimit(t *testing.T) {
+	store, client := sessionstest.NewSized(t)
+	ctx := t.Context()
+	for range 3 {
+		made, err := store.Create(ctx, "sleeping", "alice@example.com")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := store.Suspend(ctx, made.ID, sessions.StoppedByUser); err != nil {
+			t.Fatal(err)
+		}
+		sessionstest.SetStatus(t, client, made.ID, sessionstest.Suspended())
+	}
+	lease := client.Resource(schema.GroupVersionResource{Group: "coordination.k8s.io", Version: "v1", Resource: "leases"}).Namespace(sessionstest.Namespace)
+	_, err := lease.Create(ctx, &unstructured.Unstructured{Object: map[string]any{"apiVersion": "coordination.k8s.io/v1", "kind": "Lease", "metadata": map[string]any{"name": "session-capacity"}, "spec": map[string]any{}}}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.EnableWarmCapacity()
+	if _, err := store.Create(ctx, "fourth", "alice@example.com"); err != nil {
+		t.Fatal(err)
+	}
+}
