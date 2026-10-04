@@ -1,7 +1,7 @@
 {
-  "source_sha": "77e1b892116f51397017b61073d4550fc39bdb68",
+  "source_sha": "545783c99973d5e360a3d35635581ae747b8f21e",
   "images": {
-    "backend": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:6763e69ff21fc2edbe6b80b2631deb1460e5208cba713adc7f7f9ce260721414",
+    "backend": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:3fc9d47fc2d59f89aaca0573f5626988759f121f2f7dfa9ff8626b27abed3a42",
     "site": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/site@sha256:2b28ae366d6f39e193977e10c1f04c5c09aa9debabcf94c2059017fe3662cf83",
     "policy-operator": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/policy-operator@sha256:b1fd4fcf318ba83b61dc0ea5f12fda85da56d4bf55f5ac70c502012a0dc75fe0",
     "browser": "us-west1-docker.pkg.dev/browserjs-sessions/browserjs/browser@sha256:343c4582c2a6fc5491a7acb2de3b3e04c51c5df4b79bfb8edadacec173293cf7",

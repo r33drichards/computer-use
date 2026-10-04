@@ -586,16 +586,16 @@ data:
     \ true\n  allow_websockets: true\n  preserve_host_header: true\n- name: session-mcp\n\
     \  from: https://sessions.computeruse.site\n  regex: ^/s-[a-z0-9]+/mcp(/.*)?$\n\
     \  to: http://backend\n  mcp:\n    server:\n      max_request_bytes: 1048576\n\
-    \  policy: &id001\n  - allow:\n      or:\n      - email:\n          is: rwendt1337@gmail.com\n\
-    \      - email:\n          is: browserjs06@gmail.com\n  pass_identity_headers:\
-    \ true\n  preserve_host_header: true\n- name: legacy-session-upload\n  from: https://*.sessions.computeruse.site\n\
-    \  prefix: /api/artifact-uploads/\n  to: http://backend\n  allow_public_unauthenticated_access:\
-    \ true\n  preserve_host_header: true\n  timeout: 5m\n- name: legacy-session-vnc\n\
-    \  from: https://*.sessions.computeruse.site\n  path: /vnc\n  to: http://backend\n\
-    \  allow_public_unauthenticated_access: true\n  allow_websockets: true\n  preserve_host_header:\
-    \ true\n- name: legacy-session-oauth-metadata\n  from: https://*.sessions.computeruse.site\n\
-    \  prefix: /.well-known/oauth-\n  to: http://backend\n  allow_public_unauthenticated_access:\
-    \ true\n  preserve_host_header: true\n- name: legacy-session-mcp\n  from: https://*.sessions.computeruse.site\n\
+    \  policy: &id001\n  - allow:\n      and:\n      - authenticated_user: true\n\
+    \  pass_identity_headers: true\n  preserve_host_header: true\n- name: legacy-session-upload\n\
+    \  from: https://*.sessions.computeruse.site\n  prefix: /api/artifact-uploads/\n\
+    \  to: http://backend\n  allow_public_unauthenticated_access: true\n  preserve_host_header:\
+    \ true\n  timeout: 5m\n- name: legacy-session-vnc\n  from: https://*.sessions.computeruse.site\n\
+    \  path: /vnc\n  to: http://backend\n  allow_public_unauthenticated_access: true\n\
+    \  allow_websockets: true\n  preserve_host_header: true\n- name: legacy-session-oauth-metadata\n\
+    \  from: https://*.sessions.computeruse.site\n  prefix: /.well-known/oauth-\n\
+    \  to: http://backend\n  allow_public_unauthenticated_access: true\n  preserve_host_header:\
+    \ true\n- name: legacy-session-mcp\n  from: https://*.sessions.computeruse.site\n\
     \  prefix: /mcp\n  to: http://backend\n  mcp:\n    server:\n      max_request_bytes:\
     \ 1048576\n  policy: *id001\n  pass_identity_headers: true\n  preserve_host_header:\
     \ true\n- name: dex\n  from: https://dex.computeruse.site\n  to: http://dex:5556\n\
@@ -647,7 +647,7 @@ data:
     \    X-Robots-Tag: noindex, nofollow\n"
 kind: ConfigMap
 metadata:
-  name: pomerium-config-66h5k972b7
+  name: pomerium-config-6k8587d8mt
   namespace: browserjs-sessions
   annotations:
     argocd.argoproj.io/sync-wave: '-3'
@@ -999,7 +999,7 @@ spec:
         - name: API_URL
           value: https://api.computeruse.site
         - name: ALLOWED_EMAILS
-          value: rwendt1337@gmail.com,browserjs06@gmail.com
+          value: '*'
         - name: SNAPSHOTS
           value: 'true'
         - name: SNAPSHOT_TIMEOUT
@@ -1086,7 +1086,7 @@ spec:
           value: '200'
         - name: SIGNUPS_PER_IP_PER_DAY
           value: '5'
-        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:6763e69ff21fc2edbe6b80b2631deb1460e5208cba713adc7f7f9ce260721414
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:3fc9d47fc2d59f89aaca0573f5626988759f121f2f7dfa9ff8626b27abed3a42
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1663,7 +1663,7 @@ spec:
           type: RuntimeDefault
       volumes:
       - configMap:
-          name: pomerium-config-66h5k972b7
+          name: pomerium-config-6k8587d8mt
         name: config
       - name: tls
         secret:
