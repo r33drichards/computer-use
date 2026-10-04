@@ -42,10 +42,10 @@ export function initializeTheme() {
 export function applyWireframeTheme() {
   const dark = isDarkTheme()
   const ink = dark ? "#eeeeee" : "#111111"
-  const paper = dark ? "#181818" : "#ffffff"
-  const surface = dark ? "#242424" : paper
-  const border = dark ? "#737373" : ink
-  const divider = dark ? "#404040" : ink
+  const paper = dark ? "#181818" : "#f7f7f8"
+  const surface = dark ? "#242424" : "#ffffff"
+  const border = dark ? "#737373" : "#858585"
+  const divider = dark ? "#404040" : "#dddddf"
   const pencil = dark ? "#aaaaaa" : "#6b6b6b"
   const hover = dark ? "#303030" : "#eeeeee"
   const active = dark ? "#404040" : "#dddddd"
@@ -54,7 +54,7 @@ export function applyWireframeTheme() {
   applyTheme({
     theme: {
       tokens: {
-        fontFamilyBase: dark ? 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' : '"Comic Neue", "Chalkboard SE", "Comic Sans MS", "Segoe Print", cursive',
+        fontFamilyBase: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         colorBackgroundLayoutMain: paper,
         colorBackgroundContainerContent: surface,
         colorBackgroundContainerHeader: surface,
@@ -64,7 +64,7 @@ export function applyWireframeTheme() {
         colorTextLinkDefault: ink,
         colorTextLinkHover: ink,
         colorBorderDividerDefault: divider,
-        colorBorderDividerSecondary: dark ? divider : pencil,
+        colorBorderDividerSecondary: divider,
         colorBackgroundButtonPrimaryDefault: surface,
         colorBackgroundButtonPrimaryHover: hover,
         colorBackgroundButtonPrimaryActive: active,

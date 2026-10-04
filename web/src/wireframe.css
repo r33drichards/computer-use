@@ -1,29 +1,29 @@
 :root {
-  --paper: #fff;
+  --paper: #f7f7f8;
   --shade: #f1f1f1;
-  --surface: var(--paper);
-  --outline: var(--ink);
+  --surface: #fff;
+  --outline: #858585;
+  --divider: #dddddf;
   color-scheme: light;
   --ink: #111;
   --pencil: #6b6b6b;
-  /* An uneven radius reads as hand-drawn. */
-  --wobble: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --radius: 6px;
 }
 
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: "Comic Neue", "Chalkboard SE", "Comic Sans MS", "Segoe Print", cursive;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Boxes: outlined, never filled or shadowed. Cloudscape class names are
+/* Panels use subtle borders and raised surfaces. Cloudscape class names are
    awsui_<part>_<component hash>_…: 14iqq is Container (which Table also renders
    as its outer box), 1d2i7 is Modal. */
 .wf-box,
 [class*="awsui_root_14iqq_"],
 [class*="awsui_container_1d2i7_"] {
-  border: 2px solid var(--outline) !important;
-  border-radius: var(--wobble) !important;
+  border: 1px solid var(--divider) !important;
+  border-radius: var(--radius) !important;
   box-shadow: none !important;
   background: var(--surface) !important;
   /* Inner headers and footers are square and opaque; clip them to the outline. */
@@ -33,8 +33,8 @@ body {
   box-shadow: none !important;
 }
 [class*="awsui_button_vjswe_"] {
-  border-radius: var(--wobble) !important;
-  border-width: 2px !important;
+  border-radius: var(--radius) !important;
+  border-width: 1px !important;
   box-shadow: none !important;
 }
 /* Cloudscape draws a container's own border and shadow on pseudo-elements. */
@@ -54,7 +54,7 @@ a {
   align-items: baseline;
   justify-content: space-between;
   padding: 12px 20px;
-  border-bottom: 2px dashed var(--outline);
+  border-bottom: 1px solid var(--divider);
 }
 .wf-header h1 {
   margin: 0;
@@ -77,8 +77,8 @@ a {
 .wf-state {
   display: inline-block;
   padding: 0 8px;
-  border: 1.5px solid var(--outline);
-  border-radius: var(--wobble);
+  border: 1px solid var(--outline);
+  border-radius: 4px;
   font-size: 13px;
 }
 .wf-state[data-state="failed"] {
@@ -92,19 +92,19 @@ a {
   color: var(--pencil);
 }
 
-/* Placeholder area: diagonal hatching, like an unfilled wireframe region. */
+/* An empty session screen uses the same surface as the panels. */
 .wf-placeholder {
   display: grid;
   place-items: center;
   min-height: 420px;
-  border: 2px dashed var(--outline);
-  border-radius: var(--wobble);
-  background: repeating-linear-gradient(45deg, var(--paper), var(--paper) 10px, var(--shade) 10px, var(--shade) 11px);
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
+  background: var(--surface);
   text-align: center;
 }
 
 .wf-screen {
-  border: 2px solid var(--outline);
+  border: 1px solid var(--outline);
   border-radius: 4px;
   background: var(--paper);
   aspect-ratio: 1280 / 800;
@@ -161,15 +161,15 @@ a {
 .wf-screen-overlay p {
   margin: 0;
 }
-/* A pencil ring with a gap, turning in steps so it reads as drawn frames. */
+/* A circular loading indicator with a gap. */
 .wf-spinner {
   display: inline-block;
   width: 28px;
   height: 28px;
   border: 3px solid var(--outline);
   border-right-color: transparent;
-  border-radius: 50% 46% 52% 48% / 48% 52% 46% 50%;
-  animation: wf-spin 0.9s steps(8) infinite;
+  border-radius: 50%;
+  animation: wf-spin 0.9s linear infinite;
 }
 @keyframes wf-spin {
   to {
@@ -199,8 +199,8 @@ a {
   max-width: 480px;
   margin: 80px auto;
   padding: 24px;
-  border: 2px solid var(--outline);
-  border-radius: var(--wobble);
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
 }
 
 /* State, age and owner on the title row, after the name. */
@@ -244,8 +244,8 @@ a {
 /* 1q84n is Flashbar's item, mx3cw is Alert: outlined like every other box. */
 [class*="awsui_flash_1q84n_"],
 [class*="awsui_alert_mx3cw_"] {
-  border: 2px solid var(--outline) !important;
-  border-radius: var(--wobble) !important;
+  border: 1px solid var(--outline) !important;
+  border-radius: var(--radius) !important;
   box-shadow: none !important;
   background: var(--paper) !important;
   color: var(--ink) !important;
@@ -260,8 +260,8 @@ a {
 .wf-tag {
   display: inline-block;
   padding: 0 6px;
-  border: 1.5px dashed var(--outline);
-  border-radius: var(--wobble);
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -285,7 +285,7 @@ a {
 .wf-code {
   box-sizing: border-box;
   width: 100%;
-  border: 2px solid var(--outline);
+  border: 1px solid var(--outline);
   border-radius: 4px;
   background: var(--paper);
   overflow: hidden;
@@ -310,15 +310,13 @@ a {
   line-height: 1.45;
   white-space: pre;
   tab-size: 4;
-  /* Read-only: pencil hatching at the edge instead of an editor's gutter. */
-  border-style: dashed;
 }
 .wf-statusbar {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 20px;
   padding: 4px 12px;
-  border: 2px solid var(--outline);
+  border: 1px solid var(--outline);
   border-radius: 4px;
   font-size: 13px;
 }
@@ -329,7 +327,7 @@ a {
   font-size: 13px;
 }
 .wf-problems b {
-  font-family: "Comic Neue", "Chalkboard SE", "Comic Sans MS", "Segoe Print", cursive;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 .wf-spinner-small {
   width: 10px;
@@ -404,7 +402,7 @@ a {
   width: 14px;
   height: 14px;
   vertical-align: -2px;
-  border: 1.5px solid var(--outline);
+  border: 1px solid var(--outline);
 }
 .wf-chart-plot {
   display: flex;
@@ -423,7 +421,7 @@ a {
   gap: 2px;
 }
 .wf-chart-day > div {
-  border: 1.5px solid var(--outline);
+  border: 1px solid var(--outline);
   border-bottom: 0;
   box-sizing: border-box;
 }
@@ -461,7 +459,7 @@ a {
   --shade: #242424;
   --surface: #242424;
   --outline: #737373;
-  --wobble: 6px;
+  --divider: #404040;
 }
 .wf-theme select {
   background: var(--paper);
@@ -472,17 +470,6 @@ a {
 }
 .wf-header { flex-wrap: wrap; gap: 12px; }
 
-/* Dark mode follows the docs typography and quieter surface hierarchy. */
-:root[data-theme="dark"] body,
-:root[data-theme="dark"] .wf-problems b {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-}
-:root[data-theme="dark"] .wf-header { border-bottom: 1px solid #404040; }
-:root[data-theme="dark"] .wf-box,
-:root[data-theme="dark"] [class*="awsui_root_14iqq_"],
-:root[data-theme="dark"] [class*="awsui_container_1d2i7_"] { border-width: 1px !important; border-color: #404040 !important; }
-:root[data-theme="dark"] [class*="awsui_button_vjswe_"] { border-width: 1px !important; }
-:root[data-theme="dark"] .wf-state { border-radius: 4px; }
-:root[data-theme="dark"] .wf-state:not([data-state="failed"]):not([data-blocked]) { border-width: 1px; }
+
 :root[data-theme="dark"] .wf-balance-zero,
 :root[data-theme="dark"] .wf-figure[data-zero] { color: #ff9b9b; }

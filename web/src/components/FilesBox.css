@@ -1,9 +1,8 @@
-/* The files of a session, under its clipboard. Wireframe style: see
-   ../wireframe.css for the pencil variables. */
+/* The files of a session, under its clipboard. */
 .wf-files {
   margin-top: 4px;
   padding-top: 10px;
-  border-top: 2px dashed var(--pencil);
+  border-top: 1px solid var(--divider);
 }
 .wf-files input[type="file"] {
   display: none;
@@ -18,7 +17,7 @@
   align-items: center;
   gap: 12px;
   padding: 4px 0;
-  border-bottom: 1px dashed var(--pencil);
+  border-bottom: 1px solid var(--divider);
 }
 .wf-files-list li:last-child {
   border-bottom: 0;
@@ -42,7 +41,7 @@
 }
 .wf-files:focus-visible,
 .wf-files:focus {
-  outline: 2px dashed var(--ink);
+  outline: 2px solid var(--ink);
   outline-offset: 6px;
 }
 /* While files are dragged over the page: the whole of it takes the drop. */
@@ -58,8 +57,8 @@
 }
 .wf-drop-overlay div {
   padding: 24px 40px;
-  border: 3px dashed var(--ink);
-  border-radius: var(--wobble);
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
   background: var(--paper);
   font-size: 20px;
 }
