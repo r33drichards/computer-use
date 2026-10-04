@@ -49,7 +49,8 @@ trusted main scripts, in separate jobs/runners. The publisher can write only
 the preview registry. The separate deployer has GKE administrator access
 because namespace/RBAC creation and the shared edge ConfigMap need it;
 its main-only identity must never be granted to a PR job. It also has
-writer access to the preview registry to remove obsolete tags. Neither identity
+a repository-scoped custom role to inspect and remove obsolete tags, with
+no image-version deletion or publication permissions. Neither identity
 can be used by a preview pod. Production image repositories are unchanged.
 
 ## One-time setup
@@ -63,7 +64,8 @@ can be used by a preview pod. Production image repositories are unchanged.
    - `PREVIEW_PUBLISH_SA`: `preview_publisher_service_account_email`
    - `PREVIEW_DEPLOY_SA`: `preview_deployer_service_account_email`
    Leave `PREVIEWS_ENABLED` unset until step 4.
-3. Merge the automation PR, then run the production **deploy** workflow on main with its existing `deploy`
+3. Merge the automation PR and wait for its **infra apply** to finish (it
+   adds tag-cleanup permissions), then run the production **deploy** workflow on main with its existing `deploy`
    confirmation. This adds `*.preview.computeruse.site` to the existing
    Pomerium certificate and installs the preview deployer's explicit
    cluster-admin binding for custom-resource operations. This is a cloud

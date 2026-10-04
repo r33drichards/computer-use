@@ -69,13 +69,21 @@ resource "google_service_account_iam_member" "preview_github" {
   member             = "principalSet://iam.googleapis.com/projects/${local.project_number}/locations/global/workloadIdentityPools/${var.github_wif_pool_id}/attribute.repository_id_ref/${var.github_repository_id}@refs/heads/main"
 }
 
-# Lifecycle cleanup removes only preview tags after namespace removal. It
-# cannot edit IAM or reach the production image repository.
+# Writer cannot delete tags. Give lifecycle cleanup only tag inspection and
+# deletion, not image-version deletion, publication or repository IAM.
+resource "google_project_iam_custom_role" "preview_tag_cleanup" {
+  count       = var.enable_previews ? 1 : 0
+  role_id     = "previewTagCleanup"
+  title       = "PR preview tag cleanup"
+  description = "Inspect and delete obsolete preview image tags"
+  permissions = ["artifactregistry.tags.get", "artifactregistry.tags.list", "artifactregistry.tags.delete"]
+}
+
 resource "google_artifact_registry_repository_iam_member" "preview_cleanup" {
   count      = var.enable_previews ? 1 : 0
   project    = var.project_id
   location   = google_artifact_registry_repository.previews[0].location
   repository = google_artifact_registry_repository.previews[0].name
-  role       = "roles/artifactregistry.writer"
+  role       = google_project_iam_custom_role.preview_tag_cleanup[0].name
   member     = google_service_account.preview_deployer[0].member
 }
