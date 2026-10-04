@@ -47,6 +47,10 @@ jobs:
         with:
           extra_nix_config: |
             extra-experimental-features = nix-command flakes
+      - name: Free disk space for offline images and the VM
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          df -h /
       - name: Enable KVM access
         run: sudo chmod 666 /dev/kvm
       - name: Build the NixOS VM test driver and offline images
@@ -54,6 +58,8 @@ jobs:
           set -euo pipefail
           nix build .#webhooks-k3s-driver --print-build-logs --out-link result-webhooks-driver \
             2>&1 | tee "$RUNNER_TEMP/webhooks-nixos.log"
+      - name: Collect unused Nix build dependencies
+        run: nix store gc
       - name: Run k3s inside the NixOS VM integration test
         run: |
           set -euo pipefail
