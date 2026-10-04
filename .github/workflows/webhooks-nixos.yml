@@ -46,32 +46,25 @@ jobs:
       - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
         with:
           extra_nix_config: |
-            auto-allocate-uids = true
-            use-cgroups = true
-            extra-system-features = nixos-test uid-range
-            extra-experimental-features = nix-command flakes auto-allocate-uids cgroups
-      - name: Enable unprivileged namespaces for nspawn test containers
-        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      - name: Delegate cgroup controllers to the Nix daemon
-        run: |
-          sudo mkdir -p /etc/systemd/system/nix-daemon.service.d
-          printf '[Service]\nDelegate=yes\n' | sudo tee /etc/systemd/system/nix-daemon.service.d/delegate.conf
-          sudo systemctl daemon-reload
-          sudo systemctl restart nix-daemon.service
-          nix store ping --store daemon
-          nix_cgroup=$(systemctl show nix-daemon.service -p ControlGroup --value)
-          # Nix 2.35 moves its daemon into a leaf, but does not yet enable
-          # controllers in the empty parent used for build cgroups.
-          printf '+cpu +cpuset +io +memory +pids' | sudo tee "/sys/fs/cgroup$nix_cgroup/cgroup.subtree_control"
-          systemctl show nix-daemon.service -p Delegate -p ControlGroup
-          cat /sys/fs/cgroup/cgroup.controllers
+            extra-experimental-features = nix-command flakes
       - name: Load kernel modules for nested k3s networking
         run: sudo modprobe dummy overlay br_netfilter ip_tables iptable_nat nf_conntrack
-      - name: Run container integration test
+      - name: Build the NixOS container test driver and offline images
         run: |
           set -euo pipefail
-          nix build .#checks.x86_64-linux.webhooks-k3s --print-build-logs --out-link result-webhooks \
+          nix build .#webhooks-k3s-driver --print-build-logs --out-link result-webhooks-driver \
             2>&1 | tee "$RUNNER_TEMP/webhooks-nixos.log"
+      - name: Run k3s inside the NixOS nspawn integration test
+        run: |
+          set -euo pipefail
+          mkdir -p result-webhooks "$RUNNER_TEMP/webhooks-runtime"
+          driver=$(readlink -f result-webhooks-driver)
+          sudo systemd-run --unit=webhooks-integration --wait --pipe --collect \
+            --property=Delegate=yes --property=TasksMax=infinity \
+            --working-directory="$RUNNER_TEMP/webhooks-runtime" \
+            "$driver/bin/nixos-test-driver" -o "$PWD/result-webhooks" \
+            --junit-xml "$PWD/result-webhooks/report.xml" \
+            2>&1 | tee -a "$RUNNER_TEMP/webhooks-nixos.log"
       - name: Upload test report and service logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

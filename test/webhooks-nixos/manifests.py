@@ -12,7 +12,8 @@ docs.extend(d for d in yaml.safe_load_all(Path(os.environ['SANDBOX_MANIFEST']).r
 for filename in ['crd-sessionpolicy.yaml', 'crd-apitoken.yaml', 'backend.yaml', 'networkpolicy.yaml', 'policy-operator.yaml', 'opa.yaml', 'webhook-redis.yaml']:
     docs.extend(d for d in yaml.safe_load_all((root / 'deploy/base' / filename).read_text()) if d)
 for d in docs:
-    if d['metadata'].get('namespace') == 'agent-sandbox-system' or d['kind'] == 'Namespace' and d['metadata']['name'] == 'agent-sandbox-system':
+    if (d['metadata'].get('namespace') == 'agent-sandbox-system'
+            or (d['kind'] == 'Namespace' and d['metadata']['name'] == 'agent-sandbox-system')):
         if d['kind'] == 'Deployment':
             for c in d['spec']['template']['spec']['containers']:
                 c['imagePullPolicy'] = 'Never'
@@ -22,6 +23,7 @@ for d in docs:
     if d['kind'] in ['Deployment', 'StatefulSet']:
         for c in d['spec']['template']['spec']['containers']:
             c['image'] = 'webhooks/' + {'policy-operator': 'operator'}.get(c['name'], c['name']) + ':test'
+            if c['name'] == 'redis': c['image'] = 'redis:8.2-alpine'
             c['imagePullPolicy'] = 'Never'
             if c['name'] == 'backend':
                 for e in c['env']:

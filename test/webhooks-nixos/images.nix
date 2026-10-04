@@ -31,8 +31,13 @@ in {
       "POLICY_CONTRACT_DIR=${source}/docs/contracts/policy" "OPA_BIN=${opa}/bin/opa" ];
   };
   opa = image "webhooks/opa" [ opa ] { Entrypoint = [ "${opa}/bin/opa" ]; };
-  redis = image "webhooks/redis" [ pkgs.redis pkgs.busybox ] {
-    Env = [ "PATH=${pkgs.redis}/bin:${pkgs.busybox}/bin" ];
+  # The same pinned Redis image as deploy/base/webhook-redis.yaml.
+  redis = pkgs.dockerTools.pullImage {
+    imageName = "redis";
+    imageDigest = "sha256:b51665e66f00759be7c3152ad5ac3c66fb2f619c13ef62dea7cc1f9914524635";
+    sha256 = "sha256-5vDB+bJMQHG11LqaqSiqxxZuPgE2s43cXYstOlPQb7c=";
+    finalImageTag = "8.2-alpine";
+    os = "linux"; arch = "amd64";
   };
   mcpjs = image "webhooks/mcpjs" [ mcpjs python source ] {
     Entrypoint = [ "${mcpjs}/bin/mcp-v8" ];

@@ -7,6 +7,7 @@ try:
     start_all()
     cluster.wait_for_unit('k3s.service', timeout=180)
     cluster.wait_for_unit('webhook-receiver.service')
+    cluster.succeed('mkdir -p /root/.kube; ln -sf /etc/rancher/k3s/k3s.yaml /root/.kube/config')
     cluster.wait_until_succeeds('kubectl get --raw=/readyz', timeout=180)
     cluster.wait_until_succeeds("kubectl get nodes -o jsonpath='{.items[0].status.conditions[?(@.type==\"Ready\")].status}' | grep True", timeout=180)
     cluster.succeed('/etc/render-webhooks > /tmp/webhooks.yaml; kubectl apply -f /tmp/webhooks.yaml')

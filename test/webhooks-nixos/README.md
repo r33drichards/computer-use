@@ -4,14 +4,21 @@ Run on an x86_64 Linux host:
 
 ```sh
 sudo modprobe dummy overlay br_netfilter ip_tables iptable_nat nf_conntrack
-nix build .#checks.x86_64-linux.webhooks-k3s -L
+nix build .#webhooks-k3s-driver --out-link result-webhooks-driver -L
+mkdir -p result-webhooks
+sudo systemd-run --wait --pipe --collect -p Delegate=yes -p TasksMax=infinity \
+  "$(readlink -f result-webhooks-driver)/bin/nixos-test-driver" \
+  -o "$PWD/result-webhooks"
 ```
 
 The NixOS integration test boots a systemd-nspawn container containing a real
 single-node k3s cluster. There is no QEMU, KVM, Docker daemon, or kind. k3s uses
-containerd's native snapshotter and host-gw networking inside the Nix build user
-namespace. The host must provide cgroup v2 and the networking kernel modules;
-the workflow configures them on `ubuntu-24.04`.
+containerd's native snapshotter and host-gw networking inside the NixOS container. The host must provide cgroup v2 and the networking kernel modules;
+the workflow configures them on `ubuntu-24.04`. It builds the packaged NixOS
+test driver with Nix and executes it as root in a delegated systemd unit.
+Nix 2.35 build sandboxes do not expose the writable cgroup hierarchy k3s
+requires; running the driver directly retains the same NixOS containers and
+assertions without a VM.
 
 k3s airgap images and all application images are preloaded from fixed Nix
 inputs. The test does not download images after the cluster starts. The real
@@ -37,7 +44,7 @@ attempts, Rego export filtering, lost acknowledgements, identical retry after
 operator pod replacement, Redis PVC recovery, outages blocking tool execution,
 and disabling subscriptions while draining accepted backlog.
 
-Nix daemon settings:
+The smaller sandboxed `webhooks-container` check needs these Nix daemon settings:
 
 ```ini
 auto-allocate-uids = true
@@ -45,8 +52,6 @@ use-cgroups = true
 extra-system-features = nixos-test uid-range
 extra-experimental-features = nix-command flakes auto-allocate-uids cgroups
 ```
-
-The Nix daemon systemd service must delegate cgroup controllers (`Delegate=yes`).
 
 macOS can evaluate the check, but execution requires a Linux builder. CI uploads
 the driver report, resource state, service logs, and build log. The smaller
