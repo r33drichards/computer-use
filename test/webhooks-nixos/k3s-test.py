@@ -100,7 +100,7 @@ try:
 
     def call(bin_name, expected):
         address = cluster.succeed(k + 'get pods -l app=browserjs-session -o jsonpath={.items[0].status.podIP}').strip()
-        result = json.loads(cluster.succeed('SERVER=exec python /etc/webhook-call.py http://' + address + ':8080 ' + shlex.quote(bin_name)))
+        result = json.loads(cluster.succeed('SERVER=exec MCP_HEADERS=' + shlex.quote(json.dumps({'Host': 'localhost'})) + ' python /etc/webhook-call.py http://' + address + ':8080 ' + shlex.quote(bin_name)))
         assert result['outcome'] == expected, result
 
 
