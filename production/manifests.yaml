@@ -1,0 +1,2798 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backend
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: billing-export
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: billing-operator
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dex
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+---
+apiVersion: v1
+automountServiceAccountToken: false
+kind: ServiceAccount
+metadata:
+  name: opa
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: policy-operator
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+---
+apiVersion: v1
+automountServiceAccountToken: false
+kind: ServiceAccount
+metadata:
+  name: session
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: backend
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+rules:
+- apiGroups:
+  - agents.x-k8s.io
+  resources:
+  - sandboxes
+  verbs:
+  - get
+  - list
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - extensions.agents.x-k8s.io
+  resources:
+  - sandboxclaims
+  verbs:
+  - get
+  - list
+  - create
+  - delete
+- apiGroups:
+  - browserjs.dev
+  resources:
+  - sessionpolicies
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - browserjs.dev
+  resources:
+  - apitokens
+  verbs:
+  - get
+  - list
+  - create
+  - delete
+- apiGroups:
+  - browserjs.dev
+  resources:
+  - apitokens/status
+  verbs:
+  - patch
+- apiGroups:
+  - browserjs.dev
+  resources:
+  - accounts
+  verbs:
+  - get
+  - list
+  - create
+  - update
+  - patch
+- apiGroups:
+  - coordination.k8s.io
+  resourceNames:
+  - billing-observer
+  resources:
+  - leases
+  verbs:
+  - get
+- apiGroups:
+  - coordination.k8s.io
+  resourceNames:
+  - backend-leader
+  resources:
+  - leases
+  verbs:
+  - get
+  - update
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: backend-snapshots
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+rules:
+- apiGroups:
+  - podsnapshot.gke.io
+  resources:
+  - podsnapshotmanualtriggers
+  verbs:
+  - create
+  - get
+  - delete
+- apiGroups:
+  - podsnapshot.gke.io
+  resources:
+  - podsnapshots
+  verbs:
+  - get
+  - list
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: billing-export
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+rules:
+- apiGroups:
+  - browserjs.dev
+  resources:
+  - accounts
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: billing-operator
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+rules:
+- apiGroups:
+  - agents.x-k8s.io
+  resources:
+  - sandboxes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - coordination.k8s.io
+  resourceNames:
+  - billing-observer
+  resources:
+  - leases
+  verbs:
+  - get
+  - update
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resources:
+  - events
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dex
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+rules:
+- apiGroups:
+  - dex.coreos.com
+  resources:
+  - '*'
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: policy-operator
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+rules:
+- apiGroups:
+  - browserjs.dev
+  resources:
+  - sessionpolicies
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+- apiGroups:
+  - browserjs.dev
+  resources:
+  - sessionpolicies/status
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - events
+  verbs:
+  - create
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: backend
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: backend
+subjects:
+- kind: ServiceAccount
+  name: backend
+  namespace: browserjs-sessions
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: backend-snapshots
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: backend-snapshots
+subjects:
+- kind: ServiceAccount
+  name: backend
+  namespace: browserjs-sessions
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: billing-export
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: billing-export
+subjects:
+- kind: ServiceAccount
+  name: billing-export
+  namespace: browserjs-sessions
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: billing-operator
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: billing-operator
+subjects:
+- kind: ServiceAccount
+  name: billing-operator
+  namespace: browserjs-sessions
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dex
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: dex
+subjects:
+- kind: ServiceAccount
+  name: dex
+  namespace: browserjs-sessions
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: policy-operator
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: policy-operator
+subjects:
+- kind: ServiceAccount
+  name: policy-operator
+  namespace: browserjs-sessions
+---
+apiVersion: v1
+data:
+  catalogue.yaml: "# What is sold, what it costs to use, and what each option gives.\
+    \ DATA, not\n# code: it is a ConfigMap (`billing-catalogue`) read by the backend\
+    \ and the\n# billing operator and re-read when it changes, so a number here changes\
+    \ with\n# a manifest apply and no image build. OpenTofu (infra/billing) makes\n\
+    # Stripe's Products and Prices, and Metronome's rates, from the same file; the\
+    \ UI and the public\n# site get it from GET /api/billing/catalogue. Nothing takes\
+    \ an entitlement\n# from Stripe.\n#\n# Money is US dollars; `amount` is in cents\
+    \ (what Stripe charges), credit and\n# rates are in micro-dollars (1 USD = 1000000).\
+    \ PROPOSED numbers: the\n# arithmetic is section 7 of the design.\nversion: 1\n\
+    currency: usd\n\n# One balance of credit per account, in dollars. It is used up\
+    \ by:\nrates:\n  awakeMicrosPerHour: 200000     # $0.20 for each hour a small\
+    \ session is awake\n  diskMicrosPerGBHour: 384       # $0.28 per GB-month (730\
+    \ h): $1.40 a month for a 5 GB session, awake or asleep\nsessionDiskGB: 5\n\n\
+    # The awake rate of each size of session other than small (whose rate is\n# rates.awakeMicrosPerHour).\
+    \ The sizes themselves, what each gives a\n# session, are the deployment's (deploy/gke/sizes.yaml):\
+    \ a size named here\n# and not there is never used, and one there and not here\
+    \ is charged as\n# small. The disk is the same 5 GB at every size.\nsizes:\n \
+    \ medium:\n    awakeMicrosPerHour: 400000   # $0.40: a third of a session node\n\
+    \  large:\n    awakeMicrosPerHour: 800000   # $0.80: a whole session node\n\n\
+    # Given once, when the first card is saved.\nsignupCredit:\n  amountMicros: 5000000\
+    \          # $5.00: 25 awake hours, or less with disks kept\n  validDays: 90\n\
+    \  refuseFunding: [prepaid]       # card.funding values that save the card but\
+    \ earn no credit\n  refuseWallets: true            # a card saved through Apple\
+    \ Pay or Google Pay earns none (its fingerprint is the device's)\n\n# Without\
+    \ a subscription. Not a Stripe object. Requires a saved card, like\n# everything\
+    \ else.\npayg:\n  name: Pay as you go\n  maxSessions: 3\n  maxAwake: 2\n  sizes:\
+    \ [medium]                # besides small, which every plan has\n\n# Subscriptions:\
+    \ a monthly price that buys more credit than it costs. One\n# Stripe Product each\
+    \ (the Customer Portal can only switch between\n# Products), one monthly Price\
+    \ each. The credit is granted when the period\n# is paid and expires at its end:\
+    \ it does not roll over.\nplans:\n  - key: starter\n    name: Starter\n    productId:\
+    \ cu_plan_starter\n    lookupKey: cu_starter_monthly_v1\n    amount: 500     \
+    \             # $5 a month\n    creditMicros: 10000000       # $10 of credit:\
+    \ about 40 awake hours with one session kept\n    maxSessions: 3\n    maxAwake:\
+    \ 2\n    sizes: [medium]\n    enabled: true\n  - key: pro\n    name: Pro\n   \
+    \ productId: cu_plan_pro\n    lookupKey: cu_pro_monthly_v1\n    amount: 2000 \
+    \                # $20 a month\n    creditMicros: 44000000       # $44: about\
+    \ 200 awake hours with three sessions kept\n    maxSessions: 10\n    maxAwake:\
+    \ 4\n    sizes: [medium, large]\n    enabled: true\n  - key: scale\n    name:\
+    \ Scale\n    productId: cu_plan_scale\n    lookupKey: cu_scale_monthly_v1\n  \
+    \  amount: 10000                # $100 a month\n    creditMicros: 240000000  \
+    \    # $240: about 1100 awake hours with ten sessions kept\n    maxSessions: 25\n\
+    \    maxAwake: 8\n    sizes: [medium, large]\n    # Not sold until the project's\
+    \ CPU quota is raised: eight awake sessions\n    # of one account would be most\
+    \ of today's eleven places.\n    enabled: false\n\n# Credit packs: one-off payments,\
+    \ a dollar of credit for a dollar. They are\n# \"pay as you go\", the subscriber's\
+    \ \"top-up\", and what auto-recharge buys:\n# one mechanism. Valid 12 months.\n\
+    packs:\n  - key: credit-5\n    name: $5 of credit\n    productId: cu_credit\n\
+    \    lookupKey: cu_credit_5_v1\n    amount: 500\n    creditMicros: 5000000\n \
+    \   validDays: 365\n    enabled: true\n  - key: credit-20\n    name: $20 of credit\n\
+    \    productId: cu_credit\n    lookupKey: cu_credit_20_v1\n    amount: 2000\n\
+    \    creditMicros: 20000000\n    validDays: 365\n    enabled: true\n  - key: credit-50\n\
+    \    name: $50 of credit\n    productId: cu_credit\n    lookupKey: cu_credit_50_v1\n\
+    \    amount: 5000\n    creditMicros: 50000000\n    validDays: 365\n    enabled:\
+    \ true\n\n# Optional, off for every account until its owner turns it on.\nautoRecharge:\n\
+    \  defaultThresholdMicros: 2000000   # recharge when the balance falls below $2\n\
+    \  defaultPack: credit-20\n  defaultMonthlyCapCents: 5000      # at most $50 of\
+    \ automatic charges a calendar month\n  maxMonthlyCapCents: 50000\n"
+kind: ConfigMap
+metadata:
+  name: billing-catalogue
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+---
+apiVersion: v1
+data:
+  config.yaml: "# Dex for production. It federates the sign-in: Pomerium is its one\
+    \ client,\n# Google and GitHub its connectors, and there are no passwords of its\
+    \ own.\n# Both OAuth apps must list https://dex.computeruse.site/dex/callback.\
+    \ $NAMES\n# are read from the environment (the dex-oauth Secret).\nissuer: https://dex.computeruse.site/dex\n\
+    \nstorage:\n  type: kubernetes\n  config:\n    inCluster: true\n\nweb:\n  http:\
+    \ 0.0.0.0:5556\n\n# Health checks (and metrics), away from the public port.\n\
+    telemetry:\n  http: 0.0.0.0:5558\n\noauth2:\n  responseTypes: [\"code\"]\n  skipApprovalScreen:\
+    \ true\n\n# No local users: the only ways in are the two connectors.\nenablePasswordDB:\
+    \ false\n\nstaticClients:\n  - id: pomerium\n    name: Computer Use sessions\n\
+    \    secretEnv: POMERIUM_CLIENT_SECRET\n    redirectURIs:\n      - https://authenticate.computeruse.site/oauth2/callback\n\
+    \nconnectors:\n  - type: google\n    id: google\n    name: Google\n    config:\n\
+    \      clientID: $GOOGLE_CLIENT_ID\n      clientSecret: $GOOGLE_CLIENT_SECRET\n\
+    \      redirectURI: https://dex.computeruse.site/dex/callback\n  - type: github\n\
+    \    id: github\n    name: GitHub\n    config:\n      clientID: $GITHUB_CLIENT_ID\n\
+    \      clientSecret: $GITHUB_CLIENT_SECRET\n      redirectURI: https://dex.computeruse.site/dex/callback\n"
+kind: ConfigMap
+metadata:
+  name: dex-config-kbb56k6kh8
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+---
+apiVersion: v1
+data:
+  opa-config.yaml: "# Configuration of the shared OPA (opa run --server -c this).\
+    \ Verified with\n# OPA 1.9.0; see ../../plans/2026-10-02-session-policies-design.md,\
+    \ section 11.\nservices:\n  operator:\n    url: http://policy-operator.browserjs-sessions.svc:8080\n\
+    \    credentials:\n      bearer:\n        token: \"${BUNDLE_TOKEN}\"\nbundles:\n\
+    \  browserjs:\n    service: operator\n    resource: /bundles/browserjs.tar.gz\n\
+    \    persist: true\n    polling:\n      # Long polling: the operator holds the\
+    \ request until the bundle changes,\n      # so a change is fetched at once. The\
+    \ delays apply between requests and\n      # when the operator does not long-poll.\n\
+    \      long_polling_timeout_seconds: 30\n      min_delay_seconds: 1\n      max_delay_seconds:\
+    \ 2\npersistence_directory: /var/opa\ndecision_logs:\n  console: false\n"
+  system-authz.rego: "package system.authz\n\nimport rego.v1\n\ndefault allow := false\n\
+    \n# A session's mcp-js asking for a decision. It cannot send an identity.\nallow\
+    \ if {\n\tinput.method == \"POST\"\n\tcount(input.path) == 6\n\tarray.slice(input.path,\
+    \ 0, 4) == [\"v1\", \"data\", \"browserjs\", \"decision\"]\n\t# No ?explain, ?instrument,\
+    \ ?provenance, ?metrics: they describe the policy.\n\tobject.keys(input.params)\
+    \ == set()\n}\n\n# Kubelet probes.\nallow if {\n\tinput.method == \"GET\"\n\t\
+    input.path == [\"health\"]\n}\n\n# The operator, reading what this replica has\
+    \ loaded.\nallow if {\n\tinput.identity == opa.runtime().env.OPERATOR_TOKEN\n\t\
+    input.identity != \"\"\n\tinput.method == \"GET\"\n\tinput.path == [\"v1\", \"\
+    data\", \"browserjs\", \"loaded\"]\n}\n"
+kind: ConfigMap
+metadata:
+  name: opa-config-dhbhm856ft
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+---
+apiVersion: v1
+data:
+  config.yaml: "# Pomerium's configuration for production (computeruse.site). Secrets\n\
+    # (SHARED_SECRET, COOKIE_SECRET, SIGNING_KEY, IDP_CLIENT_SECRET) come from\n#\
+    \ the environment.\naddress: :8443\nhealth_check_addr: 0.0.0.0:28080\ncertificate_file:\
+    \ /tls/tls.crt\ncertificate_key_file: /tls/tls.key\n\nauthenticate_service_url:\
+    \ https://authenticate.computeruse.site\n\n# Users sign in with Dex, which offers\
+    \ Google and GitHub. Pomerium itself\n# fetches this address (discovery, tokens),\
+    \ through its own public name.\nidp_provider: oidc\nidp_provider_url: https://dex.computeruse.site/dex\n\
+    idp_client_id: pomerium\n\n# Sessions, MCP client registrations and MCP refresh\
+    \ tokens: lose these and\n# every user and every MCP client has to sign in again.\n\
+    databroker_storage_type: file\ndatabroker_storage_connection_string: file:///data/databroker\n\
+    \n# v0.33.3 uses this flag for inbound MCP registration and discovery as well\n\
+    # as upstream DCR. Registration creates a client identity, not user access;\n\
+    # the MCP route policy and backend session ownership checks still apply.\nruntime_flags:\n\
+    \  mcp_dynamic_client_registration: true\n\n# MCP clients that identify themselves\
+    \ by a metadata document under these\n# domains may sign users in (Claude's apps\
+    \ and Claude Code).\nmcp_allowed_client_id_domains:\n  - claude.ai\n\n# The whole\
+    \ of a request must arrive within this: an upload is up to 16 MiB.\ntimeout_read:\
+    \ 5m\n\nroutes:\n  # Sessions: one host for all of them, each under its ID\n \
+    \ # (https://sessions.computeruse.site/<id>/...). The backend tells the sessions'\n\
+    \  # host from the app's by Host, so every route keeps the caller's, and the\n\
+    \  # session by the first segment of the path. Each route matches whole\n  # paths;\
+    \ nothing else on this host reaches the backend.\n\n  # mcp-js's one-time upload\
+    \ URL: the token in the path is the credential,\n  # checked by the session's\
+    \ pod.\n  - name: session-upload\n    from: https://sessions.computeruse.site\n\
+    \    regex: '^/s-[a-z0-9]+/api/artifact-uploads/[0-9a-f]+$'\n    to: http://backend\n\
+    \    allow_public_unauthenticated_access: true\n    preserve_host_header: true\n\
+    \    timeout: 5m\n\n  # The session's screen, a websocket: the ticket in the query\
+    \ is the\n  # credential, checked by the backend.\n  - name: session-vnc\n   \
+    \ from: https://sessions.computeruse.site\n    regex: '^/s-[a-z0-9]+/vnc$'\n \
+    \   to: http://backend\n    allow_public_unauthenticated_access: true\n    allow_websockets:\
+    \ true\n    preserve_host_header: true\n\n  # The session's MCP endpoint. Pomerium\
+    \ signs the MCP client's user in and\n  # says who it is; the backend decides\
+    \ whether the session is theirs. The\n  # list of who may sign in is shared with\
+    \ the app's route below.\n  #\n  # Because this host is exact (no wildcard), Pomerium\
+    \ also answers the\n  # OAuth discovery for it: /.well-known/oauth-authorization-server,\
+    \ and\n  # /.well-known/oauth-protected-resource/<id>/mcp, which names\n  # https://sessions.computeruse.site/<id>/mcp\
+    \ as the resource. Its 401 points an\n  # MCP client there.\n  - name: session-mcp\n\
+    \    from: https://sessions.computeruse.site\n    regex: '^/s-[a-z0-9]+/mcp(/.*)?$'\n\
+    \    to: http://backend\n    mcp:\n      server:\n        max_request_bytes: 1048576\n\
+    \    # Who may use the app at all: these email addresses, nobody else.\n    policy:\
+    \ &allowed\n      - allow:\n          or:\n            - email:\n            \
+    \    is: rwendt1337@gmail.com\n            - email:\n                is: browserjs06@gmail.com\n\
+    \    pass_identity_headers: true\n    preserve_host_header: true\n\n  # DEPRECATED:\
+    \ a host per session (https://<id>.sessions.computeruse.site/...),\n  # where\
+    \ sessions were before. Kept so that the MCP URLs and upload URLs\n  # already\
+    \ handed out go on working; no new URL leads here. To retire them,\n  # delete\
+    \ these four routes, LEGACY_SESSION_URL_TEMPLATE on the backend,\n  # backend/internal/proxy/metadata.go,\
+    \ and the wildcard name from the\n  # certificate and from DNS (docs/gke-deployment.md,\
+    \ \"Session URLs\").\n\n  - name: legacy-session-upload\n    from: https://*.sessions.computeruse.site\n\
+    \    prefix: /api/artifact-uploads/\n    to: http://backend\n    allow_public_unauthenticated_access:\
+    \ true\n    preserve_host_header: true\n    timeout: 5m\n\n  - name: legacy-session-vnc\n\
+    \    from: https://*.sessions.computeruse.site\n    path: /vnc\n    to: http://backend\n\
+    \    allow_public_unauthenticated_access: true\n    allow_websockets: true\n \
+    \   preserve_host_header: true\n\n  # OAuth discovery for the MCP endpoint. Pomerium\
+    \ v0.33.3 serves these two\n  # documents itself only on hosts with an exact route,\
+    \ not on wildcard\n  # hosts, so the backend answers them (backend/internal/proxy/metadata.go).\n\
+    \  - name: legacy-session-oauth-metadata\n    from: https://*.sessions.computeruse.site\n\
+    \    prefix: /.well-known/oauth-\n    to: http://backend\n    allow_public_unauthenticated_access:\
+    \ true\n    preserve_host_header: true\n\n  - name: legacy-session-mcp\n    from:\
+    \ https://*.sessions.computeruse.site\n    prefix: /mcp\n    to: http://backend\n\
+    \    mcp:\n      server:\n        max_request_bytes: 1048576\n    policy: *allowed\n\
+    \    pass_identity_headers: true\n    preserve_host_header: true\n\n  # Dex's\
+    \ own pages (sign-in, the callbacks from Google and GitHub).\n  - name: dex\n\
+    \    from: https://dex.computeruse.site\n    to: http://dex:5556\n    allow_public_unauthenticated_access:\
+    \ true\n    preserve_host_header: true\n\n  # The UI and its API.\n  - name: app\n\
+    \    from: https://app.computeruse.site\n    to: http://backend\n    policy: *allowed\n\
+    \    pass_identity_headers: true\n    preserve_host_header: true\n    # A request\
+    \ may wait for a session's pod to answer.\n    timeout: 5m\n\n  # The API host,\
+    \ for clients that cannot sign in (Terraform, scripts, other\n  # services). Nobody\
+    \ signs in here and Pomerium says nothing about the\n  # caller: the credential\
+    \ is an API token, or an access token made from\n  # one, checked by the backend\
+    \ (docs/api-tokens.md). Three routes, each\n  # matching whole paths; nothing\
+    \ else on this host reaches the backend.\n\n  # The API.\n  - name: api\n    from:\
+    \ https://api.computeruse.site\n    prefix: /v1/\n    to: http://backend\n   \
+    \ allow_public_unauthenticated_access: true\n    preserve_host_header: true\n\n\
+    \  # An API token exchanged for an access token (OAuth client credentials).\n\
+    \  - name: api-token\n    from: https://api.computeruse.site\n    path: /oauth/token\n\
+    \    to: http://backend\n    allow_public_unauthenticated_access: true\n    preserve_host_header:\
+    \ true\n\n  # A session's MCP endpoint, as on the sessions' host but with a token\
+    \ in\n  # place of the sign-in. A call may run for minutes and the event stream\n\
+    \  # for as long as its client keeps it.\n  - name: api-mcp\n    from: https://api.computeruse.site\n\
+    \    regex: '^/s-[a-z0-9]+/mcp(/.*)?$'\n    to: http://backend\n    allow_public_unauthenticated_access:\
+    \ true\n    preserve_host_header: true\n    timeout: 0s\n    idle_timeout: 0s\n\
+    \n  # Stripe's webhook. Nobody signs in: the request's signature is the\n  # credential,\
+    \ checked by the backend (docs/contracts/billing/stripe.md).\n  # The backend\
+    \ serves it only while STRIPE_MODE is set.\n  - name: api-stripe-webhook\n   \
+    \ from: https://api.computeruse.site\n    path: /stripe/webhook\n    to: http://backend\n\
+    \    allow_public_unauthenticated_access: true\n    preserve_host_header: true\n\
+    \n  # Metronome's webhook, the same way (docs/contracts/billing/metronome.md).\n\
+    \  # The backend serves it only while BILLING is on.\n  - name: api-metronome-webhook\n\
+    \    from: https://api.computeruse.site\n    path: /metronome/webhook\n    to:\
+    \ http://backend\n    allow_public_unauthenticated_access: true\n    preserve_host_header:\
+    \ true\n\n  # The public site (site.yaml): anyone may read it, signed in or not,\
+    \ and\n  # it is told nothing about who is asking. An exact host of its own, so\
+    \ it\n  # takes nothing from the routes above.\n  - name: site\n    from: https://computeruse.site\n\
+    \    to: http://site\n    allow_public_unauthenticated_access: true\n    pass_identity_headers:\
+    \ false\n\n  # www: a permanent redirect to the site, same path and query. Pomerium\n\
+    \  # answers it itself; nothing in the cluster is asked, and nobody signs in.\n\
+    \  - name: www\n    from: https://www.computeruse.site\n    redirect:\n      host_redirect:\
+    \ computeruse.site\n      https_redirect: true\n      response_code: 301\n   \
+    \ allow_public_unauthenticated_access: true\n"
+kind: ConfigMap
+metadata:
+  name: pomerium-config-kmgh47k7fd
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+---
+apiVersion: v1
+data:
+  blueprint.yaml: "# deploy/base/blueprint.yaml for GKE: gVisor nodes, the session\n\
+    # ServiceAccount, the images from the registry, and what Agent Sandbox's\n# admission\
+    \ policies ask for. Keep the rest in step with base.\n#\n# The two image lines\
+    \ are written by hack/pin-images.sh from the images:\n# block of kustomization.yaml;\
+    \ do not edit them here.\n#\n# The spec of a session's Sandbox (agents.x-k8s.io/v1beta1),\
+    \ rendered by the\n# backend for each new session: {{ .ID }} is the session's\
+    \ ID, {{ .SessionURL }}\n# its own base URL (https://<sessions host>/<id>), {{\
+    \ .PublicURL }} the app's. The backend adds operatingMode\n# and the owner label.\n\
+    podTemplate:\n  metadata:\n    labels:\n      app: browserjs-session\n  spec:\n\
+    \    # The managed add-on's sandbox-core-policy requires gVisor; the label and\n\
+    \    # taint are what GKE puts on the sessions node pool.\n    runtimeClassName:\
+    \ gvisor\n    nodeSelector:\n      sandbox.gke.io/runtime: gvisor\n    tolerations:\n\
+    \      - key: sandbox.gke.io/runtime\n        operator: Equal\n        value:\
+    \ gvisor\n        effect: NoSchedule\n    serviceAccountName: session\n    automountServiceAccountToken:\
+    \ false\n    enableServiceLinks: false\n    # Chromium only saves its tabs on\
+    \ a clean exit: the browser's entrypoint\n    # asks it to quit and waits up to\
+    \ 10 s before stopping the rest.\n    terminationGracePeriodSeconds: 30\n    securityContext:\n\
+    \      # mcp-js runs as uid/gid 1000 and writes to the session disk.\n      fsGroup:\
+    \ 1000\n      fsGroupChangePolicy: OnRootMismatch\n      # Nothing in a session\
+    \ runs as root: sandbox-hardening-policy requires\n      # it. uid 1000 is \"\
+    browser\" in the browser image and \"mcpuser\" in\n      # mcp-js; the session\
+    \ disk is group-writable for gid 1000 (fsGroup).\n      runAsNonRoot: true\n \
+    \     runAsUser: 1000\n      runAsGroup: 1000\n      # No seccompProfile: GKE\
+    \ Sandbox does not support seccomp (gVisor is\n      # the system call filter),\
+    \ and the policies do not ask for one.\n    containers:\n      - name: browser\n\
+    \        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/browser@sha256:58b11812b7651f2b3af7a754feda7a3eca05d21db81af73916b47d037faad3de\n\
+    \        env:\n          - name: SESSION_MODE\n            value: \"1\"\n    \
+    \      - name: DATA_DIR\n            value: /data\n          - name: TAB_STATE_FILE\n\
+    \            value: /data/chrome/browserjs-tabs.json\n        ports:\n       \
+    \   - name: vnc\n            containerPort: 6080\n          - name: browser-mcp\n\
+    \            containerPort: 8081\n        # Both probes are HTTP: the server is\
+    \ what must answer.\n        startupProbe:\n          httpGet:\n            path:\
+    \ /healthz\n            port: browser-mcp\n          periodSeconds: 1\n      \
+    \    failureThreshold: 120\n        readinessProbe:\n          httpGet:\n    \
+    \        path: /healthz\n            port: browser-mcp\n          periodSeconds:\
+    \ 5\n          # Sessions share CPU (see resources); a slow answer under load\
+    \ is\n          # not a dead browser. Not ready only after 30s without an answer.\n\
+    \          timeoutSeconds: 5\n          failureThreshold: 6\n        # CPU is\
+    \ overcommitted on purpose: the node is packed by the small\n        # request\
+    \ (0.2 cores a session, both containers), and a busy session\n        # bursts\
+    \ up to its limit (2 cores a session). When the node is short,\n        # sessions\
+    \ slow down in proportion to their requests; none is killed.\n        # Memory\
+    \ is not overcommitted the same way, so its request is closer\n        # to real\
+    \ use and is what should fill a node first: about ten\n        # sessions on a\
+    \ 16 GB node.\n        resources:\n          requests:\n            cpu: 150m\n\
+    \            memory: 1Gi\n          limits:\n            cpu: 1500m\n        \
+    \    memory: 2Gi\n        # No capabilities and no way to gain any. Chromium runs\
+    \ with\n        # --no-sandbox; gVisor is the sandbox.\n        securityContext:\n\
+    \          allowPrivilegeEscalation: false\n          capabilities:\n        \
+    \    drop: [\"ALL\"]\n        volumeMounts:\n          - name: data\n        \
+    \    mountPath: /data/chrome\n            subPath: chrome\n          - name: shm\n\
+    \            mountPath: /dev/shm\n      - name: mcp-js\n        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/mcp-js@sha256:e3e1e5501814d36c33a02c66bac9ed3b0c0c799e9c3597b144b854621f69a1a6\n\
+    \        env:\n          # One-time upload URLs are made from this (mcp-js appends\n\
+    \          # /api/artifact-uploads/<token>), so they come back under the\n   \
+    \       # session's own prefix.\n          - name: MCP_V8_PUBLIC_URL\n       \
+    \     value: \"{{ .SessionURL }}\"\n          # Session policy: every browser\
+    \ call is also put to the shared OPA, at\n          # this session's own path.\
+    \ Written by hack/policy-stage.sh.\n          - name: MCP_V8_POLICIES_JSON\n \
+    \           value: >-\n              {\"mcp_tools\":{\"mode\":\"all\",\"policies\"\
+    :[\n              {\"url\":\"file:///etc/mcp/mcp_tools.rego\"},\n            \
+    \  {\"url\":\"http://opa.browserjs-sessions.svc:8181\",\"policy_path\":\"browserjs/decision/{{\
+    \ .ID }}/mcp_tools\"}]},\n              \"filesystem\":{\"policies\":[{\"url\"\
+    :\"file:///etc/mcp/filesystem.rego\"}]}}\n        ports:\n          - name: mcp\n\
+    \            containerPort: 8080\n        startupProbe:\n          httpGet:\n\
+    \            path: /api/artifacts\n            port: mcp\n          periodSeconds:\
+    \ 1\n          failureThreshold: 180\n        readinessProbe:\n          httpGet:\n\
+    \            path: /api/artifacts\n            port: mcp\n          periodSeconds:\
+    \ 5\n          timeoutSeconds: 5\n          failureThreshold: 6\n        resources:\n\
+    \          requests:\n            cpu: 50m\n            memory: 256Mi\n      \
+    \    limits:\n            cpu: 500m\n            memory: 1Gi\n        securityContext:\n\
+    \          allowPrivilegeEscalation: false\n          capabilities:\n        \
+    \    drop: [\"ALL\"]\n        volumeMounts:\n          - name: data\n        \
+    \    mountPath: /data\n    volumes:\n      - name: shm\n        emptyDir:\n  \
+    \        medium: Memory\n          sizeLimit: 1Gi\nvolumeClaimTemplates:\n  -\
+    \ metadata:\n      name: data\n    spec:\n      accessModes: [\"ReadWriteOnce\"\
+    ]\n      storageClassName: browserjs-zonal\n      resources:\n        requests:\n\
+    \          storage: 5Gi\n"
+  sizes.yaml: "# The sizes a session can have besides \"small\". Small is blueprint.yaml\
+    \ as it\n# is written (and the SandboxTemplate of warmpool.yaml, which is the\
+    \ same):\n# 1.5 CPU and 2 GiB for the desktop. A size here is that same pod with\
+    \ other\n# numbers, and can say nothing else: each container's requests and limits,\n\
+    # the size of /dev/shm, and environment variables that go with the size. The\n\
+    # backend (internal/sessions/sizes.go) puts them into the blueprint when a\n#\
+    \ session of that size is made or resized to it; deploy_test.go there holds\n\
+    # this file to the node it has to fit on and to the billing catalogue.\n#\n# Only\
+    \ small is kept warm. Any other size starts cold: from the blueprint, on\n# whichever\
+    \ node has room, or on a new one (docs/session-sizes.md has the\n# times).\n#\n\
+    # The numbers are sized for a session node of 4 vCPU and 16 GB, which has\n# 3213m\
+    \ of CPU and 12097Mi left for sessions (capacity, below).\nsizes:\n  # A third\
+    \ of a node. Three fit an empty one (3 x 3328Mi of 12097Mi); the\n  # node that\
+    \ holds the warm pool has no room for one (7 x 1280Mi are taken).\n  - name: medium\n\
+    \    containers:\n      browser:\n        resources:\n          requests:\n  \
+    \          cpu: 500m\n            memory: 3Gi\n          limits:\n           \
+    \ cpu: \"2\"\n            memory: 5Gi\n      mcp-js:\n        resources:\n   \
+    \       requests:\n            cpu: 50m\n            memory: 256Mi\n         \
+    \ limits:\n            cpu: 500m\n            memory: 1Gi\n        # The heap\
+    \ one run_js call has when it names none, in MB (8 without\n        # this). A\
+    \ call can still ask for up to 64.\n        env:\n          MCP_V8_HEAP_MEMORY_MAX:\
+    \ \"16\"\n    # Memory, counted against the browser container's limit.\n    shm:\
+    \ 2Gi\n  # A whole node. Memory is requested in full (the request is the limit),\
+    \ so\n  # the scheduler puts nothing beside it and it is never short because of\
+    \ a\n  # neighbour: 11264Mi of the 12097Mi, the 833Mi left over fit no session.\n\
+    \  # CPU is not: 2050m are its own, and it may use 3.5 cores when they are\n \
+    \ # free, which on a node of its own they are.\n  - name: large\n    containers:\n\
+    \      browser:\n        resources:\n          requests:\n            cpu: \"\
+    2\"\n            memory: 10Gi\n          limits:\n            cpu: \"3\"\n   \
+    \         memory: 10Gi\n      mcp-js:\n        resources:\n          requests:\n\
+    \            cpu: 50m\n            memory: 1Gi\n          limits:\n          \
+    \  cpu: 500m\n            memory: 1Gi\n        env:\n          MCP_V8_HEAP_MEMORY_MAX:\
+    \ \"32\"\n    shm: 4Gi\n\n# The room there is for sessions, for refusing one that\
+    \ would only wait\n# (\"no capacity for a large session right now\") instead of\
+    \ leaving it\n# starting until it times out. nodes is how many session nodes the\
+    \ project's\n# quotas allow at once (12 CPUs: the system node and two session\
+    \ nodes of 4;\n# infra/main/terraform.tfvars), whatever session_max_nodes says.\
+    \ cpu and\n# memory are what one such node has left for session pods once GKE's\
+    \ own\n# pods have theirs: the \"left for sessions\" row of warmpool.yaml. Raise\
+    \ nodes\n# with the quota.\ncapacity:\n  nodes: 2\n  cpu: 3213m\n  memory: 12097Mi\n"
+kind: ConfigMap
+metadata:
+  name: session-blueprint-d8f9744c29
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+  selector:
+    app: backend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-preview
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+  selector:
+    app: backend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dex
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  ports:
+  - name: http
+    port: 5556
+    targetPort: http
+  selector:
+    app: dex
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opa
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  ports:
+  - name: http
+    port: 8181
+    targetPort: http
+  selector:
+    app: opa
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: policy-operator
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+  selector:
+    app: policy-operator
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    networking.gke.io/load-balancer-ip-addresses: browserjs-edge
+    argocd.argoproj.io/sync-wave: '0'
+  name: pomerium
+  namespace: browserjs-sessions
+spec:
+  externalTrafficPolicy: Local
+  loadBalancerClass: networking.gke.io/l4-regional-external
+  ports:
+  - name: https
+    port: 443
+    targetPort: https
+  selector:
+    app: pomerium
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: site
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+  selector:
+    app: site
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: site-canary
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+  selector:
+    app: site
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: backend
+  name: backend
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - env:
+        - name: ACTIVE_FILE
+          value: /etc/podinfo/labels
+        - name: PUBLIC_URL
+          value: https://app.computeruse.site
+        - name: SESSION_URL_TEMPLATE
+          value: https://sessions.computeruse.site/{id}
+        - name: LEGACY_SESSION_URL_TEMPLATE
+          value: https://{id}.sessions.computeruse.site
+        - name: POMERIUM_JWKS_URL
+          value: https://app.computeruse.site/.well-known/pomerium/jwks.json
+        - name: ADMIN_EMAILS
+          value: rwendt1337@gmail.com
+        - name: API_URL
+          value: https://api.computeruse.site
+        - name: ALLOWED_EMAILS
+          value: rwendt1337@gmail.com,browserjs06@gmail.com
+        - name: SNAPSHOTS
+          value: 'true'
+        - name: SNAPSHOT_TIMEOUT
+          value: 2m
+        - name: SNAPSHOT_RESTORE_TIMEOUT
+          value: 2m
+        - name: READY_TIMEOUT
+          value: 5m
+        - name: WARM_POOL
+          value: s
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: MCP_SKILLS_IMAGE_DIGEST
+          valueFrom:
+            configMapKeyRef:
+              key: image-digest
+              name: mcp-skills
+              optional: true
+        - name: MCP_SKILLS_EMAILS
+          valueFrom:
+            configMapKeyRef:
+              key: emails
+              name: mcp-skills
+              optional: true
+        - name: POLICY_OPERATOR_URL
+          value: http://policy-operator.browserjs-sessions.svc:8080
+        - name: OPERATOR_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: operator-api-token
+              name: policy-tokens
+              optional: true
+        - name: API_SIGNING_KEY
+          valueFrom:
+            secretKeyRef:
+              key: signing-key
+              name: api-tokens
+              optional: true
+        - name: BILLING_GRACE
+          value: 5m
+        - name: BILLING_DRAIN_TIMEOUT
+          value: 10m
+        - name: BILLING_BALANCE_PASS
+          value: 5m
+        - name: METRONOME_URL
+          value: https://api.metronome.com
+        - name: METRONOME_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: METRONOME_API_TOKEN
+              name: metronome
+              optional: true
+        - name: METRONOME_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: METRONOME_WEBHOOK_SECRET
+              name: metronome
+              optional: true
+        - name: MAX_AWAKE_SESSIONS
+          value: '10'
+        - name: WAKES_PER_HOUR
+          value: '30'
+        - name: ZERO_BALANCE_DELETE
+          value: 'off'
+        - name: ZERO_BALANCE_DELETE_AFTER
+          value: 336h
+        - name: SIGNUP_CREDIT
+          value: 'on'
+        - name: AUTO_RECHARGE
+          value: 'off'
+        - name: BILLING_CATALOGUE
+          value: /etc/browserjs/catalogue.yaml
+        - name: STRIPE_MODE
+          valueFrom:
+            configMapKeyRef:
+              key: STRIPE_MODE
+              name: billing-mode
+              optional: true
+        - name: STRIPE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: STRIPE_API_KEY
+              name: stripe
+              optional: true
+        - name: STRIPE_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: STRIPE_WEBHOOK_SECRET
+              name: stripe-webhook
+              optional: true
+        - name: OPEN_SIGNUP
+          value: 'false'
+        - name: SIGNUPS_PER_DAY
+          value: '200'
+        - name: SIGNUPS_PER_IP_PER_DAY
+          value: '5'
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:2d4de7d8698732abeaf465cc1ed720ed4f439f825f4cbfd71e429e6c34ade6bd
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 20
+        name: backend
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 5
+        resources:
+          limits:
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /etc/podinfo
+          name: podinfo
+          readOnly: true
+        - mountPath: /etc/browserjs
+          name: blueprint
+          readOnly: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: backend
+      volumes:
+      - downwardAPI:
+          items:
+          - fieldRef:
+              fieldPath: metadata.labels
+            path: labels
+        name: podinfo
+      - name: blueprint
+        projected:
+          sources:
+          - configMap:
+              name: session-blueprint-d8f9744c29
+          - configMap:
+              name: billing-catalogue
+          - configMap:
+              items:
+              - key: ids.json
+                path: billing-iac/ids.json
+              name: billing-iac
+              optional: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: billing-operator
+  name: billing-operator
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: billing-operator
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: billing-operator
+    spec:
+      containers:
+      - command:
+        - kopf
+        - run
+        - --standalone
+        - --namespace=browserjs-sessions
+        - --liveness=http://0.0.0.0:8081/healthz
+        - -m
+        - billing_operator
+        env:
+        - name: USER
+          value: billing-operator
+        - name: TICK
+          value: 60s
+        - name: MAX_GAP
+          value: 150s
+        - name: AWAKE_WINDOW
+          value: 5m
+        - name: KEPT_WINDOW
+          value: 6h
+        - name: BILLING_CATALOGUE
+          value: /etc/browserjs/catalogue.yaml
+        - name: METRONOME_URL
+          value: https://api.metronome.com
+        - name: METRONOME_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: METRONOME_API_TOKEN
+              name: metronome
+              optional: true
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/billing-operator@REPLACE_WITH_DIGEST
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: liveness
+          periodSeconds: 20
+        name: billing-operator
+        ports:
+        - containerPort: 8081
+          name: liveness
+        resources:
+          limits:
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /etc/browserjs
+          name: catalogue
+          readOnly: true
+        - mountPath: /tmp
+          name: tmp
+      enableServiceLinks: false
+      securityContext:
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: billing-operator
+      volumes:
+      - configMap:
+          name: billing-catalogue
+        name: catalogue
+      - emptyDir: {}
+        name: tmp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: dex
+  name: dex
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dex
+  template:
+    metadata:
+      labels:
+        app: dex
+    spec:
+      containers:
+      - args:
+        - dex
+        - serve
+        - /etc/dex/config.yaml
+        envFrom:
+        - secretRef:
+            name: dex-oauth
+        image: ghcr.io/dexidp/dex:v2.45.1
+        name: dex
+        ports:
+        - containerPort: 5556
+          name: http
+        - containerPort: 5558
+          name: telemetry
+        readinessProbe:
+          httpGet:
+            path: /healthz/ready
+            port: telemetry
+          periodSeconds: 5
+        resources:
+          limits:
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /etc/dex
+          name: config
+          readOnly: true
+        - mountPath: /tmp
+          name: tmp
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: dex
+      volumes:
+      - configMap:
+          name: dex-config-kbb56k6kh8
+        name: config
+      - emptyDir: {}
+        name: tmp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: opa
+  name: opa
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '-1'
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: opa
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: opa
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - run
+        - --server
+        - --addr=:8181
+        - --authentication=token
+        - --authorization=basic
+        - --config-file=/config/opa-config.yaml
+        - /config/system-authz.rego
+        env:
+        - name: BUNDLE_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: bundle-token
+              name: policy-tokens
+        - name: OPERATOR_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: opa-token
+              name: policy-tokens
+        image: openpolicyagent/opa:1.9.0-static@sha256:60b6af32b58377718546ac7d4634eecbfe50ec36f7d3ca3f8ebf515f9826c2ac
+        lifecycle:
+          preStop:
+            sleep:
+              seconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 20
+        name: opa
+        ports:
+        - containerPort: 8181
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /health?bundles
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 2
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /config
+          name: config
+          readOnly: true
+        - mountPath: /var/opa
+          name: bundles
+      enableServiceLinks: false
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: opa
+      topologySpreadConstraints:
+      - labelSelector:
+          matchLabels:
+            app: opa
+        maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+      volumes:
+      - configMap:
+          name: opa-config-dhbhm856ft
+        name: config
+      - emptyDir: {}
+        name: bundles
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: policy-operator
+  name: policy-operator
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '-1'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: policy-operator
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: policy-operator
+    spec:
+      containers:
+      - command:
+        - kopf
+        - run
+        - --standalone
+        - --namespace=browserjs-sessions
+        - --liveness=http://0.0.0.0:8081/healthz
+        - -m
+        - policy_operator
+        env:
+        - name: USER
+          value: policy-operator
+        - name: BUNDLE_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: bundle-token
+              name: policy-tokens
+        - name: OPA_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: opa-token
+              name: policy-tokens
+        - name: OPERATOR_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: operator-api-token
+              name: policy-tokens
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/policy-operator@sha256:e1a4f6bb7054f9e47a0464f394900cece813323f12dfc79bf76dcb7c934b5977
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: liveness
+          periodSeconds: 20
+        name: policy-operator
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8081
+          name: liveness
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: http
+          periodSeconds: 5
+        resources:
+          limits:
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      enableServiceLinks: false
+      securityContext:
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: policy-operator
+      volumes:
+      - emptyDir: {}
+        name: tmp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: site
+  name: site
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: site
+  template:
+    metadata:
+      labels:
+        app: site
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/site@sha256:df8f8e018627b41d7bd0d66a7ebea7cacd6282f56c1709beb07d6e3390f9b1ca
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 20
+        name: site
+        ports:
+        - containerPort: 8080
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 250m
+            memory: 64Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      securityContext:
+        runAsGroup: 101
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - emptyDir:
+          sizeLimit: 16Mi
+        name: tmp
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: pomerium
+  name: pomerium
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pomerium
+  serviceName: pomerium
+  template:
+    metadata:
+      labels:
+        app: pomerium
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - --config
+        - /etc/pomerium/config.yaml
+        envFrom:
+        - secretRef:
+            name: pomerium
+        image: pomerium/pomerium:v0.33.3
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /healthz
+            port: health
+          periodSeconds: 30
+        name: pomerium
+        ports:
+        - containerPort: 8443
+          name: https
+        - containerPort: 28080
+          name: health
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: health
+          periodSeconds: 10
+        resources:
+          limits:
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        startupProbe:
+          failureThreshold: 60
+          httpGet:
+            path: /startupz
+            port: health
+          periodSeconds: 2
+        volumeMounts:
+        - mountPath: /etc/pomerium
+          name: config
+          readOnly: true
+        - mountPath: /tls
+          name: tls
+          readOnly: true
+        - mountPath: /data
+          name: data
+        - mountPath: /tmp
+          name: tmp
+      securityContext:
+        fsGroup: 65532
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - configMap:
+          name: pomerium-config-kmgh47k7fd
+        name: config
+      - name: tls
+        secret:
+          secretName: pomerium-tls
+      - emptyDir: {}
+        name: tmp
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: browserjs-zonal
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: billing-export
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata:
+      labels:
+        app: billing-export
+    spec:
+      activeDeadlineSeconds: 600
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: billing-export
+        spec:
+          containers:
+          - command:
+            - bash
+            - -euo
+            - pipefail
+            - -c
+            - "command -v kubectl curl jq >/dev/null\nout=/tmp/export.yaml\nkubectl\
+              \ -n \"$NAMESPACE\" get accounts.browserjs.dev -o yaml >\"$out\"\nif\
+              \ [ -z \"$BUCKET\" ]; then\n  cat \"$out\"\n  exit 0\nfi\nname=\"export/$(date\
+              \ -u +%Y/%m/%Y-%m-%dT%H-%M-%SZ).yaml\"\n# The token is this ServiceAccount's\
+              \ own, from the node's\n# metadata server. It goes to curl on stdin:\
+              \ never in a\n# command line, a file or this log.\ncurl -sS --fail -H\
+              \ 'Metadata-Flavor: Google' \\\n  'http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token'\
+              \ |\n  jq -r '\"header = \\\"Authorization: Bearer \\(.access_token)\\\
+              \"\"' |\n  curl -sS --fail -K - -o /dev/null -X POST \\\n    -H 'Content-Type:\
+              \ application/yaml' --data-binary \"@$out\" \\\n    \"https://storage.googleapis.com/upload/storage/v1/b/$BUCKET/o?uploadType=media&name=$(printf\
+              \ %s \"$name\" | jq -sRr @uri)\"\necho \"exported $(wc -c <\"$out\"\
+              ) bytes to gs://$BUCKET/$name\"\n"
+            env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: BUCKET
+              value: browserjs-sessions-billing-export
+            - name: HOME
+              value: /tmp
+            image: alpine/k8s:1.36.5@sha256:094adf64cdc4827377cdbe7ea5747472ce115f9fbc64a4e35970ec66777f9a00
+            name: export
+            resources:
+              limits:
+                memory: 512Mi
+              requests:
+                cpu: 50m
+                memory: 128Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+            volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+          enableServiceLinks: false
+          restartPolicy: Never
+          securityContext:
+            runAsGroup: 65532
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          serviceAccountName: billing-export
+          volumes:
+          - emptyDir: {}
+            name: tmp
+  schedule: 17 3 * * *
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  suspend: true
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: opa
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: opa
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: release-canary
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  metrics:
+  - count: 1
+    failureLimit: 0
+    name: canary
+    provider:
+      job:
+        metadata:
+          labels:
+            app: release-canary
+        spec:
+          activeDeadlineSeconds: 1200
+          backoffLimit: 0
+          template:
+            metadata:
+              labels:
+                app: release-canary
+            spec:
+              automountServiceAccountToken: false
+              containers:
+              - command:
+                - sh
+                - -c
+                - "if [ -z \"$CANARY_API_TOKEN\" ]; then\n  echo \"no token (the Secret\
+                  \ release-canary): the release canary is not switched on, and this\
+                  \ backend goes out unchecked\"\n  exit 1\nfi\n# backend-preview\
+                  \ has only just got its new pod: let\n# the Service settle on it\
+                  \ before asking.\nsleep 20\nexec python3 /canary/canary.py\n"
+                env:
+                - name: CANARY_API_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: token
+                      name: release-canary
+                - name: API_URL
+                  value: http://backend-preview.browserjs-sessions.svc
+                - name: API_HOST
+                  value: api.computeruse.site
+                - name: APP_URL
+                  value: ''
+                - name: SITE_URL
+                  value: ''
+                - name: START_TIMEOUT
+                  value: '300'
+                image: python:3.13-alpine@sha256:2dd78ad5cf13a0b68f5134dc49aa9950203a8cf4b7463431b9f3b398287c5059
+                name: canary
+                resources:
+                  limits:
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 32Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  readOnlyRootFilesystem: true
+                volumeMounts:
+                - mountPath: /canary
+                  name: canary
+                  readOnly: true
+              enableServiceLinks: false
+              restartPolicy: Never
+              securityContext:
+                runAsGroup: 65532
+                runAsNonRoot: true
+                runAsUser: 65532
+                seccompProfile:
+                  type: RuntimeDefault
+              volumes:
+              - configMap:
+                  name: release-canary
+                name: canary
+          ttlSecondsAfterFinished: 86400
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: site-answers
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  metrics:
+  - count: 1
+    failureLimit: 0
+    name: answers
+    provider:
+      job:
+        metadata:
+          labels:
+            app: release-canary
+        spec:
+          activeDeadlineSeconds: 300
+          backoffLimit: 0
+          template:
+            metadata:
+              labels:
+                app: release-canary
+            spec:
+              automountServiceAccountToken: false
+              containers:
+              - command:
+                - python3
+                - -c
+                - "import sys, time, urllib.request\nbase = \"http://site-canary.browserjs-sessions.svc\"\
+                  \nfor attempt in range(20):\n    time.sleep(0.5)\n    for path,\
+                  \ want in ((\"/\", b\"<html\"), (\"/healthz\", b\"\")):\n      \
+                  \  with urllib.request.urlopen(base + path, timeout=10) as r:\n\
+                  \            body = r.read()\n            if r.status != 200 or\
+                  \ want not in body.lower():\n                sys.exit(\"%s answered\
+                  \ %d, %d bytes, without %r\" % (path, r.status, len(body), want))\n\
+                  print(\"the new site answered / and /healthz twenty times\")\n"
+                image: python:3.13-alpine@sha256:2dd78ad5cf13a0b68f5134dc49aa9950203a8cf4b7463431b9f3b398287c5059
+                name: check
+                resources:
+                  limits:
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 32Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  readOnlyRootFilesystem: true
+              enableServiceLinks: false
+              restartPolicy: Never
+              securityContext:
+                runAsGroup: 65532
+                runAsNonRoot: true
+                runAsUser: 65532
+                seccompProfile:
+                  type: RuntimeDefault
+          ttlSecondsAfterFinished: 86400
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: backend
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  progressDeadlineAbort: true
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    blueGreen:
+      activeMetadata:
+        labels:
+          browserjs.dev/role: active
+      activeService: backend
+      autoPromotionEnabled: true
+      prePromotionAnalysis:
+        templates:
+        - templateName: release-canary
+      previewMetadata:
+        labels:
+          browserjs.dev/role: preview
+      previewService: backend-preview
+      scaleDownDelaySeconds: 30
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: site
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  progressDeadlineAbort: true
+  progressDeadlineSeconds: 300
+  replicas: 4
+  revisionHistoryLimit: 3
+  strategy:
+    canary:
+      canaryService: site-canary
+      maxSurge: 1
+      maxUnavailable: 0
+      steps:
+      - setWeight: 25
+      - pause:
+          duration: 20s
+      - analysis:
+          templates:
+          - templateName: site-answers
+      - setWeight: 50
+      - pause:
+          duration: 30s
+      - setWeight: 100
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: site
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pomerium-tls
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  dnsNames:
+  - computeruse.site
+  - www.computeruse.site
+  - app.computeruse.site
+  - api.computeruse.site
+  - authenticate.computeruse.site
+  - dex.computeruse.site
+  - sessions.computeruse.site
+  - '*.sessions.computeruse.site'
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-production
+  privateKey:
+    algorithm: ECDSA
+    rotationPolicy: Always
+    size: 256
+  secretName: pomerium-tls
+---
+apiVersion: extensions.agents.x-k8s.io/v1beta1
+kind: SandboxTemplate
+metadata:
+  name: session
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  networkPolicyManagement: Unmanaged
+  podTemplate:
+    metadata:
+      labels:
+        app: browserjs-session
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - env:
+        - name: SESSION_MODE
+          value: '1'
+        - name: DATA_DIR
+          value: /data
+        - name: TAB_STATE_FILE
+          value: /data/chrome/browserjs-tabs.json
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/browser@sha256:58b11812b7651f2b3af7a754feda7a3eca05d21db81af73916b47d037faad3de
+        name: browser
+        ports:
+        - containerPort: 6080
+          name: vnc
+        - containerPort: 8081
+          name: browser-mcp
+        readinessProbe:
+          failureThreshold: 6
+          httpGet:
+            path: /healthz
+            port: browser-mcp
+          periodSeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 1500m
+            memory: 2Gi
+          requests:
+            cpu: 150m
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        startupProbe:
+          failureThreshold: 120
+          httpGet:
+            path: /healthz
+            port: browser-mcp
+          periodSeconds: 1
+        volumeMounts:
+        - mountPath: /data/chrome
+          name: data
+          subPath: chrome
+        - mountPath: /dev/shm
+          name: shm
+      - env:
+        - name: SESSION_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: MCP_V8_PUBLIC_URL
+          value: https://sessions.computeruse.site/$(SESSION_ID)
+        - name: MCP_V8_POLICIES_JSON
+          value: '{"mcp_tools":{"mode":"all","policies":[ {"url":"file:///etc/mcp/mcp_tools.rego"},
+            {"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/$(SESSION_ID)/mcp_tools"}]},
+            "filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]}}'
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/mcp-js@sha256:e3e1e5501814d36c33a02c66bac9ed3b0c0c799e9c3597b144b854621f69a1a6
+        name: mcp-js
+        ports:
+        - containerPort: 8080
+          name: mcp
+        readinessProbe:
+          failureThreshold: 6
+          httpGet:
+            path: /api/artifacts
+            port: mcp
+          periodSeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        startupProbe:
+          failureThreshold: 180
+          httpGet:
+            path: /api/artifacts
+            port: mcp
+          periodSeconds: 1
+        volumeMounts:
+        - mountPath: /data
+          name: data
+      enableServiceLinks: false
+      nodeSelector:
+        sandbox.gke.io/runtime: gvisor
+      runtimeClassName: gvisor
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      serviceAccountName: session
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        key: sandbox.gke.io/runtime
+        operator: Equal
+        value: gvisor
+      volumes:
+      - emptyDir:
+          medium: Memory
+          sizeLimit: 1Gi
+        name: shm
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+      storageClassName: browserjs-zonal
+---
+apiVersion: extensions.agents.x-k8s.io/v1beta1
+kind: SandboxWarmPool
+metadata:
+  name: s
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  replicas: 7
+  sandboxTemplateRef:
+    name: session
+  updateStrategy:
+    type: Recreate
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: pomerium
+    - podSelector:
+        matchLabels:
+          app: release-canary
+    ports:
+    - port: 8080
+      protocol: TCP
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: gmp-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: collector
+    ports:
+    - port: 9090
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: billing-export
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: node-local-dns
+    - ipBlock:
+        cidr: 169.254.20.10/32
+  - ports:
+    - port: 443
+      protocol: TCP
+    - port: 6443
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+  - ports:
+    - port: 80
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 169.254.169.254/32
+  - ports:
+    - port: 988
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 169.254.169.252/32
+  ingress: []
+  podSelector:
+    matchLabels:
+      app: billing-export
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: billing-operator
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: node-local-dns
+    - ipBlock:
+        cidr: 169.254.20.10/32
+  - ports:
+    - port: 443
+      protocol: TCP
+    - port: 6443
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+  ingress: []
+  podSelector:
+    matchLabels:
+      app: billing-operator
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: opa
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: node-local-dns
+    - ipBlock:
+        cidr: 169.254.20.10/32
+  - ports:
+    - port: 8080
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          app: policy-operator
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: browserjs-session
+    - podSelector:
+        matchLabels:
+          app: policy-operator
+    ports:
+    - port: 8181
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: opa
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: policy-operator
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: node-local-dns
+    - ipBlock:
+        cidr: 169.254.20.10/32
+  - ports:
+    - port: 8181
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          app: opa
+  - ports:
+    - port: 443
+      protocol: TCP
+    - port: 6443
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: opa
+    - podSelector:
+        matchLabels:
+          app: backend
+    ports:
+    - port: 8080
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: policy-operator
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: release-canary
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: node-local-dns
+    - ipBlock:
+        cidr: 169.254.20.10/32
+  - ports:
+    - port: 8080
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          app: backend
+    - podSelector:
+        matchLabels:
+          app: site
+  ingress: []
+  podSelector:
+    matchLabels:
+      app: release-canary
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: session-pods
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: node-local-dns
+    - ipBlock:
+        cidr: 169.254.20.10/32
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+        - 100.64.0.0/10
+        - 169.254.0.0/16
+  - ports:
+    - port: 8181
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          app: opa
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: backend
+    ports:
+    - port: 6080
+      protocol: TCP
+    - port: 8080
+      protocol: TCP
+    - port: 8081
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: browserjs-session
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: site
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: pomerium
+    - podSelector:
+        matchLabels:
+          app: release-canary
+    ports:
+    - port: 8080
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: site
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: podsnapshot.gke.io/v1
+kind: PodSnapshotPolicy
+metadata:
+  name: session-sleep
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  selector:
+    matchLabels:
+      app: browserjs-session
+  snapshotGroupingRules:
+    groupByLabelValue:
+      groupRetentionPolicy:
+        maxSnapshotCountPerGroup: 1
+      labels:
+      - agents.x-k8s.io/sandbox-name-hash
+  snapshotScope: whole-pod
+  storageConfigName: browserjs-sessions
+  triggerConfig:
+    postCheckpoint: resume
+    type: manual
+---
+apiVersion: podsnapshot.gke.io/v1
+kind: PodSnapshotStorageConfig
+metadata:
+  name: browserjs-sessions
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '0'
+spec:
+  snapshotStorageConfig:
+    gcs:
+      bucket: browserjs-sessions-pod-snapshots
+      path: sessions
+      tokenSource: podKSA
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: release-canary
+  namespace: browserjs-sessions
+  annotations:
+    argocd.argoproj.io/sync-wave: '-2'
+data:
+  canary.py: "#!/usr/bin/env python3\n\"\"\"The release canary: one session, end to\
+    \ end, through the public API host\nwith an API token. What a release must not\
+    \ break (docs/releases.md).\n\n  CANARY_API_TOKEN=bjs_... test/canary.py\n\nPython's\
+    \ standard library only. It prints one line a check and exits 0 only\nif every\
+    \ check passed. The session it makes is deleted whatever happens, and\nso is one\
+    \ a run before it left behind. Nothing it prints is secret: no token,\nno email\
+    \ address.\n\nThe environment:\n\n  CANARY_API_TOKEN     required. An API token\
+    \ with the scopes sessions:read,\n                       sessions:write, sessions:connect,\
+    \ policies:read and\n                       policies:write (the app's API tokens\
+    \ page). Never\n                       printed.\n  DOMAIN               computeruse.site.\
+    \ The API is https://api.<DOMAIN>, the\n                       app https://app.<DOMAIN>,\
+    \ the site https://<DOMAIN>.\n  API_URL, APP_URL,    each of those, to say otherwise.\
+    \ APP_URL or SITE_URL\n  SITE_URL             empty: that check is left out.\n\
+    \  API_HOST             the Host header sent to API_URL, when API_URL is not\n\
+    \                       the public name: a backend asked directly, inside the\n\
+    \                       cluster (the rollout's check of a standby backend)\n \
+    \ CA_FILE              a CA certificate to trust (a local cluster's)\n  CANARY_DIGESTS\
+    \       \"browser=sha256:...,mcp-js=sha256:...\": the session is\n           \
+    \            a canary session, started cold on those digests of the\n        \
+    \               session images (the token's owner must be an admin of\n      \
+    \                 the deployment). Unset: an ordinary session, from the\n    \
+    \                   warm pool if there is one.\n  EXPECT_STATE_SAVED   1 (default):\
+    \ sleep must save the session's state and\n                       wake must bring\
+    \ it back as it was (Pod Snapshots).\n                       0: a cluster without\
+    \ snapshots; wake starts it fresh.\n  EXPECT_POLICIES      1 (default): the session's\
+    \ policy is changed and must\n                       bind. 0: a deployment with\
+    \ session policies off.\n  SESSION_HOOK         a command run once the session\
+    \ is running, with\n                       SESSION_ID in its environment (the\
+    \ release workflow\n                       checks the pod's images with it). Its\
+    \ failure fails\n                       the run; its output is shown.\n  START_TIMEOUT\
+    \        seconds to wait for a session to run (420)\n  SUMMARY              a\
+    \ file the results are appended to, as Markdown\n\"\"\"\nimport base64\nimport\
+    \ json\nimport os\nimport re\nimport secrets\nimport ssl\nimport subprocess\n\
+    import sys\nimport time\nimport urllib.error\nimport urllib.parse\nimport urllib.request\n\
+    \nDOMAIN = os.environ.get(\"DOMAIN\", \"computeruse.site\")\nAPI = os.environ.get(\"\
+    API_URL\", \"https://api.\" + DOMAIN).rstrip(\"/\")\nAPP = os.environ.get(\"APP_URL\"\
+    , \"https://app.\" + DOMAIN).rstrip(\"/\")\nSITE = os.environ.get(\"SITE_URL\"\
+    , \"https://\" + DOMAIN).rstrip(\"/\")\nAPI_HOST = os.environ.get(\"API_HOST\"\
+    , \"\")\nTOKEN = os.environ.get(\"CANARY_API_TOKEN\", \"\")\nEXPECT_STATE_SAVED\
+    \ = os.environ.get(\"EXPECT_STATE_SAVED\", \"1\") != \"0\"\nEXPECT_POLICIES =\
+    \ os.environ.get(\"EXPECT_POLICIES\", \"1\") != \"0\"\nSTART_TIMEOUT = int(os.environ.get(\"\
+    START_TIMEOUT\", \"420\"))\n# Sessions this script made are named so, and it deletes\
+    \ any it finds.\nNAME_PREFIX = \"release-canary-\"\n# Where a policy taken over\
+    \ by a token says it is managed: this page.\nMANAGED_URL = \"https://github.com/r33drichards/computer-use/blob/main/docs/releases.md\"\
+    \n\nCONTEXT = ssl.create_default_context(cafile=os.environ.get(\"CA_FILE\") or\
+    \ None)\n\n\nclass NoRedirect(urllib.request.HTTPRedirectHandler):\n    def redirect_request(self,\
+    \ *args, **kwargs):\n        return None\n\n\nOPENER = urllib.request.build_opener(urllib.request.HTTPSHandler(context=CONTEXT),\
+    \ NoRedirect)\n\nresults = []  # (ok, name, detail)\n# Anything shaped like an\
+    \ email address: the log is public.\nADDRESS = re.compile(r\"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\\
+    .[A-Za-z]{2,}\")\n\n\ndef scrub(text):\n    \"\"\"What is about to be printed,\
+    \ without the token (it never should be in\n    an answer; this is the second\
+    \ lock).\"\"\"\n    text = ADDRESS.sub(\"[address]\", str(text))\n    for secret\
+    \ in (TOKEN, ACCESS.get(\"token\", \"\")):\n        if secret:\n            text\
+    \ = text.replace(secret, \"[redacted]\")\n    return text\n\n\nACCESS = {}\n\n\
+    \ndef http(method, url, body=None, headers=None, timeout=60):\n    \"\"\"One request.\
+    \ Returns (status, headers, bytes); 0 when nothing answered.\"\"\"\n    data =\
+    \ None\n    headers = dict(headers or {})\n    if isinstance(body, (dict, list)):\n\
+    \        data = json.dumps(body).encode()\n        headers.setdefault(\"Content-Type\"\
+    , \"application/json\")\n    elif body is not None:\n        data = body\n   \
+    \ if API_HOST and url.startswith(API + \"/\"):\n        headers[\"Host\"] = API_HOST\n\
+    \    request = urllib.request.Request(url, data=data, method=method, headers=headers)\n\
+    \    try:\n        with OPENER.open(request, timeout=timeout) as response:\n \
+    \           return response.status, response.headers, response.read()\n    except\
+    \ urllib.error.HTTPError as e:\n        return e.code, e.headers, e.read()\n \
+    \   except (urllib.error.URLError, OSError) as e:\n        return 0, {}, str(e).encode()\n\
+    \n\ndef api(method, path, body=None, timeout=60):\n    status, _, raw = http(method,\
+    \ API + path, body, {\"Authorization\": \"Bearer \" + ACCESS[\"token\"]}, timeout)\n\
+    \    try:\n        return status, json.loads(raw) if raw else None\n    except\
+    \ ValueError:\n        return status, raw[:300].decode(errors=\"replace\")\n\n\
+    \nclass Failed(Exception):\n    pass\n\n\ndef expect(condition, message):\n  \
+    \  if not condition:\n        raise Failed(message)\n\n\ndef check(name, fn):\n\
+    \    \"\"\"Runs one check; returns whether it passed.\"\"\"\n    started = time.time()\n\
+    \    try:\n        detail = fn() or \"\"\n        ok = True\n    except Failed\
+    \ as e:\n        detail, ok = str(e), False\n    except Exception as e:  # a bug\
+    \ here, or an answer in a shape nobody expected\n        detail, ok = \"%s: %s\"\
+    \ % (type(e).__name__, e), False\n    detail = scrub(detail)[:400]\n    results.append((ok,\
+    \ name, detail))\n    print(\"%s  %s (%.1fs)%s\" % (\"PASS\" if ok else \"FAIL\"\
+    , name, time.time() - started,\n                                 \"\" if not detail\
+    \ else \"\\n      \" + detail), flush=True)\n    return ok\n\n\ndef skip(name,\
+    \ why):\n    results.append((None, name, why))\n    print(\"SKIP  %s\\n      %s\"\
+    \ % (name, why), flush=True)\n\n\nclass MCP:\n    \"\"\"A minimal MCP client (Streamable\
+    \ HTTP) for one session.\"\"\"\n\n    def __init__(self, sid):\n        self.url,\
+    \ self.session, self.ids = \"%s/%s/mcp\" % (API, sid), None, 0\n\n    def post(self,\
+    \ message, timeout):\n        headers = {\"Authorization\": \"Bearer \" + ACCESS[\"\
+    token\"], \"Accept\": \"application/json, text/event-stream\"}\n        if self.session:\n\
+    \            headers[\"Mcp-Session-Id\"] = self.session\n        status, response_headers,\
+    \ raw = http(\"POST\", self.url, message, headers, timeout)\n        if response_headers.get(\"\
+    Mcp-Session-Id\"):\n            self.session = response_headers[\"Mcp-Session-Id\"\
+    ]\n        return status, response_headers, raw\n\n    def rpc(self, method, params,\
+    \ timeout=120):\n        self.ids += 1\n        status, headers, raw = self.post({\"\
+    jsonrpc\": \"2.0\", \"id\": self.ids, \"method\": method, \"params\": params},\
+    \ timeout)\n        expect(status == 200, \"%s answered %d: %s\" % (method, status,\
+    \ raw[:200].decode(errors=\"replace\")))\n        text = raw.decode()\n      \
+    \  if headers.get(\"Content-Type\", \"\").startswith(\"text/event-stream\"):\n\
+    \            replies = [json.loads(line[5:]) for line in text.splitlines() if\
+    \ line.startswith(\"data:\") and line[5:].strip()]\n            replies = [r for\
+    \ r in replies if r.get(\"id\") == self.ids]\n            expect(replies, \"%s:\
+    \ the event stream had no answer\" % method)\n            reply = replies[-1]\n\
+    \        else:\n            reply = json.loads(text)\n        expect(\"error\"\
+    \ not in reply, \"%s: %s\" % (method, reply.get(\"error\")))\n        return reply[\"\
+    result\"]\n\n    def connect(self):\n        self.session = None\n        self.rpc(\"\
+    initialize\", {\"protocolVersion\": \"2025-03-26\", \"capabilities\": {},\n  \
+    \                              \"clientInfo\": {\"name\": \"release-canary\",\
+    \ \"version\": \"0\"}})\n        self.post({\"jsonrpc\": \"2.0\", \"method\":\
+    \ \"notifications/initialized\"}, 30)\n\n    def run_js(self, code, timeout=150):\n\
+    \        # Its own limit is 30 s by default; a browser that has just started\n\
+    \        # can take longer over its first page.\n        result = self.rpc(\"\
+    tools/call\", {\"name\": \"run_js\", \"arguments\": {\"code\": code, \"execution_timeout_secs\"\
+    : 120}}, timeout)\n        return \"\\n\".join(c.get(\"text\", \"\") for c in\
+    \ result.get(\"content\", []))\n\n\n# What the session's code runs: one tool call,\
+    \ and what it saw of it.\nCALL = \"\"\"\ntry {\n  const r = await mcp.callTool(%s,\
+    \ %s, %s);\n  console.log(\"CANARY-RETURNED \" + JSON.stringify(r));\n} catch\
+    \ (e) {\n  console.log(\"CANARY-THROWN \" + String((e && e.message) || e));\n\
+    }\n\"\"\"\n\nEXEC = \"\"\"\nconst call = async (tool, args) => JSON.parse((await\
+    \ mcp.callTool(\"exec\", tool, args)).content[0].text);\ntry {\n  const { id }\
+    \ = await call(\"exec\", { bin: \"echo\", args: [\"canary\", %s], timeout: 20\
+    \ });\n  let r;\n  for (let i = 0; i < 100; i++) {\n    r = await call(\"stream_logs\"\
+    , { id, offset: 0 });\n    if (r.status !== \"running\") break;\n    await new\
+    \ Promise((resolve) => setTimeout(resolve, 100));\n  }\n  console.log(\"CANARY-EXEC\
+    \ \" + r.status + \" \" + JSON.stringify(r.logs));\n} catch (e) {\n  console.log(\"\
+    CANARY-THROWN \" + String((e && e.message) || e));\n}\n\"\"\"\n\n\ndef browser(mcp,\
+    \ operations):\n    return mcp.run_js(CALL % ('\"browser\"', '\"browser_execute\"\
+    ', json.dumps({\"operations\": operations})))\n\n\ndef exec_echo(mcp, word):\n\
+    \    return mcp.run_js(EXEC % json.dumps(word))\n\n\ndef wait_state(sid, want,\
+    \ timeout):\n    started, seen, message = time.time(), None, \"\"\n    while time.time()\
+    \ - started < timeout:\n        status, s = api(\"GET\", \"/v1/sessions/\" + sid)\n\
+    \        seen = s.get(\"state\") if status == 200 and isinstance(s, dict) else\
+    \ status\n        message = s.get(\"message\", \"\") if isinstance(s, dict) else\
+    \ \"\"\n        if seen == want:\n            return time.time() - started\n \
+    \       if seen == \"failed\":\n            break\n        time.sleep(2)\n   \
+    \ raise Failed(\"the session is %r, not %r, after %.0fs%s\" % (seen, want, time.time()\
+    \ - started,\n                                                              \"\
+    \" if not message else \": \" + message))\n\n\ndef wait_policy(sid, timeout=90):\n\
+    \    \"\"\"Until the session's policy is in force.\"\"\"\n    started, state =\
+    \ time.time(), None\n    while time.time() - started < timeout:\n        status,\
+    \ p = api(\"GET\", \"/v1/sessions/%s/policy\" % sid)\n        state = p.get(\"\
+    state\") if status == 200 and isinstance(p, dict) else status\n        if state\
+    \ == \"ready\":\n            return\n        if state == \"invalid\":\n      \
+    \      break\n        time.sleep(2)\n    raise Failed(\"the policy is %r after\
+    \ %.0fs\" % (state, time.time() - started))\n\n\ndef until(what, fn, timeout=60):\n\
+    \    \"\"\"fn() until it returns something true; OPA takes a bundle a moment\n\
+    \    after the policy is ready.\"\"\"\n    started, last = time.time(), None\n\
+    \    while time.time() - started < timeout:\n        last = fn()\n        if last:\n\
+    \            return last\n        time.sleep(3)\n    raise Failed(\"%s: not after\
+    \ %.0fs\" % (what, time.time() - started))\n\n\ndef main():\n    if not TOKEN:\n\
+    \        print(\"CANARY_API_TOKEN is not set: an API token of the deployment,\
+    \ with the sessions and policies scopes \"\n              \"(docs/releases.md)\"\
+    , file=sys.stderr)\n        return 2\n    parts = TOKEN.split(\"_\", 2)\n    if\
+    \ len(parts) != 3 or parts[0] != \"bjs\":\n        print(\"CANARY_API_TOKEN is\
+    \ not an API token (bjs_<id>_<secret>)\", file=sys.stderr)\n        return 2\n\
+    \    client_id = parts[1]\n    digests = {}\n    for pair in filter(None, os.environ.get(\"\
+    CANARY_DIGESTS\", \"\").split(\",\")):\n        name, _, digest = pair.partition(\"\
+    =\")\n        digests[name.strip()] = digest.strip()\n    print(\"canary: %s,\
+    \ %s\" % (API, \"a canary session on \" + \", \".join(\"%s@%s\" % (n, d[:19])\
+    \ for n, d in sorted(digests.items()))\n                              if digests\
+    \ else \"an ordinary session\"), flush=True)\n\n    state = {\"sid\": None, \"\
+    mcp\": None, \"marker\": \"m\" + secrets.token_hex(8)}\n\n    # --- what answers\
+    \ without a session ---------------------------------------\n    def reachable(url,\
+    \ want):\n        def run():\n            status, headers, _ = http(\"GET\", url\
+    \ + \"/\", timeout=30)\n            expect(status in want, \"GET %s/ answered\
+    \ %d%s\" % (url, status, \"\" if status else \" (nothing answered)\"))\n     \
+    \       return \"%d%s\" % (status, \"\" if status == 200 else \" to \" + urllib.parse.urlsplit(headers.get(\"\
+    Location\", \"\")).netloc)\n        return run\n\n    if SITE:\n        check(\"\
+    the site answers\", reachable(SITE, (200,)))\n    if APP:\n        # Nobody is\
+    \ signed in: Pomerium sends the browser to sign in.\n        check(\"the app answers\
+    \ (a redirect to sign in)\", reachable(APP, (302, 303)))\n\n    def no_token():\n\
+    \        status, _, _ = http(\"GET\", API + \"/v1/sessions\")\n        expect(status\
+    \ == 401, \"GET /v1/sessions without a token answered %d, want 401\" % status)\n\
+    \    check(\"the API refuses a request with no token\", no_token)\n\n    def exchange():\n\
+    \        basic = base64.b64encode((\"%s:%s\" % (client_id, TOKEN)).encode()).decode()\n\
+    \        status, _, raw = http(\"POST\", API + \"/oauth/token\", b\"grant_type=client_credentials\"\
+    ,\n                              {\"Authorization\": \"Basic \" + basic, \"Content-Type\"\
+    : \"application/x-www-form-urlencoded\"})\n        expect(status == 200, \"POST\
+    \ /oauth/token answered %d\" % status)\n        answer = json.loads(raw)\n   \
+    \     expect(answer.get(\"token_type\") == \"Bearer\" and answer.get(\"access_token\"\
+    ), \"no access token in the answer\")\n        ACCESS[\"token\"] = answer[\"access_token\"\
+    ]\n        scopes = set(answer.get(\"scope\", \"\").split())\n        missing\
+    \ = {\"sessions:read\", \"sessions:write\", \"sessions:connect\", \"policies:read\"\
+    , \"policies:write\"} - scopes\n        expect(not missing, \"the token lacks\
+    \ the scopes: \" + \" \".join(sorted(missing)))\n        return \"an access token\
+    \ for %ds\" % answer.get(\"expires_in\", 0)\n    if not check(\"the token is exchanged\
+    \ for an access token\", exchange):\n        return finish()\n\n    def me():\n\
+    \        status, body = api(\"GET\", \"/v1/me\")\n        expect(status == 200\
+    \ and isinstance(body, dict) and body.get(\"email\"), \"GET /v1/me answered %d\"\
+    \ % status)\n    check(\"the access token is accepted\", me)\n\n    def leftovers():\n\
+    \        status, mine = api(\"GET\", \"/v1/sessions\")\n        expect(status\
+    \ == 200 and isinstance(mine, list), \"GET /v1/sessions answered %d\" % status)\n\
+    \        old = [s[\"id\"] for s in mine if s.get(\"name\", \"\").startswith(NAME_PREFIX)]\n\
+    \        for sid in old:\n            api(\"DELETE\", \"/v1/sessions/\" + sid)\n\
+    \        return \"%d of the token's owner's sessions; %d left by an earlier run,\
+    \ deleted\" % (len(mine), len(old))\n    check(\"sessions are listed\", leftovers)\n\
+    \n    # --- one session -------------------------------------------------------------\n\
+    \    def create():\n        body = {\"name\": NAME_PREFIX + time.strftime(\"%Y%m%d-%H%M%S\"\
+    , time.gmtime())}\n        if digests:\n            body[\"canary\"] = digests\n\
+    \        status, s = api(\"POST\", \"/v1/sessions\", body)\n        expect(status\
+    \ == 201 and isinstance(s, dict), \"POST /v1/sessions answered %d: %s\" % (status,\
+    \ s))\n        state[\"sid\"] = s[\"id\"]\n        return s[\"id\"]\n    if not\
+    \ check(\"a session is created\", create):\n        return finish()\n    sid =\
+    \ state[\"sid\"]\n\n    def session_checks():\n        def running():\n      \
+    \      return \"running after %.0fs\" % wait_state(sid, \"running\", START_TIMEOUT)\n\
+    \        if not check(\"it runs\", running):\n            return\n\n        hook\
+    \ = os.environ.get(\"SESSION_HOOK\")\n        if hook:\n            def run_hook():\n\
+    \                done = subprocess.run(hook, shell=True, env=dict(os.environ,\
+    \ SESSION_ID=sid, CANARY_API_TOKEN=\"\"),\n                                  \
+    \    capture_output=True, text=True, timeout=300)\n                output = (done.stdout\
+    \ + done.stderr).strip()\n                expect(done.returncode == 0, \"exit\
+    \ %d: %s\" % (done.returncode, output[-300:]))\n                return output[-300:]\n\
+    \            check(\"SESSION_HOOK\", run_hook)\n\n        mcp = MCP(sid)\n\n \
+    \       def run_js():\n            mcp.connect()\n            out = mcp.run_js(\"\
+    console.log('canary', 6 * 7)\")\n            expect(\"canary 42\" in out, \"run_js\
+    \ printed: %s\" % out[:200])\n        if not check(\"run_js: console output comes\
+    \ back\", run_js):\n            return\n\n        def browser_execute():\n   \
+    \         operations = [\n                # A page of its own, with nothing to\
+    \ fetch: no site out there\n                # is part of this check.\n       \
+    \         {\"type\": \"navigate\", \"params\": {\"url\": \"data:text/html,<title>canary\
+    \ page</title><p id=p>hello</p>\"}},\n                {\"type\": \"evaluate\"\
+    , \"params\": {\"script\": \"window.__canary = %s; document.title + '/' + document.getElementById('p').textContent\"\
+    \ % json.dumps(state[\"marker\"])}},\n            ]\n            out = browser(mcp,\
+    \ operations)\n            if \"canary page/hello\" not in out:\n            \
+    \    # Once more: the first call can meet a browser still starting.\n        \
+    \        print(\"      (first try: %s)\" % scrub(out[:200]), flush=True)\n   \
+    \             out = browser(mcp, operations)\n            expect(\"CANARY-RETURNED\"\
+    \ in out and \"canary page/hello\" in out, \"browser_execute: %s\" % out[:300])\n\
+    \        check(\"browser_execute: a page is loaded and read\", browser_execute)\n\
+    \n        def execute():\n            out = exec_echo(mcp, state[\"marker\"])\n\
+    \            expect(\"CANARY-EXEC completed\" in out and state[\"marker\"] in\
+    \ out, \"exec: %s\" % out[:300])\n        check(\"exec: a program runs, given\
+    \ as {bin, args}\", execute)\n\n        # --- the policy binds -----------------------------------------------------\n\
+    \        if not EXPECT_POLICIES:\n            skip(\"the policy browser-only denies\
+    \ exec\", \"EXPECT_POLICIES=0\")\n        else:\n            def restrict():\n\
+    \                status, presets = api(\"GET\", \"/v1/policy-presets\")\n    \
+    \            expect(status == 200 and isinstance(presets, list), \"GET /v1/policy-presets\
+    \ answered %d\" % status)\n                preset = [p for p in presets if p.get(\"\
+    id\") == \"browser-only\"]\n                expect(preset, \"there is no preset\
+    \ browser-only\")\n                # A token writes a policy by taking it over\
+    \ (\"iac\").\n                status, saved = api(\"PUT\", \"/v1/sessions/%s/policy\"\
+    \ % sid,\n                                    {\"kind\": \"rego\", \"source\"\
+    : preset[0][\"source\"],\n                                     \"management\"\
+    : {\"mode\": \"iac\", \"managed_url\": MANAGED_URL}})\n                expect(status\
+    \ in (200, 202), \"PUT policy answered %d: %s\" % (status, saved))\n         \
+    \       wait_policy(sid)\n\n                def denied():\n                  \
+    \  out = exec_echo(mcp, \"denied\")\n                    return \"CANARY-THROWN\"\
+    \ in out and \"CANARY-EXEC\" not in out\n                until(\"exec is denied\"\
+    , denied)\n                out = browser(mcp, [{\"type\": \"evaluate\", \"params\"\
+    : {\"script\": \"document.title\"}}])\n                expect(\"CANARY-RETURNED\"\
+    \ in out and \"canary page\" in out, \"the browser under browser-only: %s\" %\
+    \ out[:300])\n            restricted = check(\"the policy browser-only denies\
+    \ exec and allows the browser\", restrict)\n\n            def restore():\n   \
+    \             status, saved = api(\"DELETE\", \"/v1/sessions/%s/policy\" % sid)\n\
+    \                expect(status in (200, 202), \"DELETE policy answered %d: %s\"\
+    \ % (status, saved))\n                wait_policy(sid)\n                until(\"\
+    exec is allowed again\", lambda: \"CANARY-EXEC completed\" in exec_echo(mcp, \"\
+    restored\"))\n            if restricted:\n                check(\"the policy is\
+    \ put back, and exec runs again\", restore)\n            else:\n             \
+    \   skip(\"the policy is put back, and exec runs again\", \"it was not changed\"\
+    )\n\n        # --- sleep and wake ---------------------------------------------------------\n\
+    \        def sleep():\n            status, s = api(\"POST\", \"/v1/sessions/%s/sleep\"\
+    \ % sid, timeout=180)\n            expect(status == 200 and isinstance(s, dict),\
+    \ \"POST sleep answered %d: %s\" % (status, s))\n            wait_state(sid, \"\
+    asleep\", 180)\n            status, s = api(\"GET\", \"/v1/sessions/\" + sid)\n\
+    \            saved = bool(s.get(\"stateSaved\"))\n            if EXPECT_STATE_SAVED:\n\
+    \                expect(saved, \"asleep, but stateSaved is not true: it would\
+    \ wake fresh\")\n            return \"asleep, stateSaved %s\" % str(saved).lower()\n\
+    \        asleep = check(\"sleep: the session is put to sleep\" + (\", its state\
+    \ saved\" if EXPECT_STATE_SAVED else \"\"), sleep)\n\n        def wake():\n  \
+    \          status, s = api(\"POST\", \"/v1/sessions/%s/wake\" % sid)\n       \
+    \     expect(status == 200, \"POST wake answered %d: %s\" % (status, s))\n   \
+    \         took = wait_state(sid, \"running\", START_TIMEOUT)\n            mcp.connect()\n\
+    \            out = mcp.run_js(\"console.log('awake', 1 + 1)\")\n            expect(\"\
+    awake 2\" in out, \"run_js after waking: %s\" % out[:200])\n            if EXPECT_STATE_SAVED:\n\
+    \                # The page's own memory: there only if the pod came back from\n\
+    \                # its snapshot. A fresh start reloads the tab, and it is gone.\n\
+    \                out = browser(mcp, [{\"type\": \"evaluate\", \"params\": {\"\
+    script\": \"String(window.__canary)\"}}])\n                expect(state[\"marker\"\
+    ] in out, \"the marker left in the page's memory did not survive: %s\" % out[:200])\n\
+    \                return \"running after %.0fs, with the page's memory as it was\"\
+    \ % took\n            return \"running after %.0fs\" % took\n        if asleep:\n\
+    \            check(\"wake: it runs again\" + (\" as it was\" if EXPECT_STATE_SAVED\
+    \ else \"\"), wake)\n        else:\n            skip(\"wake\", \"it did not go\
+    \ to sleep\")\n\n    try:\n        session_checks()\n    finally:\n        def\
+    \ delete():\n            status, _ = api(\"DELETE\", \"/v1/sessions/\" + sid)\n\
+    \            expect(status == 204, \"DELETE answered %d\" % status)\n        \
+    \    started = time.time()\n            while time.time() - started < 60:\n  \
+    \              status, _ = api(\"GET\", \"/v1/sessions/\" + sid)\n           \
+    \     if status == 404:\n                    return\n                time.sleep(2)\n\
+    \            raise Failed(\"the session is still there a minute after its deletion\
+    \ (%d)\" % status)\n        check(\"the session is deleted\", delete)\n    return\
+    \ finish()\n\n\ndef finish():\n    failed = [r for r in results if r[0] is False]\n\
+    \    passed = [r for r in results if r[0]]\n    print(\"\\n%d passed, %d failed\"\
+    \ % (len(passed), len(failed)), flush=True)\n    summary = os.environ.get(\"SUMMARY\"\
+    )\n    if summary:\n        with open(summary, \"a\") as f:\n            f.write(\"\
+    | | Check | |\\n|---|---|---|\\n\")\n            for ok, name, detail in results:\n\
+    \                f.write(\"| %s | %s | %s |\\n\" % ({True: \"pass\", False: \"\
+    **FAIL**\", None: \"skipped\"}[ok], name,\n                                  \
+    \                detail.replace(\"|\", \"\\\\|\").replace(\"\\n\", \" \")))\n\
+    \            f.write(\"\\n%d passed, %d failed.\\n\" % (len(passed), len(failed)))\n\
+    \    return 1 if failed or not passed else 0\n\n\nif __name__ == \"__main__\"\
+    :\n    sys.exit(main())\n"
