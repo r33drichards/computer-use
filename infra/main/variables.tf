@@ -634,3 +634,9 @@ variable "deploy_ref" {
     error_message = "A full ref: refs/heads/<branch> or refs/tags/<tag>. Never a refs/pull/ ref."
   }
 }
+
+variable "enable_previews" {
+  description = "Create the PR preview registry and main-only publishing/deployment identities, and route *.preview.<domain> to the existing edge."
+  type        = bool
+  default     = false
+}

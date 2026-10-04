@@ -1,0 +1,29 @@
+name: gitops tests
+on:
+  pull_request:
+    paths:
+      - 'hack/gitops/**'
+      - 'deploy/argocd/**'
+      - 'test/gitops/**'
+      - '.github/workflows/gitops-*.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'hack/gitops/**'
+      - 'deploy/argocd/**'
+      - 'test/gitops/**'
+      - '.github/workflows/gitops-*.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: |
+          python3 -m pip install PyYAML==6.0.3
+          python3 -m unittest discover -s test/gitops
+          python3 -m py_compile hack/gitops/*.py
+          shellcheck hack/gitops/*.sh

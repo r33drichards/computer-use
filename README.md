@@ -100,3 +100,5 @@ Please report vulnerabilities privately: [`SECURITY.md`](SECURITY.md).
 [Apache License 2.0](LICENSE). The container images bundle other people's
 software under its own licences, some of it copyleft:
 [`THIRD_PARTY.md`](THIRD_PARTY.md).
+
+Production releases: [Argo CD, canaries, rollback and failure emails](docs/gitops-deployment.md).

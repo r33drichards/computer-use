@@ -1,5 +1,9 @@
 # Image build pipeline
 
+With `ARGOCD_ENABLED=true`, successful main builds feed the
+[Argo CD production release](gitops-deployment.md). CI commits exact image digests
+to the production branch; Argo CD reconciles them and Rollouts gate promotion.
+
 `.github/workflows/images.yml` builds the four container images and pushes
 them to Artifact Registry. No key is stored anywhere: the push job exchanges
 GitHub's OIDC token for the `images-push` service account (Workload Identity
@@ -176,3 +180,17 @@ The workflow has not run. Unknown until it does:
   pull limit that hosted runners share.
 - The sign-in, which depends on the `images-push` service account that the
   next apply creates.
+
+## Pull-request preview environments
+
+Opt a same-repository, non-draft PR in with the `preview` label. Separate
+workflows build all five images without cloud credentials, publish verified
+artifacts to the preview registry, then deploy an isolated real-session
+namespace using trusted main templates. PR updates refresh it; closing,
+unlabelling, drafting or seven-day expiry removes it. Production and preview
+edge mutations share the `deploy` concurrency group.
+
+The one-time infrastructure, repository variables, wildcard certificate,
+resource quotas and validation procedure are in
+[preview-environments.md](preview-environments.md). Previews remain disabled
+until `PREVIEWS_ENABLED=true` is set after that setup.
