@@ -45,6 +45,15 @@ func (h *Handlers) PutWebhook(w http.ResponseWriter, r *http.Request, id string)
 	if !h.capable(w, r, id) {
 		return
 	}
+	s, err := h.store.Get(r.Context(), id)
+	if err != nil {
+		clusterError(w, err)
+		return
+	}
+	if !s.WebhookCapable {
+		writeError(w, http.StatusConflict, "recreate this session to enable tool-call webhooks; this session was created before webhook capture was installed")
+		return
+	}
 	var doc map[string]any
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, MaxBody))
 	if err := dec.Decode(&doc); err != nil || doc == nil {

@@ -134,3 +134,71 @@ func TestWebhookUpdateRetriesConflictWithoutRestoringOldSecret(t *testing.T) {
 		t.Fatalf("attempts=%d secret=%q", attempts, secret)
 	}
 }
+
+func TestWebhookEnableRefusesSessionWithoutNativeHook(t *testing.T) {
+	f := newPolicyFixture(t, false)
+	id := f.newSession(`{"name":"old-template"}`)
+	resource := f.client.Resource(sessions.SandboxGVR).Namespace(sessionstest.Namespace)
+	obj, err := resource.Get(t.Context(), id, metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	containers, _, _ := unstructured.NestedSlice(obj.Object, "spec", "podTemplate", "spec", "containers")
+	for _, item := range containers {
+		container := item.(map[string]any)
+		if container["name"] != "mcp-js" {
+			continue
+		}
+		env, _, _ := unstructured.NestedSlice(container, "env")
+		for _, item := range env {
+			variable := item.(map[string]any)
+			if variable["name"] != "MCP_V8_POLICIES_JSON" {
+				continue
+			}
+			var config map[string]any
+			if err := json.Unmarshal([]byte(variable["value"].(string)), &config); err != nil {
+				t.Fatal(err)
+			}
+			delete(config["mcp_tools"].(map[string]any), "pre")
+			value, _ := json.Marshal(config)
+			variable["value"] = string(value)
+		}
+		if err := unstructured.SetNestedSlice(container, env, "env"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := unstructured.SetNestedSlice(obj.Object, containers, "spec", "podTemplate", "spec", "containers"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := resource.Update(t.Context(), obj, metav1.UpdateOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	rec := f.do(alice, "PUT", "/api/sessions/"+id+"/webhook", `{"url":"https://example.com"}`)
+	if rec.Code != 409 || !strings.Contains(rec.Body.String(), "recreate this session") {
+		t.Fatalf("old template accepted: %d %s", rec.Code, rec.Body)
+	}
+	f.operator.mu.Lock()
+	defer f.operator.mu.Unlock()
+	if len(f.operator.bodies["/v1/webhooks/validate"]) != 0 {
+		t.Fatal("unsupported session reached validation")
+	}
+}
+
+func TestNativeWebhookCapabilityRequiresMatchingSessionPath(t *testing.T) {
+	for _, test := range []struct {
+		value   string
+		capable bool
+	}{
+		{`{"mcp_tools":{"pre":[{"url":"http://policy-operator:8080","policy_path":"browserjs/hooks/s-abcde/mcp_tools/pre"}]}}`, true},
+		{`{"mcp_tools":{"pre":[{"url":"http://policy-operator:8080","policy_path":"browserjs/hooks/$(SESSION_ID)/mcp_tools/pre"}]}}`, true},
+		{`{"mcp_tools":{"pre":[{"url":"http://policy-operator:8080","policy_path":"browserjs/hooks/s-other/mcp_tools/pre"}]}}`, false},
+		{`{"mcp_tools":{"pre":[{"policy_path":"browserjs/hooks/s-abcde/mcp_tools/pre"}]}}`, false},
+		{`{"mcp_tools":{"policies":[]}}`, false},
+		{`not JSON`, false},
+	} {
+		obj := &unstructured.Unstructured{Object: map[string]any{"metadata": map[string]any{"name": "s-abcde"}, "spec": map[string]any{"podTemplate": map[string]any{"spec": map[string]any{"containers": []any{map[string]any{"name": "mcp-js", "env": []any{map[string]any{"name": "MCP_V8_POLICIES_JSON", "value": test.value}}}}}}}}}
+		if got := sessions.WebhookCapable(obj); got != test.capable {
+			t.Fatalf("capable=%v, want %v for %s", got, test.capable, test.value)
+		}
+	}
+}

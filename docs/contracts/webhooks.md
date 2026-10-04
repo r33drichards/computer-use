@@ -203,7 +203,8 @@ policy-operator image together. With Argo CD, apply the SessionPolicy CRD
 schema through the bootstrap procedure before releasing; cluster-scoped CRDs
 are excluded from GitOps workload sync. The rendered release installs Redis,
 network policies and namespaced RBAC before starting the operator. Recreate existing sessions from the updated blueprint to install the hooks;
-restarting a pod retains its stored Sandbox template. warm-pool templates carry the
+restarting a pod retains its stored Sandbox template. Webhook enablement
+returns HTTP 409 for templates without the native hook. warm-pool templates carry the
 pod name as the session ID. Hook ingestion verifies the source pod IP against
 Kubernetes-watched session pods. Forwarded headers are ignored;
 this requires the cluster CNI to preserve pod source IPs and prevent IP spoofing. The recorder is on the pre-hook path: while the
