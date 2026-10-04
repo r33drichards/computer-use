@@ -33,7 +33,7 @@ The environment:
                        0: a cluster without snapshots; wake starts it fresh.
   EXPECT_POLICIES      1 (default): the session's policy is changed and must
                        bind. 0: a deployment with session policies off.
-  EXPECT_MCP_CAPABILITIES  1 (default): verify skills, fetch and editable fetch
+  EXPECT_MCP_CAPABILITIES  1 (default): verify skills, PNG imports, fetch and editable fetch
                        permissions. 0: baseline/rollback checks of old releases.
   FETCH_URL            URL to fetch (public site home page, or localhost in kind).
   SESSION_HOOK         a command run once the session is running, with
@@ -318,6 +318,30 @@ def verify_skills(mcp):
     return f"{len(skills)} page skills; manifests and resource hashes verified"
 
 
+def verify_png(mcp):
+    result = mcp.rpc("tools/call", {"name": "run_js", "arguments": {
+        "code": """
+const { PNG } = await import('npm:pngjs@7.0.0');
+const pixels = [255, 0, 0, 255, 0, 128, 255, 64];
+const image = new PNG({width: 2, height: 1});
+image.data.set(pixels);
+const encoded = PNG.sync.write(image);
+const decoded = PNG.sync.read(encoded);
+if (encoded[0] !== 137 || encoded[1] !== 80 || decoded.width !== 2 || decoded.height !== 1 ||
+    decoded.data.length !== pixels.length || decoded.data.some((byte, i) => byte !== pixels[i])) {
+  throw new Error('PNG pixel round trip changed the data');
+}
+console.log('CANARY-PNG-PIXELS');
+""",
+        "execution_timeout_secs": 120,
+    }}, timeout=150)
+    payloads = [json.loads(content["text"]) for content in result.get("content", [])
+                if content.get("type") == "text"]
+    expect(any(payload.get("error") is None and "CANARY-PNG-PIXELS" in payload.get("output", "")
+               for payload in payloads), "exact pngjs import or pixel round trip failed")
+    return "pngjs@7.0.0; RGBA pixels preserved at the default heap limit"
+
+
 def fetch_request(mcp, url=FETCH_URL, method="GET"):
     return mcp.run_js("""
 try {
@@ -467,6 +491,7 @@ def main():
 
         if EXPECT_MCP_CAPABILITIES:
             check("MCP skills: catalog, manifests and resource hashes", lambda: verify_skills(mcp))
+            check("PNG import: encode and decode preserve pixels", lambda: verify_png(mcp))
             check("fetch: HTTP response and body through run_js", lambda: expect_fetch(mcp))
 
         # --- the policy binds -----------------------------------------------------
