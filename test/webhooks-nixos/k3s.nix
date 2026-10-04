@@ -18,7 +18,6 @@ in pkgs.testers.runNixOSTest {
     virtualisation.cores = 2;
     virtualisation.diskSize = 20480;
     boot.kernelModules = [ "overlay" "br_netfilter" "ip_tables" "iptable_nat" "nf_conntrack" ];
-    boot.kernel.sysctl = { "vm.overcommit_memory" = 1; "kernel.panic" = 10; "kernel.panic_on_oops" = 1; };
     services.k3s = {
       enable = true;
       package = pkgs.k3s_1_34;
@@ -27,7 +26,7 @@ in pkgs.testers.runNixOSTest {
       images = [ pkgs.k3s_1_34.airgap-images ] ++ builtins.attrValues images;
       extraFlags = [ "--snapshotter=overlayfs" "--flannel-backend=host-gw"
         "--node-ip=10.20.0.1" "--advertise-address=10.20.0.1" "--flannel-iface=k3stest0"
-        "--kubelet-arg=protect-kernel-defaults=true" "--kubelet-arg=fail-swap-on=false" ];
+        "--kubelet-arg=fail-swap-on=false" ];
     };
     systemd.services.test-network = {
       wantedBy = [ "multi-user.target" ];

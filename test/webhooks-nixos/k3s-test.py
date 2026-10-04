@@ -5,7 +5,7 @@ k = 'kubectl -n browserjs-sessions '
 
 try:
     start_all()
-    print(cluster.succeed('cat /proc/1/cgroup; cat /sys/fs/cgroup/cgroup.controllers; cat /sys/fs/cgroup/cgroup.subtree_control'))
+    print(cluster.succeed('df -h /; cat /proc/1/cgroup; cat /sys/fs/cgroup/cgroup.controllers; cat /sys/fs/cgroup/cgroup.subtree_control'))
     cluster.wait_for_unit('k3s.service', timeout=180)
     cluster.wait_for_unit('webhook-receiver.service')
     cluster.succeed('mkdir -p /root/.kube; ln -sf /etc/rancher/k3s/k3s.yaml /root/.kube/config')

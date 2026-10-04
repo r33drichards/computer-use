@@ -65,7 +65,8 @@ jobs:
           set -euo pipefail
           mkdir -p result-webhooks "$RUNNER_TEMP/webhooks-runtime"
           driver=$(readlink -f result-webhooks-driver)
-          cd "$RUNNER_TEMP/webhooks-runtime"
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/webhooks-runtime"
+          cd "$XDG_RUNTIME_DIR"
           "$driver/bin/nixos-test-driver" -o "$GITHUB_WORKSPACE/result-webhooks" \
             --junit-xml "$GITHUB_WORKSPACE/result-webhooks/report.xml" \
             2>&1 | tee -a "$RUNNER_TEMP/webhooks-nixos.log"
