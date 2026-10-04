@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 )
 
 // Webhook settings live alongside a session's policy but do not change
@@ -60,6 +61,7 @@ func (h *Handlers) PutWebhook(w http.ResponseWriter, r *http.Request, id string)
 		clusterError(w, err)
 		return
 	}
+	_, secretGiven := doc["signing_secret"]
 	// Omission preserves the current secret; an explicit empty string clears it.
 	if _, given := doc["signing_secret"]; !given {
 		secret, _, _ := unstructured.NestedString(obj.Object, "spec", "webhook", "signing_secret")
@@ -94,9 +96,24 @@ func (h *Handlers) PutWebhook(w http.ResponseWriter, r *http.Request, id string)
 		writeJSON(w, http.StatusUnprocessableEntity, Error{Error: message, Errors: v.Errors})
 		return
 	}
-	// ResourceVersion prevents a concurrent write from restoring an old secret.
-	patch, _ := json.Marshal(map[string]any{"metadata": map[string]any{"resourceVersion": obj.GetResourceVersion()}, "spec": map[string]any{"webhook": doc}})
-	if _, err := h.policies.Patch(r.Context(), id, types.MergePatchType, patch, metav1.PatchOptions{}); err != nil {
+	// Retry status reconciliation conflicts without restoring a stale secret.
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latest, err := h.policies.Get(r.Context(), id, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if !secretGiven {
+			delete(doc, "signing_secret")
+			secret, _, _ := unstructured.NestedString(latest.Object, "spec", "webhook", "signing_secret")
+			if secret != "" {
+				doc["signing_secret"] = secret
+			}
+		}
+		patch, _ := json.Marshal(map[string]any{"metadata": map[string]any{"resourceVersion": latest.GetResourceVersion()}, "spec": map[string]any{"webhook": doc}})
+		_, err = h.policies.Patch(r.Context(), id, types.MergePatchType, patch, metav1.PatchOptions{})
+		return err
+	})
+	if err != nil {
 		clusterError(w, err)
 		return
 	}

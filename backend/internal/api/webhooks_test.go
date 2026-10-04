@@ -2,6 +2,11 @@ package api_test
 
 import (
 	"encoding/json"
+	"errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	dynfake "k8s.io/client-go/dynamic/fake"
+	ktesting "k8s.io/client-go/testing"
 	"strings"
 	"testing"
 
@@ -74,5 +79,45 @@ func TestWebhookSettingsOwnershipScopesAndSecret(t *testing.T) {
 	source, _, _ := unstructured.NestedString(obj.Object, "spec", "source")
 	if source == "" {
 		t.Fatal("webhook delete removed enforcement policy")
+	}
+}
+
+func TestWebhookUpdateRetriesConflictWithoutRestoringOldSecret(t *testing.T) {
+	f := newPolicyFixture(t, false)
+	id := f.newSession(`{"name":"export"}`)
+	path := "/api/sessions/" + id + "/webhook"
+	if rec := f.do(alice, "PUT", path, `{"url":"https://example.com","signing_secret":"original-secret-value"}`); rec.Code != 204 {
+		t.Fatal(rec.Code, rec.Body)
+	}
+	attempts := 0
+	f.client.(*dynfake.FakeDynamicClient).PrependReactor("patch", "sessionpolicies", func(action ktesting.Action) (bool, runtime.Object, error) {
+		attempts++
+		if attempts != 1 {
+			return false, nil, nil
+		}
+		obj, err := f.client.(*dynfake.FakeDynamicClient).Tracker().Get(sessions.PolicyGVR, sessionstest.Namespace, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		u := obj.(*unstructured.Unstructured)
+		if err := unstructured.SetNestedField(u.Object, "concurrently-rotated-secret", "spec", "webhook", "signing_secret"); err != nil {
+			t.Fatal(err)
+		}
+		u.SetResourceVersion("2")
+		if err := f.client.(*dynfake.FakeDynamicClient).Tracker().Update(sessions.PolicyGVR, u, sessionstest.Namespace); err != nil {
+			t.Fatal(err)
+		}
+		return true, nil, apierrors.NewConflict(sessions.PolicyGVR.GroupResource(), id, errors.New("concurrent update"))
+	})
+	if rec := f.do(alice, "PUT", path, `{"url":"https://new.example.com"}`); rec.Code != 204 {
+		t.Fatal(rec.Code, rec.Body)
+	}
+	obj, err := f.client.Resource(sessions.PolicyGVR).Namespace(sessionstest.Namespace).Get(t.Context(), id, metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	secret, _, _ := unstructured.NestedString(obj.Object, "spec", "webhook", "signing_secret")
+	if attempts != 2 || secret != "concurrently-rotated-secret" {
+		t.Fatalf("attempts=%d secret=%q", attempts, secret)
 	}
 }

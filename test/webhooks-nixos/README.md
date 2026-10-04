@@ -4,7 +4,8 @@ Run on an x86_64 Linux host with access to `/dev/kvm`:
 
 ```sh
 nix build .#webhooks-k3s-driver --out-link result-webhooks-driver -L
-mkdir -p result-webhooks
+mkdir -p result-webhooks .webhooks-runtime
+export XDG_RUNTIME_DIR="$PWD/.webhooks-runtime"
 ./result-webhooks-driver/bin/nixos-test-driver -o "$PWD/result-webhooks"
 ```
 
