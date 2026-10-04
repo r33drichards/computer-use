@@ -108,11 +108,11 @@ describe("the size with billing on", () => {
     expect(about(/^Medium/)).toContain("$0.40 an hour while awake.")
     expect(about(/^Large/)).toContain("$0.80 an hour while awake.")
     expect(screen.getByTestId("create-cost").textContent).toBe(
-      "This session will use $0.20 an hour while awake and $1.40 a month while it exists.",
+      "This session will use $0.20 an hour while awake and $8.97 a month while it exists.",
     )
     fireEvent.click(radio(/^Medium/))
     expect(screen.getByTestId("create-cost").textContent).toBe(
-      "This session will use $0.40 an hour while awake and $1.40 a month while it exists.",
+      "This session will use $0.40 an hour while awake and $8.97 a month while it exists.",
     )
   })
 
@@ -120,7 +120,7 @@ describe("the size with billing on", () => {
     await form("active")
     fireEvent.change(await screen.findByRole("spinbutton", { name: "HDD storage (GB)" }), { target: { value: "64" } })
     expect(screen.getByTestId("create-cost").textContent).toBe(
-      "This session will use $0.20 an hour while awake and $2.80 a month while it exists.",
+      "This session will use $0.20 an hour while awake and $17.94 a month while it exists.",
     )
   })
 
