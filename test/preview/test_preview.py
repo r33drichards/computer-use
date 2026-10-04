@@ -89,6 +89,21 @@ class PreviewTests(unittest.TestCase):
                 self.assertEqual(route["policy"], preview.allowed_policy())
         self.assertEqual(len(preview.routes_for("154")), 8)
 
+    def test_route_sync_accepts_progressing_production_at_exact_synced_revision(self):
+        app = {"status": {"sync": {"revision": "a" * 40, "status": "Synced"}, "health": {"status": "Progressing"}, "operationState": {"phase": "Succeeded"}}}
+        with patch.object(preview, "kubectl", return_value=json.dumps(app)):
+            preview.wait_edge_sync("a" * 40)
+
+    def test_route_sync_rejects_failed_operation_and_waits_for_exact_revision(self):
+        app = {"status": {"sync": {"revision": "b" * 40, "status": "Synced"}, "operationState": {"phase": "Failed", "syncResult": {"revision": "a" * 40}}}}
+        with patch.object(preview, "kubectl", return_value=json.dumps(app)):
+            with self.assertRaises(RuntimeError):
+                preview.wait_edge_sync("a" * 40)
+        app["status"]["operationState"] = {"phase": "Succeeded"}
+        with patch.object(preview, "kubectl", return_value=json.dumps(app)), patch.object(preview.time, "monotonic", side_effect=[0, 0, 601]), patch.object(preview.time, "sleep"):
+            with self.assertRaises(TimeoutError):
+                preview.wait_edge_sync("a" * 40)
+
     def test_gitops_changes_only_mounted_config_and_preserves_hash(self):
         import yaml
         config = preview.documents("deploy/gke/pomerium-config.yaml")[0]

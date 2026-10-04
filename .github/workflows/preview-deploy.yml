@@ -6,14 +6,15 @@ on:
   workflow_run:
     workflows: [preview build]
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful preview build run ID to deploy or retry
+        required: true
+        type: string
 
 permissions:
   contents: read
-
-# Serialize shared edge edits with production deployment and cleanup.
-concurrency:
-  group: deploy
-  cancel-in-progress: false
 
 env:
   CLUSTER: browserjs
@@ -25,7 +26,7 @@ jobs:
   verify:
     if: >-
       github.ref == 'refs/heads/main' && vars.PREVIEWS_ENABLED == 'true' &&
-      github.event.workflow_run.conclusion == 'success'
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -46,7 +47,7 @@ jobs:
         id: source
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
         run: python3 hack/preview_lifecycle.py resolve-run --run-id "$RUN_ID"
 
   publish:
@@ -85,7 +86,7 @@ jobs:
           name: preview-${{ matrix.name }}
           path: ${{ runner.temp }}/image
           github-token: ${{ github.token }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id || inputs.run_id }}
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
@@ -108,6 +109,11 @@ jobs:
 
   deploy:
     needs: [verify, publish]
+    # Only cluster and route writes share the production deployment lock.
+    # Verified image publication can run while a production canary is active.
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     environment: previews
