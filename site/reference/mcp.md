@@ -45,9 +45,43 @@ No state carries from one call to the next. The desktop and the disk do.
 
 ### Not available in the code
 
-`fetch` and any other network access, environment variables, DOM APIs,
+The general-purpose `fetch` API, environment variables, DOM APIs,
 `child_process`. Timers (`setTimeout`, `setInterval`) are available.
 
+### Importing packages
+
+External ES module imports are enabled in this deployment with
+`--allow-external-modules` in the shared startup script. Use static `import`
+or dynamic `await import()`; no package installation is needed.
+
+- **npm**: `import { camelCase } from "npm:lodash-es@4.17.21";`
+- **JSR**: `import { camelCase } from "jsr:@luca/cases@1.0.0";`
+- **HTTPS URL**: `import { camelCase } from "https://esm.sh/lodash-es@4.17.21";`
+
+```js
+const { camelCase } = await import("npm:lodash-es@4.17.21");
+console.log(camelCase("hello world")); // helloWorld
+```
+
+Pin package versions. `npm:` resolves through `https://esm.sh/`, and `jsr:`
+through `https://esm.sh/jsr/`; URL imports are fetched directly. Prefer HTTPS.
+Relative imports resolve against the importing module's URL. `file://`
+imports are unsupported; read saved scripts with `fs.readFile` and execute
+their source with an async `eval` wrapper.
+Modules are fetched again in each fresh execution, so allow time for downloads
+and import what you need in each call.
+
+This V8 runtime is not a full Node.js installation. Choose packages compatible
+with the runtime; enabling imports does not enable native addons, DOM APIs,
+or arbitrary Node.js APIs. A package such as `pngjs` may need compatibility
+features beyond the import flag. If a package needs Node.js or native code,
+run it on the desktop through the exec MCP server.
+
+Module loading is separate from the JavaScript `fetch` API. An operator can
+restrict imports with a `modules` policy in `MCP_V8_POLICIES_JSON`; a policy
+cannot enable imports when the startup flag is absent. If an import is denied,
+report the denial rather than trying another route.
+See [upstream module import documentation](https://r33drichards.github.io/mcp-js/concepts/module-imports/).
 ### Running programs
 
 `mcp.callTool("exec", "exec", { bin: "ls", args: ["-la"], timeout: 60 })`
