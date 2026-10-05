@@ -57,9 +57,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             sdk/target
-          key: sdk-${{ github.job }}-${{ matrix.language || 'rust' }}-${{ hashFiles('sdk/Cargo.lock', 'flake.lock', 'sdk/scripts/bindings.sh') }}
+          key: sdk-${{ github.job }}-rust-${{ hashFiles('sdk/Cargo.lock', 'flake.lock', 'sdk/scripts/bindings.sh') }}
           restore-keys: |
-            sdk-${{ github.job }}-${{ matrix.language || 'rust' }}-
+            sdk-${{ github.job }}-rust-
 
       - name: Format
         run: nix develop ..#sdk -c cargo fmt --all --check

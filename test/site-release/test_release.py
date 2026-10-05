@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Exercise the release's failure paths without a production cluster."""
-import json
 import os
 from pathlib import Path
 import shutil
