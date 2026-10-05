@@ -9,6 +9,10 @@ name: quality
 # that a new component is covered the day it is added (hack/ci-coverage.sh
 # fails when one is not). A nightly run fuzzes for longer. The `report` job
 # keeps one comment on the pull request with every result.
+#
+# Everything fans out: no job waits on another except `report`, lint is one
+# job per tool, and fuzz targets and TLA+ configurations are matrix legs found
+# by a `discover` job, so a new target or spec adds a parallel leg, not time.
 
 on:
   pull_request:
@@ -30,49 +34,107 @@ env:
   TLA2TOOLS_SHA256: c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239
 
 jobs:
-  lint:
-    name: lint
+  # Finds what the fuzz and TLA+ matrices fan out over.
+  discover:
+    name: discover
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 5
+    outputs:
+      fuzz: ${{ steps.find.outputs.fuzz }}
+      tla: ${{ steps.find.outputs.tla }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - id: find
+        run: |
+          fuzz=$(grep -rHE '^func Fuzz[A-Za-z0-9_]*\(' --include='*_test.go' . \
+            | sed -E 's|^\./([^:]*)/[^/:]*:func (Fuzz[A-Za-z0-9_]*)\(.*|\1 \2|' \
+            | jq -R -s -c 'split("\n") | map(select(length>0) | split(" ") | {pkg: .[0], target: .[1]})')
+          tla=$(for cfg in spec/*/*.cfg; do echo "$cfg"; done \
+            | jq -R -s -c 'split("\n") | map(select(length>0) | {cfg: .})')
+          echo "fuzz=$fuzz" >> "$GITHUB_OUTPUT"
+          echo "tla=$tla" >> "$GITHUB_OUTPUT"
 
+  coverage:
+    name: lint (component coverage)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: hack/ci-coverage.sh
+
+  actionlint:
+    name: lint (actionlint)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
+      - run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck=
 
-      - name: Every component has a workflow
-        run: hack/ci-coverage.sh
-
-      - name: Workflows (actionlint)
-        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck=
-
-      - name: Shell scripts (shellcheck)
-        run: |
+  shellcheck:
+    name: lint (shellcheck)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: |
           git ls-files '*.sh' ':!:*/examples/*' \
             | xargs shellcheck -S warning -x -e SC2148,SC2034
 
-      - name: "Python (ruff: syntax errors, undefined names, unused imports)"
-        run: |
+  ruff:
+    name: lint (ruff)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Syntax errors, undefined names, unused imports.
+      - run: |
           python3 -m pip install ruff==0.15.20
           ruff check --select E9,F --exclude 'test/webhooks-nixos/*-test.py' .
 
-      - name: Go (staticcheck)
-        working-directory: backend
+  staticcheck:
+    name: lint (staticcheck)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - working-directory: backend
         run: |
           go run honnef.co/go/tools/cmd/staticcheck@v0.7.0 \
             -checks 'all,-ST1000,-ST1003,-ST1005,-ST1016,-ST1020,-ST1021,-ST1022' ./...
 
+  # One leg per `func FuzzXxx`, all at once: 30 s each on a pull request,
+  # 10 minutes overnight. A new target is a new leg with no edit here. A
+  # failing input is written to testdata/fuzz/; commit it as a seed.
   fuzz:
-    name: fuzz (go)
+    name: fuzz ${{ matrix.target }}
+    needs: discover
+    if: needs.discover.outputs.fuzz != '[]'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    env:
-      # 30 s a target on a pull request, 10 minutes a target overnight.
-      FUZZTIME: ${{ github.event_name == 'schedule' && '10m' || '30s' }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.discover.outputs.fuzz) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -83,35 +145,24 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
-      # Every func FuzzXxx in every Go module is run: a new fuzz target is
-      # picked up without a change here. `go test -fuzz` takes one target in
-      # one package at a time.
-      - name: Fuzz every target
-        shell: bash
-        run: |
-          status=0
-          for mod in $(git ls-files '*/go.mod' | xargs -n1 dirname); do
-            targets=$(grep -rHE '^func Fuzz[A-Za-z0-9_]*\(' --include='*_test.go' "$mod" || true)
-            [ -z "$targets" ] && continue
-            while IFS=: read -r file line; do
-              pkg=$(dirname "$file")
-              name=$(echo "$line" | sed -E 's/^func (Fuzz[A-Za-z0-9_]*)\(.*/\1/')
-              echo "::group::$pkg $name"
-              (cd "$pkg" && go test . -run '^$' -fuzz "^${name}\$" -fuzztime "$FUZZTIME") || status=1
-              echo "::endgroup::"
-            done <<< "$targets"
-          done
-          exit $status
+      - name: Fuzz
+        working-directory: ${{ matrix.pkg }}
+        env:
+          FUZZTIME: ${{ github.event_name == 'schedule' && '10m' || '30s' }}
+          TARGET: ${{ matrix.target }}
+        run: go test . -run '^$' -fuzz "^${TARGET}\$" -fuzztime "$FUZZTIME"
 
-      # A failing input is written to testdata/fuzz/; commit it as a seed.
       - name: Keep the failing inputs
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: fuzz-failures
-          path: "**/testdata/fuzz/**"
+          name: fuzz-failure-${{ matrix.target }}
+          path: ${{ matrix.pkg }}/testdata/fuzz/**
           if-no-files-found: ignore
 
+  # The SDK is the repo's native code: a Rust library with a C ABI that the Go
+  # provider links and the Python and JavaScript packages load. Its tests run
+  # under memcheck; an invalid access or a definite leak fails the job.
   valgrind:
     name: valgrind (sdk tests)
     runs-on: ubuntu-24.04
@@ -140,10 +191,6 @@ jobs:
       - name: Install valgrind
         run: sudo apt-get update -qq && sudo apt-get install -y -qq valgrind
 
-      # The SDK is the repo's native code: a Rust library with a C ABI that
-      # the Go provider links and the Python and JavaScript packages load.
-      # Its tests run under memcheck; an invalid access or a definite leak
-      # fails the job. Debug info keeps the traces readable.
       - name: Tests under valgrind
         env:
           CARGO_PROFILE_DEV_DEBUG: "1"
@@ -151,10 +198,20 @@ jobs:
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: valgrind --error-exitcode=99 --leak-check=full --errors-for-leak-kinds=definite
         run: nix develop ..#sdk -c cargo test --workspace --tests --locked
 
+  # One leg per TLC configuration (spec/<name>/<config>.cfg), all at once.
+  # A configuration listed in its spec's `expect-violation` file must find a
+  # violation; every other must hold (see hack/tlc-check.sh). Specs:
+  # spec/opa-replacement/.
   tla:
-    name: tla+ (model check)
+    name: tla+ ${{ matrix.cfg }}
+    needs: discover
+    if: needs.discover.outputs.tla != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.discover.outputs.tla) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -167,16 +224,13 @@ jobs:
           echo "${TLA2TOOLS_SHA256}  $RUNNER_TEMP/tla2tools.jar" | sha256sum --check
           echo "TLA2TOOLS=$RUNNER_TEMP/tla2tools.jar" >> "$GITHUB_ENV"
 
-      # Each spec's configurations must give the result its
-      # `expect-violation` file says (see hack/tlc-check.sh). Specs: spec/opa-replacement/.
-      # spec/opa-replacement/ is the one spec today.
-      - name: Check every spec
-        run: hack/tlc-check.sh
+      - name: Check the configuration
+        run: hack/tlc-check.sh "${{ matrix.cfg }}"
 
   report:
     name: report
     if: github.event_name == 'pull_request' && always()
-    needs: [lint, fuzz, valgrind, tla]
+    needs: [coverage, actionlint, shellcheck, ruff, staticcheck, fuzz, valgrind, tla]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -191,7 +245,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
-          LINT: ${{ needs.lint.result }}
+          LINT: ${{ needs.coverage.result == 'success' && needs.actionlint.result == 'success' && needs.shellcheck.result == 'success' && needs.ruff.result == 'success' && needs.staticcheck.result == 'success' && 'success' || 'failure' }}
           FUZZ: ${{ needs.fuzz.result }}
           VALGRIND: ${{ needs.valgrind.result }}
           TLA: ${{ needs.tla.result }}

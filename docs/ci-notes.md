@@ -22,23 +22,54 @@ requests too, with a comment on the pull request.
 | `infra/`, `deploy/` | `tofu fmt` (infra-plan) | `tofu validate` | `tofu test` | n/a | n/a | — |
 | `spec/opa-replacement` | — | — | — | — | — | TLC, every `.cfg` (quality) |
 
+## Guidance: go wide, not in sequence
+
+Applies to the workflows and to the loop that maintains them.
+
+**In CI**
+- No job waits on another unless it needs its output. `report` is the only
+  `needs:` fan-in; everything else starts at once.
+- One tool, one job: lint is five jobs (coverage, actionlint, shellcheck, ruff,
+  staticcheck), not five steps, so one failure does not hide the rest and the
+  run takes as long as the slowest, not the sum.
+- Fan out over data with a matrix: each Go `Fuzz*` target and each TLC
+  configuration is its own leg, found by the `discover` job. Use
+  `fail-fast: false` so every leg reports.
+- New check, new job. Do not append steps to an existing job to save a
+  runner. Share only what is expensive to rebuild, through `actions/cache`.
+- Keep `cancel-in-progress` concurrency groups so a newer push replaces the
+  runs in flight.
+
+**In the loop**
+- Survey the components in parallel: spawn one subagent per component or per
+  gap (Go, SDK, web/site, Python, shell, infra, specs) in a single message,
+  each told to find what is unchecked and to propose or make the change on
+  its own files. Do not walk the components one after another.
+- Run the local verifications (TLC, valgrind, fuzz, linters) concurrently as
+  background commands, not one after the next.
+- Work independent backlog items at once, each on separate files, and merge
+  the results; serialise only changes to the same file (this doc, `quality.yml`).
+- Check the CI result of every job, not just the first red one.
+
 ## What `quality.yml` does
 
 Runs on every pull request (no path filter), every push to main, nightly, and
 by hand.
 
-- **lint**: `hack/ci-coverage.sh` (fails when a go.mod, Cargo.toml,
-  package.json, pyproject.toml or `.tla` directory is not mentioned by any
-  workflow), actionlint, shellcheck, ruff, staticcheck.
-- **fuzz**: finds every `func FuzzXxx` in every Go module and runs each for
-  30 s (10 min nightly). Add a target and it runs; no workflow edit. Failing
+- **discover**: lists the fuzz targets and TLC configurations the matrices
+  below fan out over.
+- **lint**, five parallel jobs: `hack/ci-coverage.sh` (fails when a go.mod,
+  Cargo.toml, package.json, pyproject.toml or `.tla` directory is not
+  mentioned by any workflow), actionlint, shellcheck, ruff, staticcheck.
+- **fuzz**: one parallel leg per `func FuzzXxx` in any Go module, each run
+  for 30 s (10 min nightly). Add a target and it runs; no workflow edit. Failing
   inputs upload as the `fuzz-failures` artifact; commit them under
   `testdata/fuzz/` as seeds. Seeds also run in plain `go test`.
 - **valgrind**: the SDK's tests with cargo's runner set to memcheck;
   invalid accesses and definite leaks fail it. About 1 minute of test time
   locally.
-- **tla**: `hack/tlc-check.sh` runs TLC (pinned `tla2tools.jar`, checked by
-  sha256) on every `spec/*/*.cfg`. A configuration named in the spec
+- **tla**: one parallel leg per `spec/*/*.cfg`, each `hack/tlc-check.sh <cfg>`
+  (pinned `tla2tools.jar`, checked by sha256). A configuration named in the spec
   directory's `expect-violation` file must *find* a violation (it pins what
   the model says is broken); every other must hold. Adding a spec: put the
   `.tla` and `.cfg` files in `spec/<name>/`, and list the violating ones.
@@ -96,6 +127,9 @@ by hand.
 
 ## Log
 
+- 2026-10-05 (second): made it parallel: discover job, five lint jobs, fuzz and
+  TLA+ matrices; added the go-wide guidance above. Checked locally: actionlint,
+  matrix discovery output, `tlc-check.sh <cfg>`.
 - 2026-10-05: first pass. Added `quality.yml`, `hack/ci-coverage.sh`,
   `hack/tlc-check.sh`, `spec/opa-replacement/expect-violation`,
   `FuzzURLTemplate`, and this file. Verified locally: TLC (6 configs, as

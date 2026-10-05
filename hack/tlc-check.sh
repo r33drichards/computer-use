@@ -4,6 +4,9 @@
 # file must make TLC find an invariant violation (they pin down what the model
 # says is broken today); every other .cfg must hold.
 #
+# With an argument (spec/<name>/<config>.cfg) only that configuration is run,
+# so CI can run each in its own job.
+#
 # Needs TLA2TOOLS to point at tla2tools.jar, and java.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -14,6 +17,7 @@ for dir in spec/*/; do
   expect="$dir/expect-violation"
   for tla in "$dir"*.tla; do
     for cfg in "$dir"*.cfg; do
+      [ -n "${1:-}" ] && [ "$1" != "$cfg" ] && continue
       name=$(basename "$cfg" .cfg)
       want=holds
       if [ -f "$expect" ] && grep -qx "$name" "$expect"; then want=violation; fi
