@@ -78,7 +78,7 @@ running
 
 The database trace substitutes a database append for file rotation, restores
 successfully (the Chrome file exists), then takes the hypothesized stale
-write action. Full TLC output is checked in under `traces/`.
+write action. Filtered TLC output is checked in under `traces/`.
 
 `quiesced.cfg` forbids **every modelled persistent-disk write between checkpoint
 and restore**, including shutdown writes. It still explores writes before
@@ -105,7 +105,7 @@ It requires exactly the expected invariant violation and TLC exit code 12
 for each failing configuration, and successful exhaustive checking for
 `quiesced`. Unexpected failures make the script fail. It refreshes the saved
 traces and removes temporary checker state. The checked-in traces were
-produced with TLC 2.19 (the Nix `tlaplus` 1.7.4 package).
+produced with TLC 2.19.
 
 To inspect one violation directly:
 
@@ -122,7 +122,7 @@ That command intentionally exits nonzero when the invariant is violated.
 Restore installs the captured disk state before restoring memory. Live writes
 are allowed again after capture, including shutdown writes: they change the
 working disk, not the saved pair. All three safety invariants hold across
-61 reachable states.
+66 reachable states.
 
 `uncoordinated-pair.cfg` captures disk in a separate action while writers may
 run. TLC finds a seven-state consistency violation: memory capture, disk
@@ -147,3 +147,27 @@ restored volume before memory restore, preserve the original working disk
 until successful handoff, and handle every restore retry using the same
 saved disk generation. These requirements are not yet implemented by this
 model or by the current backend.
+
+
+## Preserving the working disk
+
+`workingFile` and `workingEpoch` track the original source disk independently
+of the disk installed for restore. `NoWorkingDiskLoss` requires that the sum
+of its generations still accounts for every pre-restore mutation. The paired
+configuration retains this source disk even when restoring an older branch.
+`destructive-pair.cfg` deliberately replaces the source too: TLC violates
+`NoWorkingDiskLoss` in six states after a post-checkpoint mutation.
+
+This checks preservation of the abstract source disk, not availability of
+newer writes in the resumed application. Those writes remain on the retained
+source and require a separate reconciliation or recovery procedure. No
+writes between failed restore attempts are modelled; retries install the
+saved disk again. Production would need to preserve each attempt's mutated
+branch as well. Neither actual data bytes nor successful handoff and eventual
+backup deletion are modelled.
+
+The runner now uses standard `grep` and `awk`, and saves only invariant
+results, counterexample states, and state counts. It omits local paths,
+host details, timestamps, and random seeds. The path-filtered
+`.github/workflows/session-snapshot-model.yml` runs the regression checks and
+requires the normalized traces to match the checked-in files.

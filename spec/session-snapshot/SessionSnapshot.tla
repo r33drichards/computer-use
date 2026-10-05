@@ -9,14 +9,14 @@ EXTENDS Naturals
    The database corruption action is an explicit hypothesis, not a model of
    sled internals or proof of the observed corruption's historical cause. *)
 CONSTANTS FreezeAfterCheckpoint, RotateChromeFile, AdvanceDatabase, MaxWrites,
-          PairDiskSnapshot, AtomicPairCapture
+          PairDiskSnapshot, AtomicPairCapture, PreserveWorkingDisk
 VARIABLES phase, chromeFile, dbEpoch, memoryFile, memoryEpoch,
           snapshotFile, snapshotEpoch, writes, restoreAttempts, missingFile,
-          databaseCorrupt, diskSnapshotFile, diskSnapshotEpoch, diskCaptured
+          databaseCorrupt, diskSnapshotFile, diskSnapshotEpoch, diskCaptured, workingFile, workingEpoch
 
 vars == <<phase, chromeFile, dbEpoch, memoryFile, memoryEpoch,
           snapshotFile, snapshotEpoch, writes, restoreAttempts, missingFile,
-          databaseCorrupt, diskSnapshotFile, diskSnapshotEpoch, diskCaptured>>
+          databaseCorrupt, diskSnapshotFile, diskSnapshotEpoch, diskCaptured, workingFile, workingEpoch>>
 
 Init ==
     /\ phase = "running"
@@ -33,6 +33,8 @@ Init ==
     /\ diskSnapshotFile = 0
     /\ diskSnapshotEpoch = 0
     /\ diskCaptured = FALSE
+    /\ workingFile = 0
+    /\ workingEpoch = 0
 
 Checkpoint ==
     /\ phase = "running"
@@ -43,7 +45,7 @@ Checkpoint ==
     /\ diskSnapshotEpoch' = IF PairDiskSnapshot /\ AtomicPairCapture THEN dbEpoch ELSE diskSnapshotEpoch
     /\ diskCaptured' = (PairDiskSnapshot /\ AtomicPairCapture)
     /\ UNCHANGED <<chromeFile, dbEpoch, memoryFile, memoryEpoch, writes,
-                    restoreAttempts, missingFile, databaseCorrupt>>
+                    restoreAttempts, missingFile, databaseCorrupt, workingFile, workingEpoch>>
 
 (* Separate CSI capture without a common pause can record a newer disk.
    AtomicPairCapture abstracts an orchestrator that pauses all writers,
@@ -57,7 +59,7 @@ DiskCheckpoint ==
     /\ diskCaptured' = TRUE
     /\ UNCHANGED <<phase, chromeFile, dbEpoch, memoryFile, memoryEpoch,
                     snapshotFile, snapshotEpoch, writes, restoreAttempts,
-                    missingFile, databaseCorrupt>>
+                    missingFile, databaseCorrupt, workingFile, workingEpoch>>
 
 MayWrite ==
     /\ (phase = "running" \/
@@ -70,24 +72,26 @@ ChromeRotation ==
     /\ MayWrite /\ RotateChromeFile
     /\ chromeFile' = chromeFile + 1
     /\ memoryFile' = chromeFile'
+    /\ workingFile' = chromeFile'
     /\ writes' = writes + 1
     /\ UNCHANGED <<phase, dbEpoch, memoryEpoch, snapshotFile, snapshotEpoch,
-                    restoreAttempts, missingFile, databaseCorrupt, diskSnapshotFile, diskSnapshotEpoch, diskCaptured>>
+                    restoreAttempts, missingFile, databaseCorrupt, diskSnapshotFile, diskSnapshotEpoch, diskCaptured, workingEpoch>>
 
 DatabaseAppend ==
     /\ MayWrite /\ AdvanceDatabase
     /\ dbEpoch' = dbEpoch + 1
     /\ memoryEpoch' = dbEpoch'
+    /\ workingEpoch' = dbEpoch'
     /\ writes' = writes + 1
     /\ UNCHANGED <<phase, chromeFile, memoryFile, snapshotFile, snapshotEpoch,
-                    restoreAttempts, missingFile, databaseCorrupt, diskSnapshotFile, diskSnapshotEpoch, diskCaptured>>
+                    restoreAttempts, missingFile, databaseCorrupt, diskSnapshotFile, diskSnapshotEpoch, diskCaptured, workingFile>>
 
 BeginShutdown ==
     /\ phase = "checkpointed"
     /\ phase' = "draining"
     /\ UNCHANGED <<chromeFile, dbEpoch, memoryFile, memoryEpoch, snapshotFile,
                     snapshotEpoch, writes, restoreAttempts, missingFile,
-                    databaseCorrupt, diskSnapshotFile, diskSnapshotEpoch, diskCaptured>>
+                    databaseCorrupt, diskSnapshotFile, diskSnapshotEpoch, diskCaptured, workingFile, workingEpoch>>
 
 Suspend ==
     /\ phase = "draining"
@@ -95,7 +99,7 @@ Suspend ==
     /\ phase' = "suspended"
     /\ UNCHANGED <<chromeFile, dbEpoch, memoryFile, memoryEpoch, snapshotFile,
                     snapshotEpoch, writes, restoreAttempts, missingFile,
-                    databaseCorrupt, diskSnapshotFile, diskSnapshotEpoch, diskCaptured>>
+                    databaseCorrupt, diskSnapshotFile, diskSnapshotEpoch, diskCaptured, workingFile, workingEpoch>>
 
 (* GKE tries the same checkpoint again after a failed restore. Bounded at
    two attempts so TLC enumerates a finite state space. *)
@@ -107,6 +111,8 @@ Restore ==
     /\ memoryEpoch' = snapshotEpoch
     /\ chromeFile' = IF PairDiskSnapshot THEN diskSnapshotFile ELSE chromeFile
     /\ dbEpoch' = IF PairDiskSnapshot THEN diskSnapshotEpoch ELSE dbEpoch
+    /\ workingFile' = IF PairDiskSnapshot /\ ~PreserveWorkingDisk THEN chromeFile' ELSE workingFile
+    /\ workingEpoch' = IF PairDiskSnapshot /\ ~PreserveWorkingDisk THEN dbEpoch' ELSE workingEpoch
     /\ missingFile' = (snapshotFile # chromeFile')
     /\ phase' = IF missingFile' THEN "restoreFailed" ELSE "restored"
     /\ UNCHANGED <<snapshotFile, snapshotEpoch, writes,
@@ -121,7 +127,7 @@ StaleDatabaseWrite ==
     /\ phase' = "databaseFailed"
     /\ UNCHANGED <<chromeFile, dbEpoch, memoryFile, memoryEpoch, snapshotFile,
                     snapshotEpoch, writes, restoreAttempts, missingFile,
-                    diskSnapshotFile, diskSnapshotEpoch, diskCaptured>>
+                    diskSnapshotFile, diskSnapshotEpoch, diskCaptured, workingFile, workingEpoch>>
 
 Next == Checkpoint \/ DiskCheckpoint \/ ChromeRotation \/ DatabaseAppend \/ BeginShutdown
         \/ Suspend \/ Restore \/ StaleDatabaseWrite
@@ -138,6 +144,7 @@ TypeOK ==
     /\ diskSnapshotFile \in 0..MaxWrites
     /\ diskSnapshotEpoch \in 0..MaxWrites
     /\ diskCaptured \in BOOLEAN
+    /\ workingFile \in 0..MaxWrites /\ workingEpoch \in 0..MaxWrites
 
 (* The requested consistency invariant: after attempting restore, memory
    must describe the persistent volume it is actually paired with. *)
@@ -145,6 +152,11 @@ RestoreUsesCompatibleDisk ==
     restoreAttempts > 0 =>
         /\ memoryFile = chromeFile
         /\ memoryEpoch = dbEpoch
+
+(* Each pre-restore mutation advances exactly one source-disk generation.
+   Keeping the original disk accessible preserves every such generation.
+   This does not claim those newer writes are present on the restored branch. *)
+NoWorkingDiskLoss == workingFile + workingEpoch = writes
 
 NoMissingChromeFile == ~missingFile
 NoDatabaseCorruption == ~databaseCorrupt

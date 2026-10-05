@@ -1,12 +1,3 @@
-TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
-Running breadth-first search Model-Checking with fp 113 and seed 7111395665304759815 with 1 worker on 10 cores with 3641MB heap and 64MB offheap memory (Mac OS X 26.4 aarch64, Azul Systems, Inc. 1.8.0_492 x86_64, MSBDiskFPSet, DiskStateQueue).
-Parsing file /Users/robertwendt/.codex/worktrees/73e7/computer-use/spec/session-snapshot/SessionSnapshot.tla
-Parsing file /private/var/folders/ph/qgnwj7nd6lj2ksz6ctdqk1540000gn/T/Naturals.tla
-Semantic processing of module Naturals
-Semantic processing of module SessionSnapshot
-Starting... (2026-10-04 22:40:19)
-Computing initial states...
-Finished computing initial states: 1 distinct state generated at 2026-10-04 22:40:19.
 Error: Invariant RestoreUsesCompatibleDisk is violated.
 Error: The behavior up to this point is:
 State 1: <Initial predicate>
@@ -18,14 +9,16 @@ State 1: <Initial predicate>
 /\ missingFile = FALSE
 /\ memoryFile = 0
 /\ databaseCorrupt = FALSE
+/\ workingFile = 0
 /\ diskCaptured = FALSE
 /\ diskSnapshotEpoch = 0
 /\ phase = "running"
 /\ dbEpoch = 0
 /\ writes = 0
 /\ diskSnapshotFile = 0
+/\ workingEpoch = 0
 
-State 2: <Checkpoint line 38, col 5 to line 46, col 67 of module SessionSnapshot>
+State 2: <Checkpoint line 40, col 5 to line 48, col 94 of module SessionSnapshot>
 /\ snapshotEpoch = 0
 /\ chromeFile = 0
 /\ snapshotFile = 0
@@ -34,14 +27,16 @@ State 2: <Checkpoint line 38, col 5 to line 46, col 67 of module SessionSnapshot
 /\ missingFile = FALSE
 /\ memoryFile = 0
 /\ databaseCorrupt = FALSE
+/\ workingFile = 0
 /\ diskCaptured = FALSE
 /\ diskSnapshotEpoch = 0
 /\ phase = "checkpointed"
 /\ dbEpoch = 0
 /\ writes = 0
 /\ diskSnapshotFile = 0
+/\ workingEpoch = 0
 
-State 3: <ChromeRotation line 70, col 5 to line 75, col 118 of module SessionSnapshot>
+State 3: <ChromeRotation line 72, col 5 to line 78, col 132 of module SessionSnapshot>
 /\ snapshotEpoch = 0
 /\ chromeFile = 1
 /\ snapshotFile = 0
@@ -50,14 +45,16 @@ State 3: <ChromeRotation line 70, col 5 to line 75, col 118 of module SessionSna
 /\ missingFile = FALSE
 /\ memoryFile = 1
 /\ databaseCorrupt = FALSE
+/\ workingFile = 1
 /\ diskCaptured = FALSE
 /\ diskSnapshotEpoch = 0
 /\ phase = "checkpointed"
 /\ dbEpoch = 0
 /\ writes = 1
 /\ diskSnapshotFile = 0
+/\ workingEpoch = 0
 
-State 4: <BeginShutdown line 86, col 5 to line 90, col 88 of module SessionSnapshot>
+State 4: <BeginShutdown line 90, col 5 to line 94, col 115 of module SessionSnapshot>
 /\ snapshotEpoch = 0
 /\ chromeFile = 1
 /\ snapshotFile = 0
@@ -66,14 +63,16 @@ State 4: <BeginShutdown line 86, col 5 to line 90, col 88 of module SessionSnaps
 /\ missingFile = FALSE
 /\ memoryFile = 1
 /\ databaseCorrupt = FALSE
+/\ workingFile = 1
 /\ diskCaptured = FALSE
 /\ diskSnapshotEpoch = 0
 /\ phase = "draining"
 /\ dbEpoch = 0
 /\ writes = 1
 /\ diskSnapshotFile = 0
+/\ workingEpoch = 0
 
-State 5: <Suspend line 93, col 5 to line 98, col 88 of module SessionSnapshot>
+State 5: <Suspend line 97, col 5 to line 102, col 115 of module SessionSnapshot>
 /\ snapshotEpoch = 0
 /\ chromeFile = 1
 /\ snapshotFile = 0
@@ -82,14 +81,16 @@ State 5: <Suspend line 93, col 5 to line 98, col 88 of module SessionSnapshot>
 /\ missingFile = FALSE
 /\ memoryFile = 1
 /\ databaseCorrupt = FALSE
+/\ workingFile = 1
 /\ diskCaptured = FALSE
 /\ diskSnapshotEpoch = 0
 /\ phase = "suspended"
 /\ dbEpoch = 0
 /\ writes = 1
 /\ diskSnapshotFile = 0
+/\ workingEpoch = 0
 
-State 6: <Restore line 103, col 5 to line 113, col 88 of module SessionSnapshot>
+State 6: <Restore line 107, col 5 to line 119, col 88 of module SessionSnapshot>
 /\ snapshotEpoch = 0
 /\ chromeFile = 1
 /\ snapshotFile = 0
@@ -98,14 +99,14 @@ State 6: <Restore line 103, col 5 to line 113, col 88 of module SessionSnapshot>
 /\ missingFile = TRUE
 /\ memoryFile = 0
 /\ databaseCorrupt = FALSE
+/\ workingFile = 1
 /\ diskCaptured = FALSE
 /\ diskSnapshotEpoch = 0
 /\ phase = "restoreFailed"
 /\ dbEpoch = 0
 /\ writes = 1
 /\ diskSnapshotFile = 0
+/\ workingEpoch = 0
 
 57 states generated, 45 distinct states found, 14 states left on queue.
 The depth of the complete state graph search is 6.
-The average outdegree of the complete state graph is 1 (minimum is 1, the maximum 3 and the 95th percentile is 3).
-Finished in 00s at (2026-10-04 22:40:19)
