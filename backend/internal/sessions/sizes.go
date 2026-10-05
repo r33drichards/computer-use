@@ -617,6 +617,12 @@ func (s *Store) start(ctx context.Context, id string) (resized bool, err error) 
 		if err := s.roomToStart(ctx, obj); err != nil {
 			return false, err
 		}
+		if s.snap != nil && s.snap.diskClass != "" {
+			if err := s.keepOrDropSnapshot(ctx, obj); err != nil {
+				return false, err
+			}
+			return true, nil
+		}
 		return resized, nil
 	})
 	if apierrors.IsNotFound(err) {

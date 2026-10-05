@@ -50,14 +50,18 @@ const (
 type SnapshotOptions struct {
 	// Timeout bounds one snapshot, from trigger to ready. A snapshot that
 	// takes longer is abandoned and the session sleeps without one.
-	Timeout time.Duration
-	Poll    time.Duration // how often to look at a snapshot in progress; 1s if unset
+	Timeout   time.Duration
+	DiskClass string        // opt-in CSI class; requires postCheckpoint: stop
+	Poll      time.Duration // how often to look at a snapshot in progress; 1s if unset
 }
 
 type snapshotter struct {
-	triggers, snapshots dynamic.ResourceInterface
-	nodes               dynamic.ResourceInterface
-	timeout, poll       time.Duration
+	triggers, snapshots   dynamic.ResourceInterface
+	sandboxes             dynamic.ResourceInterface
+	nodes                 dynamic.ResourceInterface
+	pods, disks, policies dynamic.ResourceInterface
+	diskClass             string
+	timeout, poll         time.Duration
 }
 
 // EnableSnapshots makes the store snapshot a session before a sleep (for
@@ -75,6 +79,11 @@ func (s *Store) EnableSnapshots(client dynamic.Interface, namespace string, o Sn
 		triggers:  client.Resource(SnapshotTriggerGVR).Namespace(namespace),
 		snapshots: client.Resource(PodSnapshotGVR).Namespace(namespace),
 		nodes:     client.Resource(nodeGVR),
+		sandboxes: client.Resource(SandboxGVR).Namespace(namespace),
+		pods:      client.Resource(podGVR).Namespace(namespace),
+		disks:     client.Resource(volumeSnapshotGVR).Namespace(namespace),
+		policies:  client.Resource(snapshotPolicyGVR).Namespace(namespace),
+		diskClass: o.DiskClass,
 		timeout:   o.Timeout,
 		poll:      o.Poll,
 	}
@@ -89,7 +98,7 @@ func nameHash(name string) string {
 }
 
 // snapshot is a ready PodSnapshot and where it can be restored.
-type snapshot struct{ name, pool string }
+type snapshot struct{ name, pool, source string }
 
 // until calls check every poll until it reports done, fails, or ctx ends.
 func (n *snapshotter) until(ctx context.Context, check func() (bool, error)) error {
@@ -107,12 +116,34 @@ func (n *snapshotter) until(ctx context.Context, check func() (bool, error)) err
 }
 
 // take snapshots the session's running pod and waits until the snapshot can
-// be restored from. The pod keeps running. On any failure, including the
+// be restored from. Paired capture requires GKE to stop the pod. On any failure, including the
 // timeout, nothing is left behind.
 func (n *snapshotter) take(ctx context.Context, sandbox *unstructured.Unstructured) (*snapshot, error) {
 	ctx, cancel := context.WithTimeout(ctx, n.timeout)
 	defer cancel()
 	id := sandbox.GetName()
+	var podUID string
+	if n.diskClass != "" {
+		policy, err := n.policies.Get(ctx, "session-paired-sleep", metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		behavior, _, _ := unstructured.NestedString(policy.Object, "spec", "triggerConfig", "postCheckpoint")
+		if behavior != "stop" {
+			return nil, fmt.Errorf("paired snapshots require postCheckpoint: stop")
+		}
+		pod, err := n.pods.Get(ctx, id, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		if err := n.selectPairedPolicy(ctx, pod); err != nil {
+			return nil, err
+		}
+		podUID = string(pod.GetUID())
+		if podUID == "" {
+			return nil, fmt.Errorf("checkpoint pod has no UID")
+		}
+	}
 
 	nodeName, _, _ := unstructured.NestedString(sandbox.Object, "status", "nodeName")
 	if nodeName == "" {
@@ -180,13 +211,20 @@ func (n *snapshotter) take(ctx context.Context, sandbox *unstructured.Unstructur
 			return conditions(obj)["Ready"].status == "True", nil
 		})
 	}
+	if err == nil && n.diskClass != "" {
+		err = n.captureDisk(ctx, sandbox, name, podUID)
+	}
 	if err != nil {
 		if name != "" {
 			n.discard(ctx, name)
 		}
 		return nil, err
 	}
-	return &snapshot{name: name, pool: pool}, nil
+	source := ""
+	if n.diskClass != "" {
+		source = dataClaim(sandbox)
+	}
+	return &snapshot{name: name, pool: pool, source: source}, nil
 }
 
 // cleanupContext is for removing what an operation made after the operation
@@ -199,6 +237,11 @@ func cleanupContext(ctx context.Context) (context.Context, context.CancelFunc) {
 func (n *snapshotter) discard(ctx context.Context, name string) {
 	ctx, cancel := cleanupContext(ctx)
 	defer cancel()
+	if n.diskClass != "" {
+		if err := n.disks.Delete(ctx, "disk-"+name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+			slog.Error("disk snapshot not deleted", "snapshot", name, "err", err)
+		}
+	}
 	if err := n.snapshots.Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 		slog.Error("snapshot not deleted", "snapshot", name, "err", err)
 	}
@@ -212,6 +255,20 @@ func (n *snapshotter) ready(ctx context.Context, name string) bool {
 			slog.Warn("snapshot not readable; waking cold", "snapshot", name, "err", err)
 		}
 		return false
+	}
+	if n.diskClass != "" {
+		disk := obj.GetAnnotations()[annDiskSnapshot]
+		if disk == "" {
+			return false
+		}
+		paired, err := n.disks.Get(ctx, disk, metav1.GetOptions{})
+		if err != nil {
+			return false
+		}
+		ready, _, _ := unstructured.NestedBool(paired.Object, "status", "readyToUse")
+		if !ready || paired.GetDeletionTimestamp() != nil {
+			return false
+		}
 	}
 	return obj.GetDeletionTimestamp() == nil && conditions(obj)["Ready"].status == "True"
 }
@@ -245,16 +302,40 @@ func (n *snapshotter) prune(ctx context.Context, id, keep string) (int, error) {
 		if name == keep {
 			continue
 		}
+		if n.diskClass != "" {
+			if err := n.disks.Delete(ctx, "disk-"+name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+				return deleted, err
+			}
+		}
 		if err := n.snapshots.Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 			return deleted, fmt.Errorf("delete snapshot %s: %w", name, err)
 		}
 		deleted++
+	}
+	if n.diskClass != "" {
+		disks, err := n.disks.List(ctx, metav1.ListOptions{LabelSelector: LabelSession + "=" + id})
+		if err != nil {
+			return deleted, err
+		}
+		for _, disk := range disks.Items {
+			if disk.GetName() == "disk-"+keep {
+				continue
+			}
+			if err := n.disks.Delete(ctx, disk.GetName(), metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+				return deleted, err
+			}
+		}
 	}
 	return deleted, nil
 }
 
 // pruneLogged is prune for after the session's own state is already written.
 func (n *snapshotter) pruneLogged(ctx context.Context, id, keep string) {
+	if n.diskClass != "" && keep == "" {
+		if obj, err := n.sandboxes.Get(ctx, id, metav1.GetOptions{}); err == nil {
+			keep = obj.GetAnnotations()[annColdDisk]
+		}
+	}
 	ctx, cancel := cleanupContext(ctx)
 	defer cancel()
 	if _, err := n.prune(ctx, id, keep); err != nil {
@@ -271,12 +352,21 @@ func setSnapshot(obj *unstructured.Unstructured, snap *snapshot) error {
 		_, pinned := obj.GetAnnotations()[AnnSnapshotPool]
 		setAnnotation(obj, AnnSnapshot, "")
 		setAnnotation(obj, AnnSnapshotPool, "")
+		setAnnotation(obj, annSourceClaim, "")
 		if pinned {
 			unstructured.RemoveNestedField(obj.Object, append(selector, LabelPool)...)
 		}
 		return nil
 	}
+	if snap.source != "" {
+		if err := unstructured.SetNestedField(obj.Object, "true", "spec", "podTemplate", "metadata", "labels", "browserjs.dev/paired-snapshots"); err != nil {
+			return err
+		}
+	}
+	setAnnotation(obj, annColdDisk, "")
+	setAnnotation(obj, annColdSource, "")
 	setAnnotation(obj, AnnSnapshot, snap.name)
+	setAnnotation(obj, annSourceClaim, snap.source)
 	setAnnotation(obj, AnnSnapshotPool, snap.pool)
 	return unstructured.SetNestedField(obj.Object, snap.pool, append(selector, LabelPool)...)
 }
@@ -288,8 +378,37 @@ func (s *Store) keepOrDropSnapshot(ctx context.Context, obj *unstructured.Unstru
 	if s.snap == nil {
 		return nil
 	}
+	if cold := obj.GetAnnotations()[annColdDisk]; cold != "" && s.snap.diskClass != "" {
+		if err := s.snap.snapshots.Delete(ctx, cold, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+			return err
+		}
+		if _, err := s.snap.prune(ctx, obj.GetName(), cold); err != nil {
+			return err
+		}
+		if err := s.snap.until(ctx, func() (bool, error) { names, err := s.snap.of(ctx, obj.GetName()); return len(names) == 0, err }); err != nil {
+			return err
+		}
+		if err := s.prepareDiskClone(ctx, obj, cold, "disk-"+cold, obj.GetAnnotations()[annColdSource]); err != nil {
+			return err
+		}
+		return setSnapshot(obj, nil)
+	}
 	if name := obj.GetAnnotations()[AnnSnapshot]; name != "" && s.snap.ready(ctx, name) {
+		if s.snap.diskClass != "" {
+			if _, err := s.snap.prune(ctx, obj.GetName(), name); err != nil {
+				return err
+			}
+			return s.prepareSnapshotDisk(ctx, obj, name)
+		}
 		return nil
+	}
+	if s.snap.diskClass != "" {
+		if _, err := s.snap.prune(ctx, obj.GetName(), ""); err != nil {
+			return err
+		}
+		if err := s.snap.until(ctx, func() (bool, error) { names, err := s.snap.of(ctx, obj.GetName()); return len(names) == 0, err }); err != nil {
+			return err
+		}
 	}
 	return setSnapshot(obj, nil)
 }
@@ -329,7 +448,45 @@ func (s *Store) Sleep(ctx context.Context, id, by string, stillWanted func(Sessi
 	return err
 }
 
-func (s *Store) sleep(ctx context.Context, id, by string, stillWanted func(Session) bool) error {
+func (s *Store) sleep(ctx context.Context, id, by string, stillWanted func(Session) bool) (retErr error) {
+	token := ""
+	checkpointState := Starting
+	if s.snap != nil && s.snap.diskClass != "" {
+		token = time.Now().UTC().Format(time.RFC3339Nano)
+		if err := s.modify(ctx, id, func(obj *unstructured.Unstructured) (bool, error) {
+			if obj.GetAnnotations()[annCheckpoint] != "" || operatingMode(obj) == "Suspended" || obj.GetDeletionTimestamp() != nil {
+				return false, ErrStateChanged
+			}
+			if stillWanted != nil && !stillWanted(FromSandbox(obj)) {
+				return false, ErrStateChanged
+			}
+			checkpointState = FromSandbox(obj).State
+			setAnnotation(obj, annCheckpoint, token)
+			return true, nil
+		}); err != nil {
+			return err
+		}
+		defer func() {
+			if retErr != nil {
+				if err := s.recoverCheckpoint(ctx, id, token); err != nil {
+					slog.Error("checkpoint recovery failed", "session", id, "err", err)
+				}
+				return
+			}
+			cleanup, cancel := cleanupContext(ctx)
+			defer cancel()
+			if err := s.modify(cleanup, id, func(obj *unstructured.Unstructured) (bool, error) {
+				if obj.GetAnnotations()[annCheckpoint] != token {
+					return false, nil
+				}
+				setAnnotation(obj, annCheckpoint, "")
+				return true, nil
+			}); err != nil {
+				slog.Error("checkpoint fence not cleared", "session", id, "err", err)
+			}
+		}()
+	}
+
 	var snap *snapshot
 	if s.snap != nil {
 		obj, err := s.client.Get(ctx, id, metav1.GetOptions{})
@@ -342,7 +499,11 @@ func (s *Store) sleep(ctx context.Context, id, by string, stillWanted func(Sessi
 		if operatingMode(obj) == "Suspended" || obj.GetDeletionTimestamp() != nil {
 			return ErrStateChanged
 		}
-		if by != StoppedByIdle && FromSandbox(obj).State != Running {
+		view := FromSandbox(obj)
+		if token != "" {
+			view.State = checkpointState
+		}
+		if by != StoppedByIdle && view.State != Running {
 			// Still starting: nothing to snapshot.
 		} else if FromSandbox(obj).PendingSize != "" {
 			// It starts next at another size, which cannot restore this pod.
@@ -355,7 +516,11 @@ func (s *Store) sleep(ctx context.Context, id, by string, stillWanted func(Sessi
 		if operatingMode(obj) == "Suspended" || obj.GetDeletionTimestamp() != nil {
 			return false, ErrStateChanged
 		}
-		if stillWanted != nil && !stillWanted(FromSandbox(obj)) {
+		view := FromSandbox(obj)
+		if token != "" && obj.GetAnnotations()[annCheckpoint] == token {
+			view.State = checkpointState
+		}
+		if stillWanted != nil && !stillWanted(view) {
 			return false, ErrStateChanged
 		}
 		stopClock(obj)
@@ -392,6 +557,11 @@ func (s *Store) sleep(ctx context.Context, id, by string, stillWanted func(Sessi
 		keep = snap.name
 		slog.Info("session snapshotted", "session", id, "snapshot", snap.name, "pool", snap.pool)
 	}
+	if keep == "" && s.snap.diskClass != "" {
+		if obj, err := s.client.Get(ctx, id, metav1.GetOptions{}); err == nil {
+			keep = obj.GetAnnotations()[annColdDisk]
+		}
+	}
 	s.snap.pruneLogged(ctx, id, keep)
 	return nil
 }
@@ -410,6 +580,12 @@ func (s *Store) ColdStart(ctx context.Context, id string) (bool, error) {
 	}
 	if err != nil {
 		return false, err
+	}
+	if memory := obj.GetAnnotations()[AnnSnapshot]; s.snap.diskClass != "" && memory != "" && s.snap.ready(ctx, memory) {
+		return true, s.coldPair(ctx, id, memory, StoppedByIdle, true)
+	}
+	if s.snap.diskClass != "" && obj.GetAnnotations()[annSourceClaim] != "" {
+		return false, fmt.Errorf("paired disk snapshot is unavailable; source disk remains preserved")
 	}
 	deleted, err := s.snap.prune(ctx, id, "")
 	if err != nil {

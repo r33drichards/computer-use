@@ -1,0 +1,9 @@
+# Cluster-scoped prerequisite for opt-in paired snapshots. Apply separately
+# from the namespaced overlay, which would inject an invalid namespace.
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: computeruse-session
+# No default-class annotation: the backend must name the class explicitly.
+driver: pd.csi.storage.gke.io
+deletionPolicy: Delete

@@ -56,11 +56,10 @@ func (s *Store) GrowDisk(ctx context.Context, id string, gb int) error {
 	if err != nil {
 		return err
 	}
-	spec, _ := obj.Object["spec"].(map[string]any)
-	if gb < diskGBOf(spec) || gb <= 0 {
+	if gb < FromSandbox(obj).DiskGB || gb <= 0 {
 		return ErrInvalidDisk
 	}
-	pvc, err := s.pvcs.Get(ctx, "data-"+id, metav1.GetOptions{})
+	pvc, err := s.pvcs.Get(ctx, dataClaim(obj), metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -78,8 +77,12 @@ func (s *Store) GrowDisk(ctx context.Context, id string, gb int) error {
 	}
 	return s.modify(ctx, id, func(obj *unstructured.Unstructured) (bool, error) {
 		spec, _ := obj.Object["spec"].(map[string]any)
-		if diskGBOf(spec) >= gb {
+		if FromSandbox(obj).DiskGB >= gb {
 			return false, nil
+		}
+		if obj.GetAnnotations()[annDataClaim] != "" {
+			setAnnotation(obj, annDiskGB, fmt.Sprint(gb))
+			return true, nil
 		}
 		return true, setDiskGB(spec, gb)
 	})

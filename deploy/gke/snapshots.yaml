@@ -30,6 +30,10 @@ spec:
   selector:
     matchLabels:
       app: browserjs-session
+    matchExpressions:
+      - key: browserjs.dev/paired-snapshots
+        operator: NotIn
+        values: ["true"]
   # Memory and all, restored only into an identical pod spec on the same
   # machine series (the backend pins a sleeping session to its node pool).
   snapshotScope: whole-pod
@@ -65,7 +69,19 @@ rules:
     verbs: ["create", "get", "delete"]
   - apiGroups: ["podsnapshot.gke.io"]
     resources: ["podsnapshots"]
-    verbs: ["get", "list", "delete"]
+    verbs: ["get", "list", "update", "delete"]
+  - apiGroups: ["podsnapshot.gke.io"]
+    resources: ["podsnapshotpolicies"]
+    verbs: ["get"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots"]
+    verbs: ["get", "list", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "patch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["create"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -104,3 +120,26 @@ subjects:
   - kind: ServiceAccount
     name: backend
     namespace: browserjs-sessions
+
+---
+# Paired capture is opt-in through SNAPSHOT_DISK_CLASS. The legacy policy
+# excludes these pods so there is exactly one applicable capture policy.
+apiVersion: podsnapshot.gke.io/v1
+kind: PodSnapshotPolicy
+metadata:
+  name: session-paired-sleep
+spec:
+  storageConfigName: browserjs-sessions
+  selector:
+    matchLabels:
+      app: browserjs-session
+      browserjs.dev/paired-snapshots: "true"
+  snapshotScope: whole-pod
+  triggerConfig:
+    type: manual
+    postCheckpoint: stop
+  snapshotGroupingRules:
+    groupByLabelValue:
+      labels: [agents.x-k8s.io/sandbox-name-hash]
+      groupRetentionPolicy:
+        maxSnapshotCountPerGroup: 1

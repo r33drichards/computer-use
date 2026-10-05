@@ -1,0 +1,112 @@
+Error: Invariant NoMissingChromeFile is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ snapshotEpoch = 0
+/\ chromeFile = 0
+/\ snapshotFile = 0
+/\ memoryEpoch = 0
+/\ restoreAttempts = 0
+/\ missingFile = FALSE
+/\ memoryFile = 0
+/\ databaseCorrupt = FALSE
+/\ workingFile = 0
+/\ diskCaptured = FALSE
+/\ diskSnapshotEpoch = 0
+/\ phase = "running"
+/\ dbEpoch = 0
+/\ writes = 0
+/\ diskSnapshotFile = 0
+/\ workingEpoch = 0
+
+State 2: <Checkpoint line 40, col 5 to line 48, col 94 of module SessionSnapshot>
+/\ snapshotEpoch = 0
+/\ chromeFile = 0
+/\ snapshotFile = 0
+/\ memoryEpoch = 0
+/\ restoreAttempts = 0
+/\ missingFile = FALSE
+/\ memoryFile = 0
+/\ databaseCorrupt = FALSE
+/\ workingFile = 0
+/\ diskCaptured = FALSE
+/\ diskSnapshotEpoch = 0
+/\ phase = "checkpointed"
+/\ dbEpoch = 0
+/\ writes = 0
+/\ diskSnapshotFile = 0
+/\ workingEpoch = 0
+
+State 3: <ChromeRotation line 72, col 5 to line 78, col 132 of module SessionSnapshot>
+/\ snapshotEpoch = 0
+/\ chromeFile = 1
+/\ snapshotFile = 0
+/\ memoryEpoch = 0
+/\ restoreAttempts = 0
+/\ missingFile = FALSE
+/\ memoryFile = 1
+/\ databaseCorrupt = FALSE
+/\ workingFile = 1
+/\ diskCaptured = FALSE
+/\ diskSnapshotEpoch = 0
+/\ phase = "checkpointed"
+/\ dbEpoch = 0
+/\ writes = 1
+/\ diskSnapshotFile = 0
+/\ workingEpoch = 0
+
+State 4: <BeginShutdown line 90, col 5 to line 94, col 115 of module SessionSnapshot>
+/\ snapshotEpoch = 0
+/\ chromeFile = 1
+/\ snapshotFile = 0
+/\ memoryEpoch = 0
+/\ restoreAttempts = 0
+/\ missingFile = FALSE
+/\ memoryFile = 1
+/\ databaseCorrupt = FALSE
+/\ workingFile = 1
+/\ diskCaptured = FALSE
+/\ diskSnapshotEpoch = 0
+/\ phase = "draining"
+/\ dbEpoch = 0
+/\ writes = 1
+/\ diskSnapshotFile = 0
+/\ workingEpoch = 0
+
+State 5: <Suspend line 97, col 5 to line 102, col 115 of module SessionSnapshot>
+/\ snapshotEpoch = 0
+/\ chromeFile = 1
+/\ snapshotFile = 0
+/\ memoryEpoch = 0
+/\ restoreAttempts = 0
+/\ missingFile = FALSE
+/\ memoryFile = 1
+/\ databaseCorrupt = FALSE
+/\ workingFile = 1
+/\ diskCaptured = FALSE
+/\ diskSnapshotEpoch = 0
+/\ phase = "suspended"
+/\ dbEpoch = 0
+/\ writes = 1
+/\ diskSnapshotFile = 0
+/\ workingEpoch = 0
+
+State 6: <Restore line 107, col 5 to line 119, col 88 of module SessionSnapshot>
+/\ snapshotEpoch = 0
+/\ chromeFile = 1
+/\ snapshotFile = 0
+/\ memoryEpoch = 0
+/\ restoreAttempts = 1
+/\ missingFile = TRUE
+/\ memoryFile = 0
+/\ databaseCorrupt = FALSE
+/\ workingFile = 1
+/\ diskCaptured = FALSE
+/\ diskSnapshotEpoch = 0
+/\ phase = "restoreFailed"
+/\ dbEpoch = 0
+/\ writes = 1
+/\ diskSnapshotFile = 0
+/\ workingEpoch = 0
+
+24 states generated, 21 distinct states found, 5 states left on queue.
+The depth of the complete state graph search is 6.

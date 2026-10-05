@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"regexp"
+	"strconv"
 	"time"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -165,6 +166,9 @@ func FromSandbox(obj *unstructured.Unstructured) Session {
 		Size:           sizeOf(obj),
 		DiskGB:         diskGBOf(spec),
 	}
+	if gb, err := strconv.Atoi(obj.GetAnnotations()[annDiskGB]); err == nil {
+		s.DiskGB = gb
+	}
 	if to := obj.GetAnnotations()[AnnResizeTo]; to != s.Size {
 		s.PendingSize = to
 	}
@@ -180,6 +184,9 @@ func FromSandbox(obj *unstructured.Unstructured) Session {
 		// Deleted but held by a finalizer: going away, whatever the
 		// conditions still say.
 		s.State = Stopping
+	case obj.GetAnnotations()[annCheckpoint] != "":
+		s.State = Stopping
+		s.Message = "Capturing matching memory and disk snapshots"
 	case mode == "Suspended":
 		// The Suspended condition is only meaningful while operatingMode is
 		// Suspended: the controller leaves a stale one behind after a resume.

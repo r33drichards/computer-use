@@ -107,7 +107,8 @@ func newStore(t *testing.T, blueprint string) (*sessions.Store, dynamic.Interfac
 	t.Helper()
 	client := dynfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
 		map[schema.GroupVersionResource]string{
-			sessions.SandboxGVR:         "SandboxList",
+			sessions.SandboxGVR: "SandboxList",
+			schema.GroupVersionResource{Group: "snapshot.storage.k8s.io", Version: "v1", Resource: "volumesnapshots"}: "VolumeSnapshotList",
 			sessions.PodSnapshotGVR:     "PodSnapshotList",
 			sessions.SnapshotTriggerGVR: "PodSnapshotManualTriggerList",
 			sessions.ClaimGVR:           "SandboxClaimList",

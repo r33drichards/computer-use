@@ -59,9 +59,10 @@ type Config struct {
 	// Snapshots makes an idle session sleep to a GKE Pod Snapshot and wake
 	// from it. Off unless SNAPSHOTS is set: a cluster without Pod Snapshots
 	// (kind) has none of the resources.
-	Snapshots       bool
-	SnapshotTimeout time.Duration // how long one snapshot may take before the session sleeps without it
-	RestoreTimeout  time.Duration // how long a restore may take before the session is started cold
+	SnapshotDiskClass string
+	Snapshots         bool
+	SnapshotTimeout   time.Duration // how long one snapshot may take before the session sleeps without it
+	RestoreTimeout    time.Duration // how long a restore may take before the session is started cold
 
 	// WarmPool is the SandboxWarmPool new sessions are taken from, "" for
 	// none: every session then starts cold. WarmPoolWait is how long a new
@@ -195,6 +196,7 @@ func FromEnv(get func(string) string) (Config, error) {
 	if c.Snapshots, err = strconv.ParseBool(or("SNAPSHOTS", "false")); err != nil {
 		return Config{}, fmt.Errorf("SNAPSHOTS: %w", err)
 	}
+	c.SnapshotDiskClass = get("SNAPSHOT_DISK_CLASS")
 	if c.SnapshotTimeout, err = positiveDuration(or("SNAPSHOT_TIMEOUT", "2m")); err != nil {
 		return Config{}, fmt.Errorf("SNAPSHOT_TIMEOUT: %w", err)
 	}
