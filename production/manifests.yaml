@@ -1554,7 +1554,7 @@ spec:
             secretKeyRef:
               key: operator-api-token
               name: policy-tokens
-        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/policy-operator@sha256:b1fd4fcf318ba83b61dc0ea5f12fda85da56d4bf55f5ac70c502012a0dc75fe0
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/policy-operator@sha256:d47f86d3d927d85720633abe0855e1f80b4521cb2aef1c4c8ca4bc6203a0283e
         livenessProbe:
           httpGet:
             path: /healthz
