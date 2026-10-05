@@ -92,7 +92,7 @@ than 1 point or has no result**. On main the run stores the new baseline
 | `terraform-provider-metronome` (Go) | same | 67.9% |
 | `web` (TS) | vitest + `@vitest/coverage-v8` | 85.4% |
 | `hack/` (Python, PyYAML-only suites) | coverage.py | 61.0% (branch-inclusive, `--source=hack`) |
-| `sdk` (Rust) | `cargo llvm-cov` 0.6.16 | not yet measured locally; first CI run |
+| `sdk` (Rust) | `cargo llvm-cov` 0.6.16 | 93.7% lines |
 
 Not measured yet: `terraform-provider-computeruse` (needs the Nix shell and
 cgo), the two Python operators (pytest in Nix shells), `site/`, Go integration
