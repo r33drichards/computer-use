@@ -34,6 +34,17 @@ env:
   TLA2TOOLS_SHA256: c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239
 
 jobs:
+  # The gating scripts' own tests (test/ci).
+  scripts:
+    name: lint (script tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s test/ci -v
+
   # Finds what the fuzz and TLA+ matrices fan out over.
   discover:
     name: discover
@@ -48,9 +59,16 @@ jobs:
           persist-credentials: false
       - id: find
         run: |
+          # Each target with its package directory and the Go module (the
+          # nearest go.mod above it) whose toolchain builds it.
           fuzz=$(grep -rHE '^func Fuzz[A-Za-z0-9_]*\(' --include='*_test.go' . \
             | sed -E 's|^\./([^:]*)/[^/:]*:func (Fuzz[A-Za-z0-9_]*)\(.*|\1 \2|' \
-            | jq -R -s -c 'split("\n") | map(select(length>0) | split(" ") | {pkg: .[0], target: .[1]})')
+            | while read -r pkg target; do
+                mod=$pkg
+                while [ ! -f "$mod/go.mod" ] && [ "$mod" != . ]; do mod=$(dirname "$mod"); done
+                echo "$pkg $target $mod"
+              done \
+            | jq -R -s -c 'split("\n") | map(select(length>0) | split(" ") | {pkg: .[0], target: .[1], module: .[2]})')
           tla=$(for cfg in spec/*/*.cfg; do echo "$cfg"; done \
             | jq -R -s -c 'split("\n") | map(select(length>0) | {cfg: .})')
           echo "fuzz=$fuzz" >> "$GITHUB_OUTPUT"
@@ -142,15 +160,17 @@ jobs:
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: backend/go.mod
-          cache-dependency-path: backend/go.sum
+          go-version-file: ${{ matrix.module }}/go.mod
+          cache-dependency-path: ${{ matrix.module }}/go.sum
 
       - name: Fuzz
-        working-directory: ${{ matrix.pkg }}
         env:
           FUZZTIME: ${{ github.event_name == 'schedule' && '10m' || '30s' }}
           TARGET: ${{ matrix.target }}
-        run: go test . -run '^$' -fuzz "^${TARGET}\$" -fuzztime "$FUZZTIME"
+          PKG: ${{ matrix.pkg }}
+        run: |
+          cd "$PKG"
+          go test . -run '^$' -fuzz "^${TARGET}\$" -fuzztime "$FUZZTIME"
 
       - name: Keep the failing inputs
         if: failure()
@@ -225,12 +245,14 @@ jobs:
           echo "TLA2TOOLS=$RUNNER_TEMP/tla2tools.jar" >> "$GITHUB_ENV"
 
       - name: Check the configuration
-        run: hack/tlc-check.sh "${{ matrix.cfg }}"
+        env:
+          CFG: ${{ matrix.cfg }}
+        run: hack/tlc-check.sh "$CFG"
 
   report:
     name: report
     if: github.event_name == 'pull_request' && always()
-    needs: [coverage, actionlint, shellcheck, ruff, staticcheck, fuzz, valgrind, tla]
+    needs: [coverage, scripts, actionlint, shellcheck, ruff, staticcheck, fuzz, valgrind, tla]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -245,7 +267,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
-          LINT: ${{ needs.coverage.result == 'success' && needs.actionlint.result == 'success' && needs.shellcheck.result == 'success' && needs.ruff.result == 'success' && needs.staticcheck.result == 'success' && 'success' || 'failure' }}
+          LINT: ${{ needs.coverage.result == 'success' && needs.scripts.result == 'success' && needs.actionlint.result == 'success' && needs.shellcheck.result == 'success' && needs.ruff.result == 'success' && needs.staticcheck.result == 'success' && 'success' || 'failure' }}
           FUZZ: ${{ needs.fuzz.result }}
           VALGRIND: ${{ needs.valgrind.result }}
           TLA: ${{ needs.tla.result }}

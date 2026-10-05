@@ -61,8 +61,8 @@ by hand.
 - **lint**, five parallel jobs: `hack/ci-coverage.sh` (fails when a go.mod,
   Cargo.toml, package.json, pyproject.toml or `.tla` directory is not
   mentioned by any workflow), actionlint, shellcheck, ruff, staticcheck.
-- **fuzz**: one parallel leg per `func FuzzXxx` in any Go module, each run
-  for 30 s (10 min nightly). Add a target and it runs; no workflow edit. Failing
+- **fuzz**: one parallel leg per `func FuzzXxx` in any Go module (built with
+  that module's `go.mod`), each run for 30 s (10 min nightly). Add a target and it runs; no workflow edit. Failing
   inputs upload as the `fuzz-failures` artifact; commit them under
   `testdata/fuzz/` as seeds. Seeds also run in plain `go test`.
 - **valgrind**: the SDK's tests with cargo's runner set to memcheck;
@@ -101,8 +101,22 @@ and fuzz coverage, and the NixOS/kind end-to-end suites. Adding a component:
 add a job that uploads `cov/<name>.json`, and add `report` to its `needs`.
 Raising the floor: when a component is well above 1 point of headroom, lower
 `MAX_DROP` for it or add a minimum; the lowest numbers (backend) are where new
-tests pay most. Removing a component makes the report fail once: land the
-removal, then re-run on main to refresh the baseline.
+tests pay most. Removing a component makes the report fail every PR until the removal is on
+main and a run there has refreshed the baseline (`workflow_dispatch` on main
+does it): land the removal first. A coverage job that does not succeed fails
+the run on any event, with or without a baseline, and a baseline is only
+stored from a complete set. A nightly run on main renews the baseline before
+its 90-day expiry.
+
+## The gating scripts and their tests
+
+`hack/coverage-report.py` (drop threshold, missing component),
+`hack/ci-coverage.sh` (anchored: a `paths:` entry, `working-directory:` or `cd`
+for the component or a parent; comments, `!` entries and look-alike paths do
+not count; specs need `hack/tlc-check.sh`; root manifests need their own
+`paths:` entry) are tested by `test/ci/test_gates.py` (the `lint (script
+tests)` job, and counted in the `python (hack)` coverage). `hack/tlc-check.sh`
+needs Java and is exercised by the `tla+` jobs on the real specs.
 
 ## Decisions and baselines
 
@@ -157,6 +171,11 @@ removal, then re-run on main to refresh the baseline.
 
 ## Log
 
+- 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
+  and stores only complete baselines (+ nightly renewal); matrix values go
+  through `env:`; fuzz legs use their own module's `go.mod`; `tlc-check.sh`
+  picks the `.tla` per config and names deadlock/property outcomes;
+  `ci-coverage.sh` anchored (and handles root manifests); tests in `test/ci`.
 - 2026-10-05 (fourth): PR #182 first run: everything green except coverage's
   rust job (nix shell had no llvm-tools): added `sdk-coverage` dev shell
   (cargo-llvm-cov + matching LLVM_COV/LLVM_PROFDATA) to `flake.nix`. The

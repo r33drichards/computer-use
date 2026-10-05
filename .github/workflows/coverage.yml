@@ -11,6 +11,10 @@ on:
   pull_request:
   push:
     branches: [main]
+  # The baseline artifact expires after 90 days; a nightly run on main renews
+  # it, so the gate cannot lapse quietly.
+  schedule:
+    - cron: "43 4 * * *"
   workflow_dispatch:
 
 permissions:
@@ -89,7 +93,7 @@ jobs:
         run: |
           python3 -m pip install PyYAML==6.0.3 coverage==7.14.0
           coverage run --branch --source=hack -m unittest discover -s test/preview
-          for d in test/session-slots test/gitops test/site-release; do
+          for d in test/session-slots test/gitops test/site-release test/ci; do
             coverage run --branch --source=hack -a -m unittest discover -s "$d"
           done
           mkdir -p cov
@@ -170,23 +174,36 @@ jobs:
 
       - name: Compare
         id: compare
+        env:
+          RESULTS: ${{ needs.go.result }} ${{ needs.web.result }} ${{ needs.python.result }} ${{ needs.rust.result }}
         run: |
           mkdir -p current
           status=0
           hack/coverage-report.py current "$BASELINE" comment.md || status=$?
           cat comment.md >> "$GITHUB_STEP_SUMMARY"
+          # A component whose job did not succeed has no (or a stale) result,
+          # whether or not there is a baseline to miss it in: that fails the
+          # run, on main too.
+          for r in $RESULTS; do
+            if [ "$r" != success ]; then
+              echo "::error::a coverage job did not succeed ($RESULTS)"
+              exit 1
+            fi
+          done
           # On main there is nothing to compare against: the run sets the baseline.
           if [ "$GITHUB_EVENT_NAME" != pull_request ]; then status=0; fi
-          # A component whose job failed has no result: that is the failure.
           exit $status
 
+      # Only a complete set becomes the baseline: a component missing from it
+      # would never be reported missing again.
       - name: Keep as the baseline
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.compare.outcome == 'success'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.compare.outcome == 'success'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-baseline
           path: current/combined.json
           retention-days: 90
+          overwrite: true
 
       # One comment, edited in place. A fork's read-only token cannot
       # comment; the table is in the run summary then.
