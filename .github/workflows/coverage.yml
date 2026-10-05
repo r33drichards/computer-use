@@ -118,7 +118,6 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            ~/.cargo/bin/cargo-llvm-cov
             sdk/target
           key: sdk-coverage-${{ hashFiles('sdk/Cargo.lock', 'flake.lock') }}
           restore-keys: |
@@ -127,9 +126,7 @@ jobs:
         env:
           CARGO_INCREMENTAL: "0"
         run: |
-          nix develop ..#sdk -c bash -c '
-            command -v cargo-llvm-cov >/dev/null || cargo install cargo-llvm-cov --locked --version 0.6.16
-            cargo llvm-cov --workspace --locked --json --summary-only --output-path "$RUNNER_TEMP/cov.json"'
+          nix develop ..#sdk-coverage -c cargo llvm-cov --workspace --locked --json --summary-only --output-path "$RUNNER_TEMP/cov.json"
           mkdir -p "$GITHUB_WORKSPACE/cov"
           jq '{pct: (.data[0].totals.lines.percent | .*10 | round / 10)}' "$RUNNER_TEMP/cov.json" > "$GITHUB_WORKSPACE/cov/rust-sdk.json"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

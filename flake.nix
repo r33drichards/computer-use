@@ -26,6 +26,15 @@
           LD_LIBRARY_PATH = pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isLinux
             (pkgs.lib.makeLibraryPath [ pkgs.stdenv.cc.cc.lib ]);
         };
+        # The SDK's coverage (.github/workflows/coverage.yml): the sdk shell
+        # and cargo-llvm-cov, with the LLVM tools of the LLVM rustc was built
+        # with (a mismatched llvm-cov cannot read the profile).
+        sdk-coverage = pkgs.mkShell {
+          inputsFrom = [ self.devShells.${pkgs.stdenv.hostPlatform.system}.sdk ];
+          packages = [ pkgs.cargo-llvm-cov ];
+          LLVM_COV = "${pkgs.rustc.llvmPackages.llvm}/bin/llvm-cov";
+          LLVM_PROFDATA = "${pkgs.rustc.llvmPackages.llvm}/bin/llvm-profdata";
+        };
       });
     };
 }

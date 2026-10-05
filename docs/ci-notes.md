@@ -74,7 +74,8 @@ by hand.
   the model says is broken); every other must hold. Adding a spec: put the
   `.tla` and `.cfg` files in `spec/<name>/`, and list the violating ones.
 - **report**: one comment on the pull request, edited in place, with each
-  job's result. A fork's read-only token cannot comment; the run summary has
+  job's result, **only when a check fails** (all green = no comment; an old
+  failing comment is deleted). A fork's read-only token cannot comment; the run summary has
   the same table.
 
 ## Code coverage (`coverage.yml`)
@@ -156,6 +157,10 @@ removal, then re-run on main to refresh the baseline.
 
 ## Log
 
+- 2026-10-05 (fourth): PR #182 first run: everything green except coverage's
+  rust job (nix shell had no llvm-tools): added `sdk-coverage` dev shell
+  (cargo-llvm-cov + matching LLVM_COV/LLVM_PROFDATA) to `flake.nix`. The
+  quality comment is now posted only on failure (an all-green table was noise).
 - 2026-10-05 (third): added `coverage.yml`, `hack/coverage-report.py`, vitest
   coverage dependency (`web/package.json`, lockfile), and the section above.
   The baseline artifact does not exist until the first run on main, so PR
