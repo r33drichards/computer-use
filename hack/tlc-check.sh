@@ -33,4 +33,5 @@ for dir in spec/*/; do
     done
   done
 done
+rm -f spec/*/*_TTrace_*
 exit $failed
