@@ -136,15 +136,16 @@ func TestFromEnvSnapshots(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Snapshots || c.SnapshotTimeout != 2*time.Minute || c.RestoreTimeout != 2*time.Minute {
+	if c.SnapshotDiskClass != "" || c.Snapshots || c.SnapshotTimeout != 2*time.Minute || c.RestoreTimeout != 2*time.Minute {
 		t.Errorf("defaults: %v, %s, %s", c.Snapshots, c.SnapshotTimeout, c.RestoreTimeout)
 	}
 	m := valid()
+	m["SNAPSHOT_DISK_CLASS"] = "computeruse-session"
 	m["SNAPSHOTS"], m["SNAPSHOT_TIMEOUT"], m["SNAPSHOT_RESTORE_TIMEOUT"] = "true", "90s", "45s"
 	if c, err = FromEnv(env(m)); err != nil {
 		t.Fatal(err)
 	}
-	if !c.Snapshots || c.SnapshotTimeout != 90*time.Second || c.RestoreTimeout != 45*time.Second {
+	if c.SnapshotDiskClass != "computeruse-session" || !c.Snapshots || c.SnapshotTimeout != 90*time.Second || c.RestoreTimeout != 45*time.Second {
 		t.Errorf("set: %v, %s, %s", c.Snapshots, c.SnapshotTimeout, c.RestoreTimeout)
 	}
 	for k, v := range map[string]string{"SNAPSHOTS": "maybe", "SNAPSHOT_TIMEOUT": "0s", "SNAPSHOT_RESTORE_TIMEOUT": "soon"} {

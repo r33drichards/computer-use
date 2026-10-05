@@ -145,8 +145,9 @@ The production implementation must also publish pair IDs only after both
 artifacts are ready, recover interrupted operations durably, provision the
 restored volume before memory restore, preserve the original working disk
 until successful handoff, and handle every restore retry using the same
-saved disk generation. These requirements are not yet implemented by this
-model or by the current backend.
+saved disk generation. The opt-in backend implementation and its validation boundaries are
+described in [the snapshot pair contract](../../docs/contracts/sessions/snapshot-pairs.md).
+The model does not verify the Kubernetes/GKE integration.
 
 
 ## Preserving the working disk

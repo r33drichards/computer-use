@@ -270,7 +270,86 @@ func (s *Store) Get(ctx context.Context, id string) (Session, error) {
 	if err != nil {
 		return Session{}, err
 	}
-	return FromSandbox(obj), nil
+	nativeIP := ""
+	if s.snap != nil && s.snap.diskClass != "" {
+		if token := obj.GetAnnotations()[annCheckpoint]; token != "" {
+			at, err := time.Parse(time.RFC3339Nano, token)
+			if err != nil || time.Since(at) > s.snap.timeout+time.Minute {
+				if err := s.recoverCheckpoint(ctx, id, token); err != nil {
+					return Session{}, err
+				}
+				obj, err = s.client.Get(ctx, id, metav1.GetOptions{})
+				if err != nil {
+					return Session{}, err
+				}
+			}
+		}
+		// A served checkpoint is single-use. Otherwise an automatic pod replacement
+		// could restore its old memory against a clone already modified by the app.
+		if memory := obj.GetAnnotations()[AnnSnapshot]; memory != "" && FromSandbox(obj).State == Running {
+			ip, ready, err := s.snap.servingPod(ctx, obj)
+			if err != nil {
+				return Session{}, err
+			}
+			nativeIP = ip
+			if !ready {
+				view := FromSandbox(obj)
+				view.State = Starting
+				view.PodIP = ""
+				view.Message = "Restoring matching memory and disk snapshots"
+				return view, nil
+			}
+			if ready {
+				if err := s.snap.deletePair(ctx, memory); err != nil {
+					return Session{}, err
+				}
+				if err := s.modify(ctx, id, func(fresh *unstructured.Unstructured) (bool, error) {
+					if fresh.GetAnnotations()[AnnSnapshot] != memory || fresh.GetAnnotations()[annCheckpoint] != "" {
+						return false, nil
+					}
+					return true, setSnapshot(fresh, nil)
+				}); err != nil {
+					return Session{}, err
+				}
+				obj, err = s.client.Get(ctx, id, metav1.GetOptions{})
+				if err != nil {
+					return Session{}, err
+				}
+			}
+		}
+	}
+	view := FromSandbox(obj)
+	if s.snap != nil && s.snap.diskClass != "" && obj.GetAnnotations()[annDataClaim] != "" && view.State == Running {
+		if nativeIP == "" {
+			ip, ready, err := s.snap.servingPod(ctx, obj)
+			if err != nil {
+				return Session{}, err
+			}
+			if !ready {
+				view.State = Starting
+				view.PodIP = ""
+				return view, nil
+			}
+			nativeIP = ip
+		}
+		view.PodIP = nativeIP
+		if cold := obj.GetAnnotations()[annColdDisk]; cold != "" {
+			if err := s.snap.deletePair(ctx, cold); err != nil {
+				return Session{}, err
+			}
+			if err := s.modify(ctx, id, func(fresh *unstructured.Unstructured) (bool, error) {
+				if fresh.GetAnnotations()[annColdDisk] != cold || fresh.GetAnnotations()[annCheckpoint] != "" {
+					return false, nil
+				}
+				setAnnotation(fresh, annColdDisk, "")
+				setAnnotation(fresh, annColdSource, "")
+				return true, nil
+			}); err != nil {
+				return Session{}, err
+			}
+		}
+	}
+	return view, nil
 }
 
 // List returns owner's sessions. For everyone's, ask ListAll: an empty owner
@@ -309,6 +388,36 @@ const (
 // empty) in a single write, so the request takes effect entirely or not at
 // all. Both are validated before anything is written.
 func (s *Store) Update(ctx context.Context, id string, name *string, action string) error {
+	if s.snap != nil && s.snap.diskClass != "" && action == ActionStop {
+		if name != nil {
+			if err := s.Update(ctx, id, name, ""); err != nil {
+				return err
+			}
+		}
+		obj, err := s.client.Get(ctx, id, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if obj.GetAnnotations()[annCheckpoint] == "" {
+			if memory := obj.GetAnnotations()[AnnSnapshot]; memory != "" && s.snap.ready(ctx, memory) {
+				return s.coldPair(ctx, id, memory, StoppedByUser, false)
+			}
+		}
+		if err := s.modify(ctx, id, func(fresh *unstructured.Unstructured) (bool, error) {
+			setAnnotation(fresh, AnnStoppedBy, StoppedByUser)
+			setAnnotation(fresh, AnnLastActive, "")
+			return true, unstructured.SetNestedField(fresh.Object, "Suspended", "spec", "operatingMode")
+		}); err != nil {
+			return err
+		}
+		if obj.GetAnnotations()[annCheckpoint] == "" {
+			if _, err := s.snap.prune(ctx, id, obj.GetAnnotations()[annColdDisk]); err != nil {
+				return err
+			}
+		}
+		s.settle(ctx, id)
+		return nil
+	}
 	annotations := map[string]any{}
 	patch := map[string]any{}
 	if name != nil {
@@ -336,6 +445,15 @@ func (s *Store) Update(ctx context.Context, id string, name *string, action stri
 		return nil
 	}
 	if action == ActionResume {
+		if s.snap != nil && s.snap.diskClass != "" {
+			obj, err := s.client.Get(ctx, id, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			if obj.GetAnnotations()[annCheckpoint] != "" {
+				return ErrStateChanged
+			}
+		}
 		release, err := s.prepareStart(ctx, id)
 		if err != nil {
 			return err

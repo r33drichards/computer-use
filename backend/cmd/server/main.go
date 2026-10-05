@@ -122,7 +122,7 @@ func run() error {
 		slog.Info("session sizes", "sizes", store.Sizes(), "capacity", file.Capacity)
 	}
 	if cfg.Snapshots {
-		store.EnableSnapshots(dyn, cfg.Namespace, sessions.SnapshotOptions{Timeout: cfg.SnapshotTimeout})
+		store.EnableSnapshots(dyn, cfg.Namespace, sessions.SnapshotOptions{Timeout: cfg.SnapshotTimeout, DiskClass: cfg.SnapshotDiskClass})
 		slog.Info("idle sessions sleep to Pod Snapshots", "timeout", cfg.SnapshotTimeout, "restoreTimeout", cfg.RestoreTimeout)
 	}
 	// Before the claims are recovered: a claim may carry a policy to make.
