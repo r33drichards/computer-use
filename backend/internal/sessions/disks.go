@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/r33drichards/computer-use/backend/internal/diskfork"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -56,6 +57,10 @@ func (s *Store) GrowDisk(ctx context.Context, id string, gb int) error {
 	if err != nil {
 		return err
 	}
+	if err := diskfork.Fence(obj); err != nil {
+		return err
+	}
+	sourceUID := obj.GetUID()
 	spec, _ := obj.Object["spec"].(map[string]any)
 	if gb < diskGBOf(spec) || gb <= 0 {
 		return ErrInvalidDisk
@@ -72,11 +77,11 @@ func (s *Store) GrowDisk(ctx context.Context, id string, gb int) error {
 	if int64(gb)<<30 < q.Value() {
 		return ErrInvalidDisk
 	}
-	body, _ := json.Marshal(map[string]any{"metadata": map[string]any{"resourceVersion": pvc.GetResourceVersion()}, "spec": map[string]any{"resources": map[string]any{"requests": map[string]any{"storage": fmt.Sprintf("%dGi", gb)}}}})
+	body, _ := json.Marshal(map[string]any{"metadata": map[string]any{"resourceVersion": pvc.GetResourceVersion(), "uid": pvc.GetUID()}, "spec": map[string]any{"resources": map[string]any{"requests": map[string]any{"storage": fmt.Sprintf("%dGi", gb)}}}})
 	if _, err := s.pvcs.Patch(ctx, pvc.GetName(), types.MergePatchType, body, metav1.PatchOptions{}); err != nil {
 		return err
 	}
-	return s.modify(ctx, id, func(obj *unstructured.Unstructured) (bool, error) {
+	return s.modifyIntentUID(ctx, id, "", &sourceUID, func(obj *unstructured.Unstructured) (bool, error) {
 		spec, _ := obj.Object["spec"].(map[string]any)
 		if diskGBOf(spec) >= gb {
 			return false, nil

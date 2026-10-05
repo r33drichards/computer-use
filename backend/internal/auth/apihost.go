@@ -124,6 +124,9 @@ var apiRoutes = []struct {
 	{pattern: "DELETE /v1/sessions/{id}", scope: ScopeSessionsWrite},
 	{pattern: "POST /v1/sessions/{id}/sleep", scope: ScopeSessionsWrite},
 	{pattern: "POST /v1/sessions/{id}/wake", scope: ScopeSessionsWrite},
+	// Forks reach beyond a single session, even while the surface is disabled.
+	{pattern: "POST /v1/sessions/{id}/fork", scope: ScopeSessionsWrite, unbound: true},
+	{pattern: "GET /v1/fork-operations/{operation}", scope: ScopeSessionsRead, unbound: true},
 	{pattern: "GET /v1/sessions/{id}/webhook", scope: ScopeSessionsRead},
 	{pattern: "PUT /v1/sessions/{id}/webhook", scope: ScopeSessionsWrite},
 	{pattern: "DELETE /v1/sessions/{id}/webhook", scope: ScopeSessionsWrite},

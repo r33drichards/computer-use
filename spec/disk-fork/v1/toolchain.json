@@ -1,0 +1,46 @@
+{
+  "download_url": "https://github.com/tlaplus/tlaplus/releases/download/v1.8.0/tla2tools.jar",
+  "final_url_without_temporary_signed_query": "https://release-assets.githubusercontent.com/github-production-release-asset/50906927/bdb71e15-87a9-4d0e-b46c-338d35a8e497",
+  "release": {
+    "id": 25926686,
+    "tag_name": "v1.8.0",
+    "name": "The Clarke release",
+    "target_commitish": "master",
+    "created_at": "2026-10-02T16:22:23Z",
+    "updated_at": "2026-10-04T03:02:01Z",
+    "published_at": "2026-10-04T03:02:01Z",
+    "html_url": "https://github.com/tlaplus/tlaplus/releases/tag/v1.8.0"
+  },
+  "asset": {
+    "id": 609012765,
+    "name": "tla2tools.jar",
+    "size": 4500445,
+    "created_at": "2026-10-04T03:00:49Z",
+    "updated_at": "2026-10-04T03:00:50Z",
+    "digest": "sha256:c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+    "browser_download_url": "https://github.com/tlaplus/tlaplus/releases/download/v1.8.0/tla2tools.jar"
+  },
+  "tag_ref": {
+    "ref": "refs/tags/v1.8.0",
+    "node_id": "MDM6UmVmNTA5MDY5Mjc6cmVmcy90YWdzL3YxLjguMA==",
+    "url": "https://api.github.com/repos/tlaplus/tlaplus/git/refs/tags/v1.8.0",
+    "object": {
+      "sha": "1813307068bbc5759a441df820f3f548948d6b7a",
+      "type": "commit",
+      "url": "https://api.github.com/repos/tlaplus/tlaplus/git/commits/1813307068bbc5759a441df820f3f548948d6b7a"
+    }
+  },
+  "jre": {
+    "url": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.13%2B11/OpenJDK17U-jre_x64_linux_hotspot_17.0.13_11.tar.gz",
+    "sha256": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff",
+    "publisher_checksum_url": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.13%2B11/OpenJDK17U-jre_x64_linux_hotspot_17.0.13_11.tar.gz.sha256.txt"
+  },
+  "historical_jar": {
+    "sha256": "b3e56ba18c65abd22e35755739963000f22e770279841d364699c31951ede70a",
+    "size": 4500434,
+    "reported_version": "2026.10.03.231403 (rev: 1813307)",
+    "authenticated_published_digest": false,
+    "bytes_lost_on_remote_restart": true
+  },
+  "re_pin": "Supervisor explicitly authorized published asset/digest after mismatch; do not blend old and new logs."
+}

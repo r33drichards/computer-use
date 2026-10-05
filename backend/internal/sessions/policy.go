@@ -194,6 +194,9 @@ func (s *Store) ensurePolicy(ctx context.Context, sandbox *unstructured.Unstruct
 // EnsurePolicy gives session id the SessionPolicy p if it has none. It is
 // how a session whose policy was removed behind the backend gets one again.
 func (s *Store) EnsurePolicy(ctx context.Context, id string, p PolicySpec) error {
+	if err := s.CheckForkFence(ctx, id, ""); err != nil {
+		return err
+	}
 	if s.policies == nil {
 		return ErrPolicyUnsupported
 	}

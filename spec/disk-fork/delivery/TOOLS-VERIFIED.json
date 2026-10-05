@@ -1,0 +1,8 @@
+{
+  "jre_archive_sha256": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff",
+  "extracted_jre_files_compared_to_archive": 107,
+  "java_sha256": "3d664eb8f9a7ab7d0b9962a263b075a0da53af49bd2a142c0344ca66b55b0355",
+  "jar_sha256": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239",
+  "go_archive_sha256": "d0f743b33e8d8945e6b1f432edd15785c70507121d6e2a723b21285eddf8b57b",
+  "gh_archive_sha256": "bb766f710eef8ede859c18578c72c327597cd4c8a85b06001b1f3843c6019386"
+}

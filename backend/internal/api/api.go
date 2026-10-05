@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/r33drichards/computer-use/backend/internal/diskfork"
 	"io"
 	"log/slog"
 	"net/http"
@@ -156,6 +157,7 @@ func (a *API) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/sessions/{id}/sleep", a.session(a.sleep))
 	mux.HandleFunc("POST /api/sessions/{id}/wake", a.session(a.wake))
 	a.registerPolicies(mux)
+	a.registerDiskFork(mux)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -187,7 +189,15 @@ type sessionHandler func(w http.ResponseWriter, r *http.Request, id string)
 // session additionally requires the caller to be allowed to use {id}: its
 // owner, or an admin. Denied and missing both answer 404 so session IDs
 // don't leak.
-func (a *API) session(next sessionHandler) http.HandlerFunc {
+func (a *API) session(next sessionHandler) http.HandlerFunc { return a.sessionWithScopeFence(next, "") }
+
+// sessionMutation classifies effect-bearing routes explicitly at registration.
+// Authorization/scopes precede the installed-fence check; this is a precheck,
+// not an atomic transaction with the policy/operator effect.
+func (a *API) sessionMutation(next sessionHandler, scope string) http.HandlerFunc {
+	return a.sessionWithScopeFence(next, scope)
+}
+func (a *API) sessionWithScopeFence(next sessionHandler, mutationScope string) http.HandlerFunc {
 	return a.user(func(w http.ResponseWriter, r *http.Request, u auth.User) {
 		id := r.PathValue("id")
 		if !sessions.ValidID(id) {
@@ -204,12 +214,34 @@ func (a *API) session(next sessionHandler) http.HandlerFunc {
 			writeError(w, http.StatusNotFound, "session not found")
 			return
 		}
+		if mutationScope != "" {
+			if u.Token != nil {
+				if !u.Token.Has(mutationScope) {
+					writeError(w, http.StatusForbidden, "this token lacks the scope "+mutationScope)
+					return
+				}
+				if u.Token.Session != "" && u.Token.Session != id {
+					writeError(w, http.StatusForbidden, "this token is for another session")
+					return
+				}
+			}
+			if fences, ok := a.store.(interface {
+				CheckForkFence(context.Context, string, string) error
+			}); ok {
+				if err := fences.CheckForkFence(r.Context(), id, ""); err != nil {
+					a.storeError(w, err)
+					return
+				}
+			}
+		}
 		next(w, r, id)
 	})
 }
 
 func (a *API) storeError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, diskfork.ErrGated):
+		writeJSON(w, http.StatusConflict, map[string]string{"code": "disk_fork_fenced", "error": "session protected by disk fork fence"})
 	case errors.Is(err, sessions.ErrNotFound):
 		writeError(w, http.StatusNotFound, "session not found")
 	case errors.Is(err, sessions.ErrInvalidDisk):

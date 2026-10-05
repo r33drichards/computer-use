@@ -1,0 +1,81 @@
+[
+  {
+    "repo": "kubernetes-sigs/kind",
+    "tag": "v0.33.0",
+    "commit": "407a9675e6d9af1200b5f57f9ca52ec6cdacce74",
+    "status": "selected-reference-design-only-not-deployment-audit"
+  },
+  {
+    "repo": "kubernetes/kubernetes",
+    "tag": "v1.37.1",
+    "commit": "f78e722310e50bcaca9276be22276d9e91d91308",
+    "status": "selected-reference-design-only-not-deployment-audit",
+    "path": "staging/src/k8s.io/cri-api/pkg/apis/runtime/v1/api.proto",
+    "sha256": "381aab5cf67425b3c90ab016489de661ccb83ed9f21204066dc5df83b9b83360",
+    "evidence_excerpts": [
+      "t, and must not return an error if the container has\n    // already been stopped.\n    // The runtime must forcibly kill the container after the grace period is\n    // reached.\n    rpc StopContainer(StopContainerRequest) returns (StopContainerResponse) {}\n    // RemoveContainer removes the container. If the container is running, the\n    // container must be forcibly removed.\n    // This call is idempotent, and must not return an error if the container has\n    // already been removed.\n    rpc RemoveContainer(RemoveContainerRequest) returns (RemoveContainerResponse) {}\n    // ListContainers lists all containers by filters.\n    rpc ListContainers(ListContainersRequest) return",
+      "ntainersRequest) returns (stream StreamContainersResponse) {}\n    // ContainerStatus returns status of the container. If the container is not\n    // present, returns an error.\n    rpc ContainerStatus(ContainerStatusRequest) returns (ContainerStatusResponse) {}\n    // UpdateContainerResources updates ContainerConfig of the container synchronously.\n    // If runtime fails to transactionally update the requested resources, an error is returned.\n    rpc UpdateContainerResources(UpdateContainerResourcesRequest) returns (UpdateContainerResourcesResponse) {}\n    // ReopenContainerLog asks runtime to reopen the stdout/stderr log file\n    // for the container. This is often called",
+      "SIGNAL_SIGHUP            = 8;\n    SIGNAL_SIGILL            = 9;\n    SIGNAL_SIGINT            = 10;\n    SIGNAL_SIGIO             = 11;\n    SIGNAL_SIGIOT            = 12;\n    SIGNAL_SIGKILL           = 13;\n    SIGNAL_SIGPIPE           = 14;\n    SIGNAL_SIGPOLL           = 15;\n    SIGNAL_SIGPROF           = 16;\n    SIGNAL_SIGPWR            = 17;\n    SIGNAL_SIGQUIT           = 18;\n    SIGNAL_SIGSEGV           = 19;\n    SIGNAL_SIGSTKFLT         = 20;\n    SIGNAL_SIGSTOP           = 21;\n    SIGNAL_SIGSYS            = 22;\n    SIGNAL_SIGTERM           = 23;\n    SIGNAL_SIGTRAP           = 24;\n    SIGNAL_SIGTSTP           = 25;\n    SIGNAL_SIGTTIN           = 26;\n    SIGNAL_SIGTTOU   ",
+      "e ReopenContainerLogResponse{\n}\n\nmessage CheckpointContainerRequest {\n    // ID of the container to be checkpointed.\n    string container_id = 1;\n    // Location of the checkpoint archive used for export\n    string location = 2;\n    // Timeout in seconds for the checkpoint to complete.\n    // Timeout of zero means to use the CRI default.\n    // Timeout > 0 means to use the user specified timeout.\n    int64 timeout = 3;\n}\n\nmessage CheckpointContainerResponse {}\n\nmessage CheckpointPodRequest {\n    // ID of the pod sandbox to be checkpointed.\n    string pod_sandbox_id = 1;\n    // Absolute path to an existing, empty directory where the runtime must\n    // write the checkpoint",
+      "\n    // Version returns the runtime name, runtime version, and runtime API version.\n    rpc Version(VersionRequest) returns (VersionResponse) {}\n\n    // RunPodSandbox creates and starts a pod-level sandbox. Runtimes must ensure\n    // the sandbox is in the ready state on success.\n    rpc RunPodSandbox(RunPodSandboxRequest) returns (RunPodSandboxResponse) {}\n    // StopPodSandbox stops any running process that is part of the sandbox and\n    // reclaims network resources (e.g., IP addresses) allocated to the sandbox.\n    // If there are any running containers in the sandbox, they must be forcibly\n    // terminated.\n    // This call is idempotent, and must not return an erro",
+      "/*\nCopyright 2020 The Kubernetes Authors.\n\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific la"
+    ]
+  },
+  {
+    "repo": "containerd/containerd",
+    "tag": "v2.4.1",
+    "commit": "f2551031d7276a770f65f98c9b52e57e7dad07e8",
+    "status": "selected-reference-design-only-not-deployment-audit",
+    "path": "internal/cri/server/container_stop.go",
+    "sha256": "ca8f53a05774b18b235cfe633eff852a29d89d618136a87f71a2ea79a8b4543a",
+    "evidence_excerpts": [
+      "ntext.WithTimeout(ctx, timeout)\n\t\tdefer sigTermCtxCancel()\n\t\terr = c.waitContainerStop(sigTermCtx, container)\n\t\tif err == nil {\n\t\t\t// Container stopped on first signal no need for SIGKILL\n\t\t\treturn nil\n\t\t}\n\t\t// If the parent context was cancelled or exceeded return immediately\n\t\tif ctx.Err() != nil {\n\t\t\treturn ctx.Err()\n\t\t}\n\t\t// sigTermCtx was exceeded. Send SIGKILL\n\t\tlog.G(ctx).Debugf(\"Stop container %q with signal %v timed out\", id, sig)\n\t}\n\n\tlog.G(ctx).Infof(\"Kill container %q\", id)\n\tif err = task.Kill(ctx, syscall.SIGKILL); err != nil && !errdefs.IsNotFound(err) {\n\t\treturn fmt.Errorf(\"failed to kill container %q: %w\", id, err)\n\t}\n\n\t// Wait for a fixed timeout until co",
+      "imeout).\nfunc (c *criService) StopContainer(ctx context.Context, r *runtime.StopContainerRequest) (*runtime.StopContainerResponse, error) {\n\tspan := tracing.SpanFromContext(ctx)\n\tstart := time.Now()\n\t// Get container config from container store.\n\tcontainer, err := c.containerStore.Get(r.GetContainerId())\n\tif err != nil {\n\t\tif !errdefs.IsNotFound(err) {\n\t\t\treturn nil, fmt.Errorf(\"an error occurred when try to find container %q: %w\", r.GetContainerId(), err)\n\t\t}\n\n\t\t// The StopContainer RPC is idempotent, and must not return an error if\n\t\t// the container has already been stopped. Ref:\n\t\t// https://github.com/kubernetes/cri-api/blob/c20fa40/pkg/apis/runtime/v1/api.proto#L67-",
+      "/*\n   Copyright The containerd Authors.\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n       http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License "
+    ]
+  },
+  {
+    "repo": "opencontainers/runc",
+    "tag": "v1.5.2",
+    "commit": "29dd3dc2b13b4123162e5fe132504bb4b15569f1",
+    "status": "selected-reference-design-only-not-deployment-audit",
+    "path": "libcontainer/container_linux.go",
+    "sha256": "7e271bc45f332cfd5f406ae284a8d8bf7bca8acd49e9adb45e364328bac5c889",
+    "evidence_excerpts": [
+      "s.Warn(fmt.Errorf(\"error running poststart hook: %w\", err))\n\t\t\t\t}\n\t\t\t\treturn err\n\t\t\t}\n\t\t}\n\t}\n\treturn nil\n}\n\n// Signal sends a specified signal to container's init.\n//\n// When s is SIGKILL and the container does not have its own PID namespace, all\n// the container's processes are killed. In this scenario, the libcontainer\n// user may be required to implement a proper child reaper.\nfunc (c *Container) Signal(s os.Signal) error {\n\tc.m.Lock()\n\tdefer c.m.Unlock()\n\n\t// When a container has its own PID namespace, inside it the init PID\n\t// is 1, and thus it is handled specially by the kernel. In particular,\n\t// killing init with SIGKILL from an ancestor namespace will also kill\n",
+      "        string\n\tconfig               *configs.Config\n\tcgroupManager        cgroups.Manager\n\tintelRdtManager      *intelrdt.Manager\n\tinitProcess          parentProcess\n\tinitProcessStartTime uint64\n\tm                    sync.Mutex\n\tcriuVersion          int\n\tstate                containerState\n\tcreated              time.Time\n\tfifo                 *os.File\n}\n\n// State represents a running container's state\ntype State struct {\n\tBaseState\n\n\t// Platform specific fields below.\n\n\t// Specified if the container was started under the rootless mode.\n\t// Set to true if BaseState.Config.RootlessEUID && BaseState.Config.RootlessCgroups\n\tRootless bool `json:\"rootless,omitempty\"`\n\n\t// Path"
+    ]
+  },
+  {
+    "repo": "container-storage-interface/spec",
+    "tag": "v1.11.0",
+    "commit": "f6b6d53db606c651d975edf0ff3d0c9f5cd4fa35",
+    "status": "selected-reference-design-only-not-deployment-audit",
+    "path": "csi.proto",
+    "sha256": "084208e2655661a752db4e3dd0ea7cbda2a538c886586a1b4115a56028a654dc",
+    "evidence_excerpts": [
+      "stageVolume (NodeUnstageVolumeRequest)\n    returns (NodeUnstageVolumeResponse) {}\n\n  rpc NodePublishVolume (NodePublishVolumeRequest)\n    returns (NodePublishVolumeResponse) {}\n\n  rpc NodeUnpublishVolume (NodeUnpublishVolumeRequest)\n    returns (NodeUnpublishVolumeResponse) {}\n\n  rpc NodeGetVolumeStats (NodeGetVolumeStatsRequest)\n    returns (NodeGetVolumeStatsResponse) {}\n\n\n  rpc NodeExpandVolume(NodeExpandVolumeRequest)\n    returns (NodeExpandVolumeResponse) {}\n\n\n  rpc NodeGetCapabilities (NodeGetCapabilitiesRequest)\n    returns (NodeGetCapabilitiesResponse) {}\n\n  rpc NodeGetInfo (NodeGetInfoRequest)\n    returns (NodeGetInfoResponse) {}\n}\nmessage GetPluginInfoRequest {\n",
+      "MetadataDeltaRequest)\n    returns (stream GetMetadataDeltaResponse) {}\n}\n\nservice Node {\n  rpc NodeStageVolume (NodeStageVolumeRequest)\n    returns (NodeStageVolumeResponse) {}\n\n  rpc NodeUnstageVolume (NodeUnstageVolumeRequest)\n    returns (NodeUnstageVolumeResponse) {}\n\n  rpc NodePublishVolume (NodePublishVolumeRequest)\n    returns (NodePublishVolumeResponse) {}\n\n  rpc NodeUnpublishVolume (NodeUnpublishVolumeRequest)\n    returns (NodeUnpublishVolumeResponse) {}\n\n  rpc NodeGetVolumeStats (NodeGetVolumeStatsRequest)\n    returns (NodeGetVolumeStatsResponse) {}\n\n\n  rpc NodeExpandVolume(NodeExpandVolumeRequest)\n    returns (NodeExpandVolumeResponse) {}\n\n\n  rpc NodeGetCapabil",
+      "e plugins MAY be time consuming\n  // and it is important for a CO to distinguish between the following\n  // cases:\n  //\n  // 1) The plugin is in an unhealthy state and MAY need restarting. In\n  //    this case a gRPC error code SHALL be returned.\n  // 2) The plugin is still initializing, but is otherwise perfectly\n  //    healthy. In this case a successful response SHALL be returned\n  //    with a readiness value of `false`. Calls to the plugin's\n  //    Controller and/or Node services MAY fail due to an incomplete\n  //    initialization state.\n  // 3) The plugin has finished initializing and is ready to service\n  //    calls to its Controller and/or Node services. A succ"
+    ]
+  },
+  {
+    "repo": "kubernetes-csi/external-snapshotter",
+    "tag": "v8.6.0",
+    "commit": "78e32cd84e0abec2621924a30e38c755f93e180a",
+    "status": "selected-reference-design-only-not-deployment-audit"
+  },
+  {
+    "repo": "kubernetes-csi/csi-driver-host-path",
+    "tag": "v1.18.0",
+    "commit": "cc78ee78ae23908c9e0607df2fe09c7ecfa52597",
+    "status": "selected-reference-design-only-not-deployment-audit",
+    "path": "pkg/hostpath/controllerserver.go",
+    "sha256": "361fb9b0f34b8768ace80fc99994e5e73226ff97889ea85a7fdbd73e989fdc67",
+    "evidence_excerpts": [
+      "Error())\n\t}\n\n\treturn &csi.ControllerModifyVolumeResponse{}, nil\n}\n\n// CreateSnapshot uses tar command to create snapshot for hostpath volume. The tar command can quickly create\n// archives of entire directories. The host image must have \"tar\" binaries in /bin, /usr/sbin, or /usr/bin.\nfunc (hp *hostPath) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {\n\tif err := hp.validateControllerServiceRequest(csi.ControllerServiceCapability_RPC_CREATE_DELETE_SNAPSHOT); err != nil {\n\t\tklog.V(3).Infof(\"invalid create snapshot req: %v\", req)\n\t\treturn nil, err\n\t}\n\n\tif len(req.GetName()) == 0 {\n\t\treturn nil, status.Error(codes.Inva",
+      "text.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {\n\tvolumeRes := &csi.ListVolumesResponse{\n\t\tEntries: []*csi.ListVolumesResponse_Entry{},\n\t}\n\n\tvar (\n\t\tstartIdx, volumesLength, maxLength int64\n\t\thpVolume                           state.Volume\n\t)\n\n\t// Lock before acting on global state. A production-quality\n\t// driver might use more fine-grained locking.\n\thp.mutex.Lock()\n\tdefer hp.mutex.Unlock()\n\n\t// Sort by volume ID.\n\tvolumes := hp.state.GetVolumes()\n\tsort.Slice(volumes, func(i, j int) bool {\n\t\treturn volumes[i].VolID < volumes[j].VolID\n\t})\n\n\tif req.StartingToken == \"\" {\n\t\treq.StartingToken = \"1\"\n\t}\n\n\tstartIdx, err := strconv.ParseInt(req.Start",
+      "/*\nCopyright 2017 The Kubernetes Authors.\n\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n    http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific la"
+    ]
+  }
+]

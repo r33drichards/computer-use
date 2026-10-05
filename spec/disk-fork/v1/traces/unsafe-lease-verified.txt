@@ -1,0 +1,905 @@
+Verified jar SHA256: c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239
+Command: ["/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2", "--library-path", "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib", "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java", "-XX:+UseParallelGC", "-Xmx512m", "-cp", "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar", "tlc2.TLC", "-workers", "1", "-coverage", "1", "-metadir", "/data/chrome/home/.cache/disk-fork-tlc/states-verified-unsafe-lease", "-config", "unsafe-lease.cfg", "DiskFork"]
+TLC2 Version 2026.10.04.025638 (rev: 1813307)
+Running breadth-first search Model-Checking with fp 23 and seed -461562353356532494 with 1 worker on 2 cores with 455MB heap and 64MB offheap memory [pid: 554] (Linux 4.19.0-gvisor amd64, Eclipse Adoptium 17.0.13 64bit, MSBDiskFPSet, DiskStateQueue).
+Parsing file /data/chrome/home/computer-use-fork-work/spec/disk-fork/DiskFork.tla
+Parsing file /tmp/tlc-45084068404545707/Naturals.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/Naturals.tla)
+Parsing file /tmp/tlc-45084068404545707/Integers.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/Integers.tla)
+Parsing file /tmp/tlc-45084068404545707/FiniteSets.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/FiniteSets.tla)
+Parsing file /tmp/tlc-45084068404545707/TLC.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/TLC.tla)
+Parsing file /tmp/tlc-45084068404545707/_TLCTrace.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/_TLCTrace.tla)
+Parsing file /tmp/tlc-45084068404545707/Sequences.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/Sequences.tla)
+Parsing file /tmp/tlc-45084068404545707/TLCExt.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/TLCExt.tla)
+Semantic processing of module Naturals
+Semantic processing of module Integers
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module TLCExt
+Semantic processing of module _TLCTrace
+Semantic processing of module DiskFork
+Linting of module TLCExt
+Linting of module _TLCTrace
+Linting of module DiskFork
+Starting... (2026-10-04 03:23:23)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-04 03:23:23.
+Error: Invariant ExecutingMounted is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+s = [ epoch |-> 0,
+  live |-> TRUE,
+  running |-> TRUE,
+  mounted |-> TRUE,
+  intent |-> "run",
+  data |-> 0,
+  gate |-> 0,
+  sourceProtected |-> FALSE,
+  req |-> <<"idle", "idle">>,
+  op |->
+      << [ stage |-> "absent",
+           key |-> 0,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ],
+         [ stage |-> "absent",
+           key |-> 0,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ] >>,
+  replay |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  badAdmit |-> FALSE,
+  badResume |-> FALSE,
+  wrongDeleted |-> FALSE,
+  healthyDestroyed |-> FALSE ]
+
+State 2: <Begin(1) line 40, col 13 to line 42, col 90 of module DiskFork>
+s = [ epoch |-> 0,
+  live |-> TRUE,
+  running |-> TRUE,
+  mounted |-> TRUE,
+  intent |-> "run",
+  data |-> 0,
+  gate |-> 0,
+  sourceProtected |-> FALSE,
+  req |-> <<"admitted", "idle">>,
+  op |->
+      << [ stage |-> "absent",
+           key |-> 0,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ],
+         [ stage |-> "absent",
+           key |-> 0,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ] >>,
+  replay |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  badAdmit |-> FALSE,
+  badResume |-> FALSE,
+  wrongDeleted |-> FALSE,
+  healthyDestroyed |-> FALSE ]
+
+State 3: <Execute(1) line 47, col 15 to line 48, col 55 of module DiskFork>
+s = [ epoch |-> 0,
+  live |-> TRUE,
+  running |-> TRUE,
+  mounted |-> TRUE,
+  intent |-> "run",
+  data |-> 0,
+  gate |-> 0,
+  sourceProtected |-> FALSE,
+  req |-> <<"executing", "idle">>,
+  op |->
+      << [ stage |-> "absent",
+           key |-> 0,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ],
+         [ stage |-> "absent",
+           key |-> 0,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ] >>,
+  replay |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  badAdmit |-> FALSE,
+  badResume |-> FALSE,
+  wrongDeleted |-> FALSE,
+  healthyDestroyed |-> FALSE ]
+
+State 4: <Expire(1) line 49, col 14 to line 50, col 52 of module DiskFork>
+s = [ epoch |-> 0,
+  live |-> TRUE,
+  running |-> TRUE,
+  mounted |-> TRUE,
+  intent |-> "run",
+  data |-> 0,
+  gate |-> 0,
+  sourceProtected |-> FALSE,
+  req |-> <<"expired", "idle">>,
+  op |->
+      << [ stage |-> "absent",
+           key |-> 0,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ],
+         [ stage |-> "absent",
+           key |-> 0,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ] >>,
+  replay |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  badAdmit |-> FALSE,
+  badResume |-> FALSE,
+  wrongDeleted |-> FALSE,
+  healthyDestroyed |-> FALSE ]
+
+State 5: <Submit(1,1) line 31, col 16 to line 35, col 76 of module DiskFork>
+s = [ epoch |-> 0,
+  live |-> TRUE,
+  running |-> TRUE,
+  mounted |-> TRUE,
+  intent |-> "run",
+  data |-> 0,
+  gate |-> 0,
+  sourceProtected |-> FALSE,
+  req |-> <<"expired", "idle">>,
+  op |->
+      << [ stage |-> "pending",
+           key |-> 1,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ],
+         [ stage |-> "absent",
+           key |-> 0,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ] >>,
+  replay |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  badAdmit |-> FALSE,
+  badResume |-> FALSE,
+  wrongDeleted |-> FALSE,
+  healthyDestroyed |-> FALSE ]
+
+State 6: <Gate(1) line 55, col 12 to line 58, col 74 of module DiskFork>
+s = [ epoch |-> 0,
+  live |-> TRUE,
+  running |-> TRUE,
+  mounted |-> TRUE,
+  intent |-> "run",
+  data |-> 0,
+  gate |-> 1,
+  sourceProtected |-> TRUE,
+  req |-> <<"expired", "idle">>,
+  op |->
+      << [ stage |-> "draining",
+           key |-> 1,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ],
+         [ stage |-> "absent",
+           key |-> 0,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ] >>,
+  replay |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  badAdmit |-> FALSE,
+  badResume |-> FALSE,
+  wrongDeleted |-> FALSE,
+  healthyDestroyed |-> FALSE ]
+
+State 7: <Drain(1) line 59, col 13 to line 61, col 76 of module DiskFork>
+s = [ epoch |-> 0,
+  live |-> TRUE,
+  running |-> FALSE,
+  mounted |-> TRUE,
+  intent |-> "run",
+  data |-> 0,
+  gate |-> 1,
+  sourceProtected |-> TRUE,
+  req |-> <<"expired", "idle">>,
+  op |->
+      << [ stage |-> "stopping",
+           key |-> 1,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ],
+         [ stage |-> "absent",
+           key |-> 0,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ] >>,
+  replay |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  badAdmit |-> FALSE,
+  badResume |-> FALSE,
+  wrongDeleted |-> FALSE,
+  healthyDestroyed |-> FALSE ]
+
+State 8: <Unmount(1) line 62, col 15 to line 63, col 82 of module DiskFork>
+s = [ epoch |-> 0,
+  live |-> TRUE,
+  running |-> FALSE,
+  mounted |-> FALSE,
+  intent |-> "run",
+  data |-> 0,
+  gate |-> 1,
+  sourceProtected |-> TRUE,
+  req |-> <<"expired", "idle">>,
+  op |->
+      << [ stage |-> "snapshotting",
+           key |-> 1,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ],
+         [ stage |-> "absent",
+           key |-> 0,
+           epoch |-> 0,
+           snap |-> -1,
+           snapshot |-> FALSE,
+           safe |-> TRUE,
+           uid |-> 0,
+           actual |-> 0,
+           disk |-> 0,
+           contents |-> -1,
+           committed |-> FALSE,
+           accessible |-> FALSE,
+           deleting |-> FALSE,
+           protected |-> FALSE,
+           cold |-> FALSE,
+           owner |-> "owner",
+           control |-> 0 ] >>,
+  replay |-> {},
+  up |-> TRUE,
+  crashes |-> 0,
+  badAdmit |-> FALSE,
+  badResume |-> FALSE,
+  wrongDeleted |-> FALSE,
+  healthyDestroyed |-> FALSE ]
+
+The coverage statistics at 2026-10-04 03:23:25 (see https://explain.tlapl.us/module-coverage-statistics for how to interpret the following statistics).
+<s line 4, col 10 to line 4, col 10 of module DiskFork>: 12787
+<Init line 15, col 1 to line 15, col 4 of module DiskFork>: 3:3
+  line 15, col 9 to line 22, col 64 of module DiskFork: 3
+  |line 15, col 13 to line 22, col 64 of module DiskFork: 3
+  ||line 15, col 14 to line 15, col 26 of module DiskFork: 3
+  ||line 15, col 29 to line 15, col 44 of module DiskFork: 3
+  ||line 15, col 47 to line 15, col 62 of module DiskFork: 3
+  ||line 17, col 26 to line 17, col 50 of module DiskFork: 3
+  ||line 18, col 22 to line 18, col 48 of module DiskFork: 3:6
+  |||line 18, col 29 to line 18, col 36 of module DiskFork: 3
+  ||line 19, col 21 to line 19, col 42 of module DiskFork: 3:6
+  |||line 19, col 36 to line 19, col 41 of module DiskFork: 6
+  |||line 19, col 28 to line 19, col 30 of module DiskFork: 3
+  ||line 19, col 45 to line 19, col 57 of module DiskFork: 3
+  ||line 20, col 14 to line 20, col 24 of module DiskFork: 3
+  ||line 21, col 14 to line 21, col 31 of module DiskFork: 3
+  ||line 21, col 34 to line 21, col 52 of module DiskFork: 3
+  ||line 22, col 14 to line 22, col 35 of module DiskFork: 3
+  ||line 22, col 38 to line 22, col 63 of module DiskFork: 3
+<Submit line 31, col 1 to line 31, col 11 of module DiskFork>: 282:2470
+  line 31, col 19 to line 31, col 22 of module DiskFork: 21728
+  |line 31, col 19 to line 31, col 19 of module DiskFork: 19258
+  line 31, col 27 to line 31, col 32 of module DiskFork: 17160
+  |line 31, col 27 to line 31, col 27 of module DiskFork: 14690
+  line 31, col 37 to line 31, col 55 of module DiskFork: 17080
+  |line 31, col 37 to line 31, col 44 of module DiskFork: 14610
+  line 32, col 19 to line 32, col 42 of module DiskFork: 14960
+  |line 32, col 19 to line 32, col 31 of module DiskFork: 12490
+  line 33, col 19 to line 33, col 49 of module DiskFork: 6944
+  |line 33, col 20 to line 33, col 49 of module DiskFork: 4474
+  ||line 33, col 35 to line 33, col 49 of module DiskFork: 7946
+  ||line 33, col 29 to line 33, col 31 of module DiskFork: 4474
+  line 34, col 19 to line 34, col 57 of module DiskFork: 2470
+  |line 34, col 19 to line 34, col 43 of module DiskFork: 2470
+  ||line 34, col 31 to line 34, col 42 of module DiskFork: 2470
+  |||line 25, col 17 to line 25, col 95 of module DiskFork: 2470
+  ||||line 25, col 30 to line 25, col 94 of module DiskFork: 4940
+  ||||line 25, col 24 to line 25, col 26 of module DiskFork: 2470
+  |line 34, col 47 to line 34, col 57 of module DiskFork: 2470
+  line 35, col 19 to line 35, col 76 of module DiskFork: 2470
+<Replay line 36, col 1 to line 36, col 9 of module DiskFork>: 996:4628
+  line 36, col 32 to line 36, col 46 of module DiskFork: 23884
+  |line 36, col 32 to line 36, col 42 of module DiskFork: 19256
+  |line 36, col 46 to line 36, col 46 of module DiskFork: 19256
+  line 36, col 26 to line 36, col 28 of module DiskFork: 9628
+  line 37, col 17 to line 37, col 33 of module DiskFork: 10596
+  |line 37, col 17 to line 37, col 17 of module DiskFork: 5968
+  |line 37, col 26 to line 37, col 33 of module DiskFork: 5968
+  line 37, col 38 to line 37, col 74 of module DiskFork: 4628
+  |line 37, col 43 to line 37, col 74 of module DiskFork: 4628
+  ||line 37, col 44 to line 37, col 44 of module DiskFork: 4628
+  ||line 37, col 64 to line 37, col 73 of module DiskFork: 4628
+  |||line 37, col 71 to line 37, col 73 of module DiskFork: 4628:808
+  ||||line 37, col 72 to line 37, col 72 of module DiskFork: 4628
+<Begin line 40, col 1 to line 40, col 8 of module DiskFork>: 14:1702
+  line 40, col 16 to line 40, col 32 of module DiskFork: 11354
+  |line 40, col 16 to line 40, col 23 of module DiskFork: 9652
+  line 40, col 37 to line 40, col 42 of module DiskFork: 8413
+  |line 40, col 37 to line 40, col 37 of module DiskFork: 6711
+  line 40, col 47 to line 40, col 55 of module DiskFork: 8363
+  |line 40, col 47 to line 40, col 47 of module DiskFork: 6661
+  line 40, col 60 to line 40, col 68 of module DiskFork: 7184
+  |line 40, col 60 to line 40, col 60 of module DiskFork: 5482
+  line 41, col 16 to line 41, col 31 of module DiskFork: 7184
+  |line 41, col 16 to line 41, col 23 of module DiskFork: 5482
+  line 41, col 36 to line 41, col 45 of module DiskFork: 4462
+  |line 41, col 36 to line 41, col 41 of module DiskFork: 2760
+  line 42, col 16 to line 42, col 90 of module DiskFork: 1702
+<Register line 44, col 1 to line 44, col 11 of module DiskFork>: 0:0
+  line 44, col 19 to line 44, col 56 of module DiskFork: 9650
+  line 45, col 19 to line 46, col 57 of module DiskFork: 0
+<Execute line 47, col 1 to line 47, col 10 of module DiskFork>: 6:2027
+  line 47, col 18 to line 47, col 38 of module DiskFork: 11677
+  |line 47, col 18 to line 47, col 25 of module DiskFork: 9650
+  line 47, col 43 to line 47, col 51 of module DiskFork: 4054
+  |line 47, col 43 to line 47, col 43 of module DiskFork: 2027
+  line 47, col 56 to line 47, col 64 of module DiskFork: 4054
+  |line 47, col 56 to line 47, col 56 of module DiskFork: 2027
+  line 48, col 18 to line 48, col 55 of module DiskFork: 2027
+<Expire line 49, col 1 to line 49, col 9 of module DiskFork>: 6:587
+  line 49, col 17 to line 49, col 38 of module DiskFork: 10235
+  |line 49, col 17 to line 49, col 24 of module DiskFork: 9648
+  line 50, col 17 to line 50, col 52 of module DiskFork: 587
+<Finish line 52, col 1 to line 52, col 9 of module DiskFork>: 6:777
+  line 52, col 17 to line 52, col 53 of module DiskFork: 10423
+  |line 52, col 17 to line 52, col 24 of module DiskFork: 9646
+  |line 52, col 30 to line 52, col 53 of module DiskFork: 9646
+  line 53, col 17 to line 53, col 65 of module DiskFork: 777
+<Gate line 55, col 1 to line 55, col 7 of module DiskFork>: 936:1526
+  line 55, col 15 to line 55, col 18 of module DiskFork: 11165
+  |line 55, col 15 to line 55, col 15 of module DiskFork: 9639
+  line 55, col 23 to line 55, col 28 of module DiskFork: 8881
+  |line 55, col 23 to line 55, col 23 of module DiskFork: 7355
+  line 55, col 33 to line 55, col 51 of module DiskFork: 8841
+  |line 55, col 33 to line 55, col 40 of module DiskFork: 7315
+  line 55, col 56 to line 55, col 65 of module DiskFork: 7781
+  |line 55, col 56 to line 55, col 61 of module DiskFork: 6255
+  line 56, col 15 to line 56, col 39 of module DiskFork: 5176
+  |line 56, col 15 to line 56, col 27 of module DiskFork: 3650
+  line 57, col 15 to line 58, col 74 of module DiskFork: 1526
+<Drain line 59, col 1 to line 59, col 8 of module DiskFork>: 182:458
+  line 59, col 16 to line 59, col 19 of module DiskFork: 10095
+  |line 59, col 16 to line 59, col 16 of module DiskFork: 9637
+  line 59, col 24 to line 59, col 33 of module DiskFork: 7811
+  |line 59, col 24 to line 59, col 29 of module DiskFork: 7353
+  |line 59, col 33 to line 59, col 33 of module DiskFork: 7353
+  line 59, col 38 to line 59, col 63 of module DiskFork: 1899
+  |line 59, col 38 to line 59, col 50 of module DiskFork: 1441
+  line 60, col 20 to line 60, col 33 of module DiskFork: 914
+  line 27, col 15 to line 27, col 76 of module DiskFork: 1372
+  |line 27, col 15 to line 27, col 71 of module DiskFork: 914
+  ||line 27, col 33 to line 27, col 70 of module DiskFork: 1828
+  ||line 27, col 22 to line 27, col 29 of module DiskFork: 914
+  |line 27, col 75 to line 27, col 76 of module DiskFork: 914
+  line 61, col 16 to line 61, col 76 of module DiskFork: 458
+<Unmount line 62, col 1 to line 62, col 10 of module DiskFork>: 59:167
+  line 62, col 18 to line 62, col 21 of module DiskFork: 9801
+  |line 62, col 18 to line 62, col 18 of module DiskFork: 9635
+  line 62, col 26 to line 62, col 35 of module DiskFork: 7517
+  |line 62, col 26 to line 62, col 31 of module DiskFork: 7351
+  |line 62, col 35 to line 62, col 35 of module DiskFork: 7351
+  line 62, col 40 to line 62, col 65 of module DiskFork: 1605
+  |line 62, col 40 to line 62, col 52 of module DiskFork: 1439
+  line 63, col 18 to line 63, col 82 of module DiskFork: 166
+  |line 63, col 23 to line 63, col 82 of module DiskFork: 167
+<Snapshot line 64, col 1 to line 64, col 11 of module DiskFork>: 18:44
+  line 64, col 19 to line 64, col 22 of module DiskFork: 9676
+  |line 64, col 19 to line 64, col 19 of module DiskFork: 9632
+  line 64, col 27 to line 64, col 36 of module DiskFork: 7392
+  |line 64, col 27 to line 64, col 32 of module DiskFork: 7348
+  |line 64, col 36 to line 64, col 36 of module DiskFork: 7348
+  line 64, col 41 to line 64, col 70 of module DiskFork: 1480
+  |line 64, col 41 to line 64, col 53 of module DiskFork: 1436
+  line 65, col 19 to line 65, col 28 of module DiskFork: 88
+  |line 65, col 20 to line 65, col 28 of module DiskFork: 44
+  line 66, col 19 to line 68, col 63 of module DiskFork: 44
+  |line 66, col 24 to line 68, col 63 of module DiskFork: 44
+  ||line 66, col 25 to line 66, col 25 of module DiskFork: 44
+  ||line 66, col 34 to line 66, col 56 of module DiskFork: 44
+  ||line 66, col 59 to line 66, col 81 of module DiskFork: 44
+  ||line 67, col 27 to line 67, col 47 of module DiskFork: 44
+  ||line 68, col 27 to line 68, col 62 of module DiskFork: 44
+  ||line 68, col 43 to line 68, col 61 of module DiskFork: 44
+  |||line 68, col 43 to line 68, col 52 of module DiskFork: 44
+  |||line 68, col 57 to line 68, col 61 of module DiskFork: 44
+  ||||line 26, col 10 to line 26, col 40 of module DiskFork: 44
+  |||||line 26, col 10 to line 26, col 23 of module DiskFork: 44
+  ||||||line 26, col 10 to line 26, col 18 of module DiskFork: 44
+  |||||||line 23, col 14 to line 23, col 69 of module DiskFork: 44
+  ||||||||line 23, col 32 to line 23, col 68 of module DiskFork: 88
+  ||||||||line 23, col 21 to line 23, col 28 of module DiskFork: 44
+  ||||||line 26, col 22 to line 26, col 23 of module DiskFork: 44
+  |||||line 26, col 28 to line 26, col 40 of module DiskFork: 44
+  ||||||line 26, col 28 to line 26, col 35 of module DiskFork: 44
+  |||||||line 24, col 13 to line 24, col 52 of module DiskFork: 44
+  ||||||||line 24, col 31 to line 24, col 51 of module DiskFork: 88
+  ||||||||line 24, col 20 to line 24, col 27 of module DiskFork: 44
+  ||||||line 26, col 39 to line 26, col 40 of module DiskFork: 44
+<Release line 70, col 1 to line 70, col 10 of module DiskFork>: 4:4
+  line 70, col 18 to line 70, col 21 of module DiskFork: 9636
+  |line 70, col 18 to line 70, col 18 of module DiskFork: 9632
+  line 70, col 26 to line 70, col 35 of module DiskFork: 7352
+  |line 70, col 26 to line 70, col 31 of module DiskFork: 7348
+  |line 70, col 35 to line 70, col 35 of module DiskFork: 7348
+  line 70, col 40 to line 70, col 62 of module DiskFork: 1440
+  |line 70, col 40 to line 70, col 52 of module DiskFork: 1436
+  line 71, col 18 to line 74, col 56 of module DiskFork: 4
+<Clone line 75, col 1 to line 75, col 8 of module DiskFork>: 0:0
+  line 75, col 16 to line 75, col 19 of module DiskFork: 9632
+  line 75, col 24 to line 75, col 53 of module DiskFork: 7348
+  line 76, col 16 to line 79, col 68 of module DiskFork: 0
+<Commit line 80, col 1 to line 80, col 9 of module DiskFork>: 0:0
+  line 80, col 17 to line 80, col 20 of module DiskFork: 9632
+  line 80, col 25 to line 80, col 50 of module DiskFork: 7348
+  line 81, col 17 to line 83, col 50 of module DiskFork: 0
+<PruneSnapshot line 84, col 1 to line 84, col 16 of module DiskFork>: 0:0
+  line 84, col 24 to line 84, col 27 of module DiskFork: 9632
+  line 84, col 32 to line 84, col 58 of module DiskFork: 7348
+  line 85, col 24 to line 85, col 63 of module DiskFork: 0
+<UserIntent line 87, col 1 to line 87, col 16 of module DiskFork>: 4204:6424
+  line 87, col 24 to line 87, col 29 of module DiskFork: 25680
+  |line 87, col 24 to line 87, col 24 of module DiskFork: 19256
+  line 87, col 34 to line 87, col 51 of module DiskFork: 6424
+  |line 87, col 34 to line 87, col 40 of module DiskFork: 19156
+  |line 87, col 44 to line 87, col 51 of module DiskFork: 19156
+  line 88, col 24 to line 88, col 68 of module DiskFork: 12848
+  |line 88, col 24 to line 88, col 27 of module DiskFork: 6424
+  |line 88, col 33 to line 88, col 68 of module DiskFork: 6424
+  line 89, col 24 to line 89, col 71 of module DiskFork: 6424
+<ApplyIntent line 90, col 1 to line 90, col 11 of module DiskFork>: 273:756
+  line 90, col 19 to line 90, col 22 of module DiskFork: 5192
+  |line 90, col 19 to line 90, col 19 of module DiskFork: 4814
+  line 90, col 27 to line 90, col 32 of module DiskFork: 4050
+  |line 90, col 27 to line 90, col 27 of module DiskFork: 3672
+  line 90, col 37 to line 90, col 46 of module DiskFork: 4030
+  |line 90, col 37 to line 90, col 42 of module DiskFork: 3652
+  line 26, col 10 to line 26, col 23 of module DiskFork: 2594
+  |line 26, col 10 to line 26, col 18 of module DiskFork: 2216
+  ||line 23, col 14 to line 23, col 69 of module DiskFork: 2216
+  |||line 23, col 32 to line 23, col 68 of module DiskFork: 4432
+  |||line 23, col 21 to line 23, col 28 of module DiskFork: 2216
+  |line 26, col 22 to line 26, col 23 of module DiskFork: 2216
+  line 26, col 28 to line 26, col 40 of module DiskFork: 2098
+  |line 26, col 28 to line 26, col 35 of module DiskFork: 1720
+  ||line 24, col 13 to line 24, col 52 of module DiskFork: 1720
+  |||line 24, col 31 to line 24, col 51 of module DiskFork: 3440
+  |||line 24, col 20 to line 24, col 27 of module DiskFork: 1720
+  |line 26, col 39 to line 26, col 40 of module DiskFork: 1720
+  line 91, col 19 to line 91, col 34 of module DiskFork: 1300
+  |line 91, col 19 to line 91, col 26 of module DiskFork: 922
+  line 91, col 40 to line 91, col 48 of module DiskFork: 930
+  |line 91, col 40 to line 91, col 40 of module DiskFork: 552
+  line 91, col 53 to line 91, col 61 of module DiskFork: 930
+  |line 91, col 53 to line 91, col 53 of module DiskFork: 552
+  line 92, col 19 to line 92, col 70 of module DiskFork: 756
+<UserResume line 93, col 1 to line 93, col 10 of module DiskFork>: 0:0
+  line 93, col 18 to line 93, col 21 of module DiskFork: 4814
+  line 93, col 26 to line 93, col 31 of module DiskFork: 3672
+  line 93, col 36 to line 93, col 45 of module DiskFork: 3652
+  line 93, col 50 to line 93, col 65 of module DiskFork: 2216
+  line 94, col 18 to line 94, col 27 of module DiskFork: 1074
+  line 94, col 32 to line 94, col 81 of module DiskFork: 0
+<DeleteSource line 95, col 1 to line 95, col 12 of module DiskFork>: 53:58
+  line 95, col 20 to line 95, col 23 of module DiskFork: 4872
+  |line 95, col 20 to line 95, col 20 of module DiskFork: 4814
+  line 95, col 28 to line 95, col 33 of module DiskFork: 3730
+  |line 95, col 28 to line 95, col 28 of module DiskFork: 3672
+  line 95, col 38 to line 95, col 56 of module DiskFork: 3710
+  |line 95, col 38 to line 95, col 45 of module DiskFork: 3652
+  line 95, col 61 to line 95, col 70 of module DiskFork: 588
+  |line 95, col 61 to line 95, col 66 of module DiskFork: 530
+  line 96, col 20 to line 96, col 37 of module DiskFork: 452
+  |line 96, col 21 to line 96, col 37 of module DiskFork: 394
+  line 96, col 42 to line 96, col 51 of module DiskFork: 452
+  |line 96, col 43 to line 96, col 51 of module DiskFork: 394
+  line 26, col 10 to line 26, col 23 of module DiskFork: 116
+  |line 26, col 10 to line 26, col 18 of module DiskFork: 58
+  ||line 23, col 14 to line 23, col 69 of module DiskFork: 58
+  |||line 23, col 32 to line 23, col 68 of module DiskFork: 116
+  |||line 23, col 21 to line 23, col 28 of module DiskFork: 58
+  |line 26, col 22 to line 26, col 23 of module DiskFork: 58
+  line 26, col 28 to line 26, col 40 of module DiskFork: 116
+  |line 26, col 28 to line 26, col 35 of module DiskFork: 58
+  ||line 24, col 13 to line 24, col 52 of module DiskFork: 58
+  |||line 24, col 31 to line 24, col 51 of module DiskFork: 116
+  |||line 24, col 20 to line 24, col 27 of module DiskFork: 58
+  |line 26, col 39 to line 26, col 40 of module DiskFork: 58
+  line 97, col 20 to line 97, col 49 of module DiskFork: 58
+<CancelPending line 98, col 1 to line 98, col 16 of module DiskFork>: 0:364
+  line 98, col 24 to line 98, col 27 of module DiskFork: 9996
+  |line 98, col 24 to line 98, col 24 of module DiskFork: 9632
+  line 98, col 32 to line 98, col 50 of module DiskFork: 7712
+  |line 98, col 32 to line 98, col 39 of module DiskFork: 7348
+  line 98, col 55 to line 98, col 79 of module DiskFork: 1464
+  |line 98, col 55 to line 98, col 67 of module DiskFork: 1100
+  line 99, col 25 to line 99, col 65 of module DiskFork: 364
+<Fail line 100, col 1 to line 100, col 7 of module DiskFork>: 526:3392
+  line 100, col 15 to line 100, col 18 of module DiskFork: 13024
+  |line 100, col 15 to line 100, col 15 of module DiskFork: 9632
+  line 100, col 23 to line 100, col 28 of module DiskFork: 3392
+  line 100, col 33 to line 100, col 70 of module DiskFork: 10740
+  |line 100, col 33 to line 100, col 45 of module DiskFork: 7348
+  |line 100, col 51 to line 100, col 70 of module DiskFork: 7348
+  line 101, col 15 to line 101, col 55 of module DiskFork: 3392
+<DeleteChildIntent line 102, col 1 to line 102, col 20 of module DiskFork>: 406:4392
+  line 102, col 28 to line 102, col 70 of module DiskFork: 14024
+  |line 102, col 28 to line 102, col 40 of module DiskFork: 9632
+  |line 102, col 46 to line 102, col 70 of module DiskFork: 9632
+  ||line 102, col 46 to line 102, col 51 of module DiskFork: 9632
+  ||line 102, col 58 to line 102, col 70 of module DiskFork: 9632:19264
+  line 103, col 28 to line 103, col 44 of module DiskFork: 10080
+  |line 103, col 29 to line 103, col 44 of module DiskFork: 5688
+  line 104, col 28 to line 104, col 94 of module DiskFork: 4392
+<CancelChild line 105, col 1 to line 105, col 14 of module DiskFork>: 80:828
+  line 105, col 22 to line 105, col 25 of module DiskFork: 10460
+  |line 105, col 22 to line 105, col 22 of module DiskFork: 9632
+  line 105, col 30 to line 105, col 45 of module DiskFork: 8176
+  |line 105, col 30 to line 105, col 36 of module DiskFork: 7348
+  line 106, col 22 to line 106, col 59 of module DiskFork: 1908
+  |line 106, col 22 to line 106, col 34 of module DiskFork: 1080
+  |line 106, col 40 to line 106, col 59 of module DiskFork: 1080
+  line 107, col 22 to line 107, col 62 of module DiskFork: 828
+<ReplaceUID line 109, col 1 to line 109, col 13 of module DiskFork>: 0:0
+  line 109, col 21 to line 109, col 55 of module DiskFork: 9632
+  line 109, col 60 to line 109, col 77 of module DiskFork: 1296
+  line 110, col 21 to line 110, col 54 of module DiskFork: 0
+<Cleanup line 111, col 1 to line 111, col 10 of module DiskFork>: 292:1336
+  line 111, col 18 to line 111, col 21 of module DiskFork: 10576
+  |line 111, col 18 to line 111, col 18 of module DiskFork: 9632
+  line 111, col 26 to line 111, col 50 of module DiskFork: 8292
+  |line 111, col 26 to line 111, col 38 of module DiskFork: 7348
+  line 112, col 19 to line 112, col 28 of module DiskFork: 1776
+  |line 112, col 19 to line 112, col 24 of module DiskFork: 1044
+  |line 112, col 28 to line 112, col 28 of module DiskFork: 1044
+  line 26, col 10 to line 26, col 23 of module DiskFork: 1648
+  |line 26, col 10 to line 26, col 18 of module DiskFork: 1044
+  ||line 23, col 14 to line 23, col 69 of module DiskFork: 1044
+  |||line 23, col 32 to line 23, col 68 of module DiskFork: 2088
+  |||line 23, col 21 to line 23, col 28 of module DiskFork: 1044
+  |line 26, col 22 to line 26, col 23 of module DiskFork: 1044
+  line 26, col 28 to line 26, col 40 of module DiskFork: 1556
+  |line 26, col 28 to line 26, col 35 of module DiskFork: 952
+  ||line 24, col 13 to line 24, col 52 of module DiskFork: 952
+  |||line 24, col 31 to line 24, col 51 of module DiskFork: 1904
+  |||line 24, col 20 to line 24, col 27 of module DiskFork: 952
+  |line 26, col 39 to line 26, col 40 of module DiskFork: 952
+  line 115, col 22 to line 126, col 84 of module DiskFork: 1336
+  |line 115, col 27 to line 126, col 84 of module DiskFork: 1336
+  ||line 115, col 28 to line 115, col 28 of module DiskFork: 1336
+  ||line 116, col 21 to line 116, col 59 of module DiskFork: 1336
+  ||line 117, col 21 to line 117, col 57 of module DiskFork: 1336
+  ||line 118, col 21 to line 118, col 44 of module DiskFork: 1336
+  ||line 118, col 47 to line 118, col 71 of module DiskFork: 1336
+  ||line 119, col 21 to line 119, col 109 of module DiskFork: 1336
+  ||line 119, col 37 to line 119, col 109 of module DiskFork: 1336
+  |||line 119, col 40 to line 119, col 78 of module DiskFork: 1336
+  ||||line 119, col 40 to line 119, col 58 of module DiskFork: 1336
+  ||||line 119, col 63 to line 119, col 78 of module DiskFork: 1136
+  ||line 120, col 21 to line 120, col 81 of module DiskFork: 1336
+  ||line 121, col 21 to line 121, col 95 of module DiskFork: 1336
+  ||line 122, col 21 to line 122, col 55 of module DiskFork: 1336
+  ||line 123, col 41 to line 123, col 70 of module DiskFork: 1336
+  |||line 123, col 44 to line 123, col 52 of module DiskFork: 1336
+  |||line 123, col 59 to line 123, col 63 of module DiskFork: 212
+  ||line 124, col 33 to line 124, col 66 of module DiskFork: 1336
+  |||line 124, col 36 to line 124, col 44 of module DiskFork: 1336
+  |||line 124, col 51 to line 124, col 59 of module DiskFork: 212
+  ||line 125, col 33 to line 125, col 66 of module DiskFork: 1336
+  |||line 125, col 36 to line 125, col 44 of module DiskFork: 1336
+  |||line 125, col 51 to line 125, col 59 of module DiskFork: 212
+  ||line 126, col 35 to line 126, col 83 of module DiskFork: 1336
+  |||line 126, col 41 to line 126, col 82 of module DiskFork: 1336
+  ||||line 126, col 41 to line 126, col 62 of module DiskFork: 1336
+  |||||line 126, col 41 to line 126, col 49 of module DiskFork: 1336
+  |||||line 126, col 54 to line 126, col 62 of module DiskFork: 212
+  ||||line 126, col 67 to line 126, col 82 of module DiskFork: 104
+<DeleteChild line 127, col 1 to line 127, col 14 of module DiskFork>: 0:0
+  line 127, col 22 to line 127, col 25 of module DiskFork: 9632
+  line 127, col 30 to line 127, col 56 of module DiskFork: 7348
+  line 129, col 22 to line 130, col 72 of module DiskFork: 0
+<Crash line 131, col 1 to line 131, col 5 of module DiskFork>: 3361:3361
+  line 131, col 13 to line 131, col 18 of module DiskFork: 3361
+  line 131, col 23 to line 131, col 26 of module DiskFork: 8175
+  |line 131, col 23 to line 131, col 23 of module DiskFork: 4814
+  line 131, col 31 to line 131, col 43 of module DiskFork: 7033
+  |line 131, col 31 to line 131, col 39 of module DiskFork: 3672
+  line 132, col 13 to line 132, col 55 of module DiskFork: 3361
+<Recover line 133, col 1 to line 133, col 7 of module DiskFork>: 1142:1142
+  line 133, col 15 to line 133, col 19 of module DiskFork: 5956
+  |line 133, col 16 to line 133, col 19 of module DiskFork: 4814
+  line 133, col 24 to line 133, col 50 of module DiskFork: 1142
+<TypeOK line 148, col 1 to line 148, col 6 of module DiskFork>
+  line 148, col 11 to line 151, col 82 of module DiskFork: 12847
+  |line 148, col 14 to line 148, col 63 of module DiskFork: 12847
+  ||line 148, col 14 to line 148, col 36 of module DiskFork: 12847
+  |||line 148, col 14 to line 148, col 19 of module DiskFork: 12847
+  |||line 148, col 25 to line 148, col 36 of module DiskFork: 12847
+  ||||line 148, col 25 to line 148, col 27 of module DiskFork: 12847
+  ||||line 148, col 34 to line 148, col 36 of module DiskFork: 12847:25694
+  ||line 148, col 41 to line 148, col 63 of module DiskFork: 12847
+  |line 149, col 14 to line 149, col 48 of module DiskFork: 12847
+  |line 150, col 14 to line 150, col 100 of module DiskFork: 12847
+  |line 151, col 14 to line 151, col 82 of module DiskFork: 12847
+  ||line 151, col 29 to line 151, col 82 of module DiskFork: 25694
+  |||line 151, col 29 to line 151, col 41 of module DiskFork: 25694
+  |||line 151, col 47 to line 151, col 82 of module DiskFork: 25694
+  ||||line 151, col 47 to line 151, col 66 of module DiskFork: 25694
+  ||||line 151, col 73 to line 151, col 82 of module DiskFork: 25694:51388
+  ||line 151, col 23 to line 151, col 25 of module DiskFork: 12847
+<SnapshotSafe line 152, col 1 to line 152, col 12 of module DiskFork>
+  line 152, col 17 to line 152, col 43 of module DiskFork: 12847
+  |line 152, col 32 to line 152, col 43 of module DiskFork: 25694
+  |line 152, col 26 to line 152, col 28 of module DiskFork: 12847
+<NoNewAdmission line 153, col 1 to line 153, col 14 of module DiskFork>
+  line 153, col 19 to line 153, col 29 of module DiskFork: 12847
+<IndependentDisks line 154, col 1 to line 154, col 16 of module DiskFork>
+  line 154, col 21 to line 155, col 116 of module DiskFork: 12847
+  |line 154, col 24 to line 154, col 54 of module DiskFork: 12847
+  ||line 154, col 39 to line 154, col 54 of module DiskFork: 25694
+  ||line 154, col 33 to line 154, col 35 of module DiskFork: 12847
+  |line 155, col 24 to line 155, col 116 of module DiskFork: 12847
+  ||line 155, col 41 to line 155, col 116 of module DiskFork: 51388
+  |||line 155, col 41 to line 155, col 85 of module DiskFork: 51388
+  ||||line 155, col 41 to line 155, col 65 of module DiskFork: 51388
+  |||||line 155, col 41 to line 155, col 45 of module DiskFork: 51388
+  |||||line 155, col 50 to line 155, col 65 of module DiskFork: 25694
+  ||line 155, col 35 to line 155, col 37 of module DiskFork: 12847
+<CorrectContents line 156, col 1 to line 156, col 15 of module DiskFork>
+  line 156, col 20 to line 156, col 84 of module DiskFork: 12847
+  |line 156, col 35 to line 156, col 84 of module DiskFork: 25694
+  |line 156, col 29 to line 156, col 31 of module DiskFork: 12847
+<FreshIdentity line 157, col 1 to line 157, col 13 of module DiskFork>
+  line 157, col 18 to line 157, col 111 of module DiskFork: 12847
+  |line 157, col 33 to line 157, col 111 of module DiskFork: 25694
+  |line 157, col 27 to line 157, col 29 of module DiskFork: 12847
+<CommitBeforeAccess line 158, col 1 to line 158, col 18 of module DiskFork>
+  line 158, col 23 to line 158, col 128 of module DiskFork: 12847
+  |line 158, col 38 to line 158, col 128 of module DiskFork: 25694
+  |line 158, col 32 to line 158, col 34 of module DiskFork: 12847
+<LatestIntentWins line 159, col 1 to line 159, col 16 of module DiskFork>
+  line 159, col 21 to line 159, col 32 of module DiskFork: 12847
+<Idempotent line 160, col 1 to line 160, col 10 of module DiskFork>
+  line 160, col 15 to line 160, col 84 of module DiskFork: 12847
+  |line 160, col 32 to line 160, col 84 of module DiskFork: 51388
+  ||line 160, col 32 to line 160, col 55 of module DiskFork: 51388
+  |||line 160, col 32 to line 160, col 36 of module DiskFork: 51388
+  |||line 160, col 41 to line 160, col 55 of module DiskFork: 25694
+  ||line 160, col 60 to line 160, col 84 of module DiskFork: 17797
+  |line 160, col 26 to line 160, col 28 of module DiskFork: 12847
+<SameOwnerAndCap line 161, col 1 to line 161, col 15 of module DiskFork>
+  line 161, col 20 to line 162, col 60 of module DiskFork: 12847
+  |line 161, col 23 to line 161, col 62 of module DiskFork: 12847
+  ||line 161, col 23 to line 161, col 47 of module DiskFork: 12847
+  |||line 161, col 35 to line 161, col 46 of module DiskFork: 12847
+  ||||line 25, col 17 to line 25, col 95 of module DiskFork: 12847
+  |||||line 25, col 30 to line 25, col 94 of module DiskFork: 25694
+  |||||line 25, col 24 to line 25, col 26 of module DiskFork: 12847
+  ||line 161, col 52 to line 161, col 62 of module DiskFork: 12847
+  |line 162, col 23 to line 162, col 60 of module DiskFork: 12847
+  ||line 162, col 38 to line 162, col 60 of module DiskFork: 25694
+  ||line 162, col 32 to line 162, col 34 of module DiskFork: 12847
+<Protection line 163, col 1 to line 163, col 10 of module DiskFork>
+  line 163, col 15 to line 165, col 79 of module DiskFork: 12847
+  |line 163, col 18 to line 163, col 49 of module DiskFork: 12847
+  |line 164, col 18 to line 164, col 44 of module DiskFork: 12847
+  ||line 164, col 18 to line 164, col 34 of module DiskFork: 12847
+  ||line 164, col 39 to line 164, col 44 of module DiskFork: 5725
+  |line 165, col 18 to line 165, col 79 of module DiskFork: 12847
+  ||line 165, col 33 to line 165, col 79 of module DiskFork: 25694
+  ||line 165, col 27 to line 165, col 29 of module DiskFork: 12847
+<CleanupSafe line 166, col 1 to line 166, col 11 of module DiskFork>
+  line 166, col 16 to line 166, col 53 of module DiskFork: 12847
+<FailureSourceSafe line 168, col 1 to line 168, col 17 of module DiskFork>
+  line 168, col 22 to line 168, col 91 of module DiskFork: 12847
+  |line 168, col 37 to line 168, col 91 of module DiskFork: 25694
+  ||line 168, col 37 to line 168, col 77 of module DiskFork: 25694
+  ||line 168, col 82 to line 168, col 91 of module DiskFork: 1108
+  |line 168, col 31 to line 168, col 33 of module DiskFork: 12847
+<ExecutingMounted line 169, col 1 to line 169, col 16 of module DiskFork>
+  line 169, col 21 to line 169, col 47 of module DiskFork: 12847
+  |line 169, col 21 to line 169, col 34 of module DiskFork: 12847
+  ||line 169, col 21 to line 169, col 29 of module DiskFork: 12847
+  |||line 23, col 14 to line 23, col 69 of module DiskFork: 12847
+  ||||line 23, col 32 to line 23, col 68 of module DiskFork: 25694
+  ||||line 23, col 21 to line 23, col 28 of module DiskFork: 12847
+  ||line 169, col 33 to line 169, col 34 of module DiskFork: 12847
+  |line 169, col 39 to line 169, col 47 of module DiskFork: 2724
+End of statistics.
+36418 states generated, 12847 distinct states found, 8031 states left on queue.
+The depth of the complete state graph search is 8.
+Finished in 02s at (2026-10-04 03:23:25)
+Trace exploration spec path: ./DiskFork_TTrace_1791084203.tla

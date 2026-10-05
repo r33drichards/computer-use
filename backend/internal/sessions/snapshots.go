@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 
+	"github.com/r33drichards/computer-use/backend/internal/diskfork"
 	"github.com/r33drichards/computer-use/backend/internal/metrics"
 )
 
@@ -225,7 +226,7 @@ func (n *snapshotter) of(ctx context.Context, id string) ([]string, error) {
 	hash := nameHash(id)
 	var names []string
 	for _, item := range list.Items {
-		if item.GetAnnotations()[annOriginPod] == id || item.GetLabels()[labelNameHash] == hash {
+		if item.GetAnnotations()[annOriginPod] == id || (item.GetAnnotations()[annOriginPod] == "" && item.GetLabels()[labelNameHash] == hash) {
 			names = append(names, item.GetName())
 		}
 	}
@@ -236,24 +237,39 @@ func (n *snapshotter) of(ctx context.Context, id string) ([]string, error) {
 // behind would be restored the next time the session's pod is created, over
 // a disk that has moved on since.
 func (n *snapshotter) prune(ctx context.Context, id, keep string) (int, error) {
-	names, err := n.of(ctx, id)
+	return n.pruneGuarded(ctx, id, keep, nil)
+}
+
+// UID/RV prevent deleting a replacement at a selected name. Origin-name/hash
+// are legacy provenance, NOT proof of source incarnation or a CSI transaction.
+func (n *snapshotter) pruneGuarded(ctx context.Context, id, keep string, guard func() error) (int, error) {
+	list, err := n.snapshots.List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return 0, fmt.Errorf("list snapshots: %w", err)
 	}
 	deleted := 0
-	for _, name := range names {
-		if name == keep {
+	for _, item := range list.Items {
+		origin := item.GetAnnotations()[annOriginPod]
+		if origin != id && !(origin == "" && item.GetLabels()[labelNameHash] == nameHash(id)) {
 			continue
 		}
-		if err := n.snapshots.Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
-			return deleted, fmt.Errorf("delete snapshot %s: %w", name, err)
+		if item.GetName() == keep {
+			continue
+		}
+		if guard != nil {
+			if err := guard(); err != nil {
+				return deleted, err
+			}
+		}
+		uid, rv := item.GetUID(), item.GetResourceVersion()
+		if err := n.snapshots.Delete(ctx, item.GetName(), metav1.DeleteOptions{Preconditions: &metav1.Preconditions{UID: &uid, ResourceVersion: &rv}}); err != nil && !apierrors.IsNotFound(err) {
+			return deleted, fmt.Errorf("delete snapshot %s: %w", item.GetName(), err)
 		}
 		deleted++
 	}
 	return deleted, nil
 }
 
-// pruneLogged is prune for after the session's own state is already written.
 func (n *snapshotter) pruneLogged(ctx context.Context, id, keep string) {
 	ctx, cancel := cleanupContext(ctx)
 	defer cancel()
@@ -310,6 +326,11 @@ func (s *Store) keepOrDropSnapshot(ctx context.Context, obj *unstructured.Unstru
 // draining mark, if any, goes with the sleep, and so does what was said of
 // the session's use.
 func (s *Store) Sleep(ctx context.Context, id, by string, stillWanted func(Session) bool) error {
+	if s.snap != nil {
+		if err := s.CheckForkFence(ctx, id, "sleep:"+by); err != nil {
+			return err
+		}
+	}
 	if !sleepReason(by) {
 		return fmt.Errorf("sleep: unknown reason %q", by)
 	}
@@ -351,7 +372,7 @@ func (s *Store) sleep(ctx context.Context, id, by string, stillWanted func(Sessi
 		}
 	}
 	resized := false
-	err := s.modify(ctx, id, func(obj *unstructured.Unstructured) (bool, error) {
+	err := s.modifyIntent(ctx, id, "sleep:"+by, func(obj *unstructured.Unstructured) (bool, error) {
 		if operatingMode(obj) == "Suspended" || obj.GetDeletionTimestamp() != nil {
 			return false, ErrStateChanged
 		}
@@ -411,7 +432,22 @@ func (s *Store) ColdStart(ctx context.Context, id string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	deleted, err := s.snap.prune(ctx, id, "")
+	sourceUID := obj.GetUID()
+	guard := func() error {
+		fresh, err := s.client.Get(ctx, id, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if fresh.GetUID() != sourceUID {
+			return diskfork.ErrIdentity
+		}
+		return diskfork.Fence(fresh)
+	}
+	if err := diskfork.Fence(obj); err != nil {
+		return false, err
+	}
+	// Recheck before each delete; still NOT atomic across Sandbox/PodSnapshot.
+	deleted, err := s.snap.pruneGuarded(ctx, id, "", guard)
 	if err != nil {
 		return false, err
 	}
@@ -422,6 +458,9 @@ func (s *Store) ColdStart(ctx context.Context, id string) (bool, error) {
 
 	// A pod made while the snapshot still exists would restore from it again.
 	err = s.snap.until(ctx, func() (bool, error) {
+		if err := guard(); err != nil {
+			return false, err
+		}
 		names, err := s.snap.of(ctx, id)
 		return len(names) == 0, err
 	})
@@ -430,7 +469,7 @@ func (s *Store) ColdStart(ctx context.Context, id string) (bool, error) {
 	}
 	// The pod template only applies to a new pod: suspend to remove the one
 	// that is stuck, then run again.
-	err = s.modify(ctx, id, func(obj *unstructured.Unstructured) (bool, error) {
+	err = s.modifyIntentUID(ctx, id, "", &sourceUID, func(obj *unstructured.Unstructured) (bool, error) {
 		if operatingMode(obj) == "Suspended" && !wakes(obj.GetAnnotations()[AnnStoppedBy]) {
 			return false, ErrStateChanged
 		}
@@ -450,6 +489,12 @@ func (s *Store) ColdStart(ctx context.Context, id string) (bool, error) {
 		if err != nil {
 			return false, err
 		}
+		if obj.GetUID() != sourceUID {
+			return false, diskfork.ErrIdentity
+		}
+		if err := diskfork.Fence(obj); err != nil {
+			return false, err
+		}
 		c := conditions(obj)["Suspended"]
 		return operatingMode(obj) != "Suspended" ||
 			(c.status == "True" && c.observedGeneration >= obj.GetGeneration()), nil
@@ -460,5 +505,5 @@ func (s *Store) ColdStart(ctx context.Context, id string) (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	return true, s.Wake(ctx, id)
+	return true, s.wakeUID(ctx, id, &sourceUID)
 }

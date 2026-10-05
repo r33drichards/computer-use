@@ -1,0 +1,184 @@
+{"config": "intent-liveness", "module": "IntentCleanup", "run": "f64d0dc5e60b", "inputs_sha256": {"IntentCleanup.tla": "d6fb90c7b0fa7b21e91be6201b88a8464096bfbe985c8bf054f70ac91075ed2a", "intent-liveness.cfg": "c4f91b131e1fe19f0a2abc89cb9eb3f3e325bd859fa2148f0b8f2a3a741c8b12", "check.py": "5785d480c3e52d8b92bb636198d3ff8edeb72ccfa0f726e56d5bedf9061ad354"}, "tools_sha256": {"tla2tools.jar": "c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239", "jre.tar.gz": "4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff"}, "timeout_seconds": 180, "command": ["/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib/ld-linux-x86-64.so.2", "--library-path", "/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84/lib:/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/lib", "/data/chrome/home/.cache/disk-fork-tlc/jdk-17.0.13+11-jre/bin/java", "-XX:+UseParallelGC", "-Xmx512m", "-cp", "/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar", "tlc2.TLC", "-workers", "1", "-coverage", "1", "-metadir", "/data/chrome/home/.cache/disk-fork-tlc/states-v2-f64d0dc5e60b", "-config", "intent-liveness.cfg", "IntentCleanup"], "log": "traces/intent-liveness.f64d0dc5e60b.txt"}
+TLC2 Version 2026.10.04.025638 (rev: 1813307)
+Running breadth-first search Model-Checking with fp 103 and seed 1734174903616577492 with 1 worker on 2 cores with 455MB heap and 64MB offheap memory [pid: 1332] (Linux 4.19.0-gvisor amd64, Eclipse Adoptium 17.0.13 64bit, MSBDiskFPSet, DiskStateQueue).
+Parsing file /data/chrome/home/computer-use-fork-work/spec/disk-fork/v2/IntentCleanup.tla
+Parsing file /tmp/tlc-15690254249651030655/Naturals.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/Naturals.tla)
+Parsing file /tmp/tlc-15690254249651030655/FiniteSets.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/FiniteSets.tla)
+Parsing file /tmp/tlc-15690254249651030655/TLC.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/TLC.tla)
+Parsing file /tmp/tlc-15690254249651030655/_TLCTrace.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/_TLCTrace.tla)
+Parsing file /tmp/tlc-15690254249651030655/Sequences.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/Sequences.tla)
+Parsing file /tmp/tlc-15690254249651030655/TLCExt.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/TLCExt.tla)
+Parsing file /tmp/tlc-15690254249651030655/Integers.tla (jar:file:/data/chrome/home/.cache/disk-fork-tlc/tla2tools.jar!/tla2sany/StandardModules/Integers.tla)
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module Integers
+Semantic processing of module TLCExt
+Semantic processing of module _TLCTrace
+Semantic processing of module IntentCleanup
+Linting of module TLCExt
+Linting of module _TLCTrace
+Linting of module IntentCleanup
+Starting... (2026-10-04 03:54:15)
+Implied-temporal checking--satisfiability problem has 1 branches.
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-04 03:54:16.
+Progress(15) at 2026-10-04 03:54:16: 2,673 states generated, 1,701 distinct states found, 0 states left on queue.
+Checking temporal properties for the complete state space with 1701 total distinct states at (2026-10-04 03:54:16)
+Finished checking temporal properties in 00s at 2026-10-04 03:54:17
+Model checking completed. No error has been found.
+  Estimates of the probability that TLC did not check all reachable states
+  because two distinct states had the same fingerprint:
+  calculated (optimistic):  val = 9.0E-14
+The coverage statistics at 2026-10-04 03:54:17 (see https://explain.tlapl.us/module-coverage-statistics for how to interpret the following statistics).
+<s line 4, col 10 to line 4, col 10 of module IntentCleanup>: 1662
+<Init line 6, col 1 to line 6, col 4 of module IntentCleanup>: 1:1
+  line 6, col 9 to line 11, col 33 of module IntentCleanup: 1
+  |line 6, col 13 to line 11, col 33 of module IntentCleanup: 1
+  ||line 6, col 14 to line 6, col 26 of module IntentCleanup: 1
+  ||line 6, col 29 to line 6, col 45 of module IntentCleanup: 1
+  ||line 7, col 14 to line 7, col 67 of module IntentCleanup: 1
+  ||line 7, col 70 to line 7, col 81 of module IntentCleanup: 1
+  ||line 8, col 14 to line 8, col 31 of module IntentCleanup: 1:809
+  ||line 8, col 34 to line 8, col 48 of module IntentCleanup: 1
+  ||line 9, col 14 to line 9, col 32 of module IntentCleanup: 1
+  ||line 9, col 35 to line 9, col 52 of module IntentCleanup: 1
+  ||line 10, col 14 to line 10, col 61 of module IntentCleanup: 1
+  ||line 10, col 64 to line 10, col 82 of module IntentCleanup: 1
+  ||line 11, col 14 to line 11, col 32 of module IntentCleanup: 1:3402
+<UserRequest line 12, col 1 to line 12, col 17 of module IntentCleanup>: 405:972
+  line 12, col 25 to line 12, col 30 of module IntentCleanup: 8172
+  |line 12, col 25 to line 12, col 25 of module IntentCleanup: 7200
+  line 12, col 35 to line 12, col 53 of module IntentCleanup: 6860
+  |line 12, col 35 to line 12, col 42 of module IntentCleanup: 5888
+  line 12, col 58 to line 12, col 75 of module IntentCleanup: 972
+  |line 12, col 58 to line 12, col 64 of module IntentCleanup: 4056
+  |line 12, col 68 to line 12, col 75 of module IntentCleanup: 4056
+  line 13, col 25 to line 13, col 69 of module IntentCleanup: 1944
+  |line 13, col 25 to line 13, col 28 of module IntentCleanup: 972
+  |line 13, col 34 to line 13, col 69 of module IntentCleanup: 972
+  line 14, col 25 to line 14, col 95 of module IntentCleanup: 972
+<ReadResume line 15, col 1 to line 15, col 10 of module IntentCleanup>: 315:382
+  line 15, col 18 to line 15, col 23 of module IntentCleanup: 2182
+  |line 15, col 18 to line 15, col 18 of module IntentCleanup: 1800
+  line 15, col 28 to line 15, col 37 of module IntentCleanup: 1854
+  |line 15, col 29 to line 15, col 37 of module IntentCleanup: 1472
+  line 15, col 42 to line 15, col 53 of module IntentCleanup: 1636
+  |line 15, col 43 to line 15, col 53 of module IntentCleanup: 1254
+  line 15, col 58 to line 15, col 79 of module IntentCleanup: 1016
+  |line 15, col 58 to line 15, col 64 of module IntentCleanup: 634
+  |line 15, col 73 to line 15, col 79 of module IntentCleanup: 634
+  line 16, col 18 to line 17, col 52 of module IntentCleanup: 382
+  |line 16, col 23 to line 17, col 52 of module IntentCleanup: 382
+  ||line 16, col 24 to line 16, col 24 of module IntentCleanup: 382
+  ||line 16, col 33 to line 16, col 94 of module IntentCleanup: 382
+  ||line 17, col 36 to line 17, col 51 of module IntentCleanup: 382
+  |||line 17, col 43 to line 17, col 51 of module IntentCleanup: 382:692
+  ||||line 17, col 44 to line 17, col 50 of module IntentCleanup: 382
+<ResumeAfterFork line 22, col 1 to line 22, col 15 of module IntentCleanup>: 1:1
+  line 22, col 23 to line 22, col 28 of module IntentCleanup: 1801
+  |line 22, col 23 to line 22, col 23 of module IntentCleanup: 1800
+  line 22, col 33 to line 22, col 42 of module IntentCleanup: 1473
+  |line 22, col 34 to line 22, col 42 of module IntentCleanup: 1472
+  line 22, col 47 to line 22, col 59 of module IntentCleanup: 1255
+  |line 22, col 47 to line 22, col 55 of module IntentCleanup: 1254
+  line 18, col 16 to line 18, col 26 of module IntentCleanup: 127
+  |line 18, col 16 to line 18, col 20 of module IntentCleanup: 126
+  line 18, col 31 to line 18, col 50 of module IntentCleanup: 37
+  |line 18, col 31 to line 18, col 42 of module IntentCleanup: 36
+  line 18, col 56 to line 18, col 76 of module IntentCleanup: 36
+  line 18, col 81 to line 18, col 99 of module IntentCleanup: 37
+  |line 18, col 81 to line 18, col 89 of module IntentCleanup: 36
+  |line 18, col 93 to line 18, col 99 of module IntentCleanup: 36
+  line 20, col 17 to line 21, col 132 of module IntentCleanup: 1
+  |line 20, col 22 to line 21, col 132 of module IntentCleanup: 1
+  ||line 20, col 23 to line 20, col 23 of module IntentCleanup: 1
+  ||line 20, col 32 to line 20, col 47 of module IntentCleanup: 1
+  ||line 20, col 50 to line 20, col 68 of module IntentCleanup: 1
+  ||line 21, col 37 to line 21, col 131 of module IntentCleanup: 1
+  |||line 21, col 44 to line 21, col 131 of module IntentCleanup: 1:724
+  ||||line 21, col 45 to line 21, col 130 of module IntentCleanup: 1
+<UserResume line 23, col 1 to line 23, col 10 of module IntentCleanup>: 62:62
+  line 23, col 18 to line 23, col 23 of module IntentCleanup: 1862
+  |line 23, col 18 to line 23, col 18 of module IntentCleanup: 1800
+  line 23, col 28 to line 23, col 37 of module IntentCleanup: 1534
+  |line 23, col 29 to line 23, col 37 of module IntentCleanup: 1472
+  line 23, col 42 to line 23, col 54 of module IntentCleanup: 62
+  |line 23, col 42 to line 23, col 50 of module IntentCleanup: 1254
+  line 18, col 16 to line 18, col 26 of module IntentCleanup: 1190
+  |line 18, col 16 to line 18, col 20 of module IntentCleanup: 1128
+  line 18, col 31 to line 18, col 50 of module IntentCleanup: 646
+  |line 18, col 31 to line 18, col 42 of module IntentCleanup: 584
+  line 18, col 56 to line 18, col 76 of module IntentCleanup: 132
+  line 18, col 81 to line 18, col 99 of module IntentCleanup: 194
+  |line 18, col 81 to line 18, col 89 of module IntentCleanup: 132
+  |line 18, col 93 to line 18, col 99 of module IntentCleanup: 132
+  line 20, col 17 to line 21, col 132 of module IntentCleanup: 62
+  |line 20, col 22 to line 21, col 132 of module IntentCleanup: 62
+  ||line 20, col 23 to line 20, col 23 of module IntentCleanup: 62
+  ||line 20, col 32 to line 20, col 47 of module IntentCleanup: 62
+  ||line 20, col 50 to line 20, col 68 of module IntentCleanup: 62
+  ||line 21, col 37 to line 21, col 131 of module IntentCleanup: 62
+  |||line 21, col 44 to line 21, col 131 of module IntentCleanup: 62:932
+  ||||line 21, col 45 to line 21, col 130 of module IntentCleanup: 62
+<DiscardResume line 24, col 1 to line 24, col 13 of module IntentCleanup>: 496:942
+  line 24, col 21 to line 24, col 31 of module IntentCleanup: 2502
+  |line 24, col 21 to line 24, col 25 of module IntentCleanup: 1800
+  line 25, col 22 to line 25, col 41 of module IntentCleanup: 1341
+  |line 25, col 22 to line 25, col 33 of module IntentCleanup: 765
+  line 25, col 47 to line 25, col 67 of module IntentCleanup: 1131
+  |line 25, col 47 to line 25, col 50 of module IntentCleanup: 765
+  line 25, col 72 to line 25, col 90 of module IntentCleanup: 1131
+  |line 25, col 72 to line 25, col 80 of module IntentCleanup: 765
+  |line 25, col 84 to line 25, col 90 of module IntentCleanup: 765
+  line 26, col 21 to line 26, col 55 of module IntentCleanup: 942
+<ApplyStop line 27, col 1 to line 27, col 9 of module IntentCleanup>: 93:124
+  line 27, col 17 to line 27, col 22 of module IntentCleanup: 1924
+  |line 27, col 17 to line 27, col 17 of module IntentCleanup: 1800
+  line 27, col 27 to line 27, col 35 of module IntentCleanup: 1596
+  |line 27, col 27 to line 27, col 27 of module IntentCleanup: 1472
+  line 27, col 40 to line 27, col 55 of module IntentCleanup: 342
+  |line 27, col 40 to line 27, col 47 of module IntentCleanup: 218
+  line 28, col 17 to line 28, col 49 of module IntentCleanup: 124
+<DeleteSource line 29, col 1 to line 29, col 12 of module IntentCleanup>: 328:396
+  line 29, col 20 to line 29, col 25 of module IntentCleanup: 2196
+  |line 29, col 20 to line 29, col 20 of module IntentCleanup: 1800
+  line 29, col 30 to line 29, col 48 of module IntentCleanup: 1868
+  |line 29, col 30 to line 29, col 37 of module IntentCleanup: 1472
+  line 29, col 53 to line 29, col 62 of module IntentCleanup: 854
+  |line 29, col 54 to line 29, col 62 of module IntentCleanup: 458
+  line 30, col 20 to line 30, col 49 of module IntentCleanup: 396
+<ReadCleanup line 31, col 1 to line 31, col 11 of module IntentCleanup>: 0:0
+  line 32, col 19 to line 33, col 65 of module IntentCleanup: 0
+<Commit line 34, col 1 to line 34, col 6 of module IntentCleanup>: 0:0
+  line 35, col 14 to line 35, col 69 of module IntentCleanup: 0
+<ReplaceUID line 36, col 1 to line 36, col 10 of module IntentCleanup>: 0:0
+  line 37, col 18 to line 37, col 48 of module IntentCleanup: 0
+<ChildDeleteIntent line 38, col 1 to line 38, col 17 of module IntentCleanup>: 0:0
+  line 39, col 25 to line 39, col 79 of module IntentCleanup: 0
+<CleanupAttempt line 51, col 1 to line 51, col 14 of module IntentCleanup>: 0:0
+  line 51, col 22 to line 51, col 61 of module IntentCleanup: 1800
+  line 49, col 21 to line 50, col 89 of module IntentCleanup: 0
+<LateCleanupAttempt line 52, col 1 to line 52, col 18 of module IntentCleanup>: 0:0
+  line 52, col 26 to line 52, col 64 of module IntentCleanup: 1800
+  line 49, col 21 to line 50, col 89 of module IntentCleanup: 0
+<TypeOK line 61, col 1 to line 61, col 6 of module IntentCleanup>
+  line 61, col 11 to line 61, col 83 of module IntentCleanup: 1701
+<LatestIntentWins line 62, col 1 to line 62, col 16 of module IntentCleanup>
+  line 62, col 21 to line 62, col 61 of module IntentCleanup: 1701
+  |line 62, col 46 to line 62, col 61 of module IntentCleanup: 980
+  |line 62, col 30 to line 62, col 42 of module IntentCleanup: 1701
+<UIDDeletionSafe line 63, col 1 to line 63, col 15 of module IntentCleanup>
+  line 63, col 20 to line 63, col 86 of module IntentCleanup: 1701
+<HealthyChildSafe line 64, col 1 to line 64, col 16 of module IntentCleanup>
+  line 64, col 21 to line 64, col 87 of module IntentCleanup: 1701
+<NoResumeAfterDeletion line 65, col 1 to line 65, col 21 of module IntentCleanup>
+  line 65, col 26 to line 65, col 46 of module IntentCleanup: 1701
+  |line 65, col 26 to line 65, col 32 of module IntentCleanup: 1701
+  |line 65, col 37 to line 65, col 46 of module IntentCleanup: 328
+End of statistics.
+2673 states generated, 1701 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 15.
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 5 and the 95th percentile is 4).
+Finished in 01s at (2026-10-04 03:54:17)
