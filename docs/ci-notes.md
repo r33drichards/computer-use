@@ -77,6 +77,32 @@ by hand.
   job's result. A fork's read-only token cannot comment; the run summary has
   the same table.
 
+## Code coverage (`coverage.yml`)
+
+Parallel jobs, one per measured component, each writing `{"pct": N}`; a
+`report` job compares them with the `coverage-baseline` artifact that the last
+successful run on main left, writes one table as a PR comment
+(`hack/coverage-report.py`), and **fails the PR when a component drops by more
+than 1 point or has no result**. On main the run stores the new baseline
+(90 days). Locally measured at the first pass (lines/statements):
+
+| Component | Tool | Coverage |
+|---|---|---|
+| `backend` (Go) | `go test -coverprofile` | 59.9% |
+| `terraform-provider-metronome` (Go) | same | 67.9% |
+| `web` (TS) | vitest + `@vitest/coverage-v8` | 85.4% |
+| `hack/` (Python, PyYAML-only suites) | coverage.py | 61.0% (branch-inclusive, `--source=hack`) |
+| `sdk` (Rust) | `cargo llvm-cov` 0.6.16 | not yet measured locally; first CI run |
+
+Not measured yet: `terraform-provider-computeruse` (needs the Nix shell and
+cgo), the two Python operators (pytest in Nix shells), `site/`, Go integration
+and fuzz coverage, and the NixOS/kind end-to-end suites. Adding a component:
+add a job that uploads `cov/<name>.json`, and add `report` to its `needs`.
+Raising the floor: when a component is well above 1 point of headroom, lower
+`MAX_DROP` for it or add a minimum; the lowest numbers (backend) are where new
+tests pay most. Removing a component makes the report fail once: land the
+removal, then re-run on main to refresh the baseline.
+
 ## Decisions and baselines
 
 - Linters are set to what is clean today, so they can fail on new problems
@@ -100,6 +126,9 @@ by hand.
   `|| return`.
 
 ## Backlog (in order)
+
+0. Coverage: measure the gaps above; raise `backend` from 59.9% (list the
+   lowest packages with `go tool cover -func`); a floor per component.
 
 1. More Go fuzz targets: webhook payload parsers (`billing/stripe`,
    `billing/metronome`), `hosts.Split`, `auth.SameHost`, policy JSON bodies.
@@ -127,6 +156,10 @@ by hand.
 
 ## Log
 
+- 2026-10-05 (third): added `coverage.yml`, `hack/coverage-report.py`, vitest
+  coverage dependency (`web/package.json`, lockfile), and the section above.
+  The baseline artifact does not exist until the first run on main, so PR
+  runs before then show every component as `new`.
 - 2026-10-05 (second): made it parallel: discover job, five lint jobs, fuzz and
   TLA+ matrices; added the go-wide guidance above. Checked locally: actionlint,
   matrix discovery output, `tlc-check.sh <cfg>`.

@@ -1,0 +1,211 @@
+name: coverage
+
+# Code coverage of every component that has a test suite, tracked against
+# main. Each component is its own parallel job and writes `{"pct": N}`; the
+# `report` job compares them with the numbers the last run on main left as
+# the `coverage-baseline` artifact, keeps one table in a comment on the pull
+# request, and fails when a component drops by more than 1 point. On main it
+# writes the new baseline. What is measured and what is not: docs/ci-notes.md.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    name: go (${{ matrix.module }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [backend, terraform-provider-metronome]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: ${{ matrix.module }}/go.mod
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+      - name: Test with coverage
+        working-directory: ${{ matrix.module }}
+        run: |
+          go test ./... -covermode=atomic -coverprofile="$RUNNER_TEMP/cover.out"
+          pct=$(go tool cover -func="$RUNNER_TEMP/cover.out" | awk '/^total:/ {sub("%","",$3); print $3}')
+          mkdir -p "$GITHUB_WORKSPACE/cov"
+          echo "{\"pct\": $pct}" > "$GITHUB_WORKSPACE/cov/${{ matrix.module }}.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cov-${{ matrix.module }}
+          path: cov/*.json
+
+  web:
+    name: web
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npx vitest run --coverage --coverage.reporter=json-summary
+      - run: |
+          mkdir -p "$GITHUB_WORKSPACE/cov"
+          jq '{pct: .total.lines.pct}' coverage/coverage-summary.json > "$GITHUB_WORKSPACE/cov/web.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cov-web
+          path: cov/*.json
+
+  # The Python under hack/ with the suites that run with only PyYAML. The
+  # operators' pytest suites need their Nix shells and are not measured yet.
+  python:
+    name: python (hack)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test with coverage
+        run: |
+          python3 -m pip install PyYAML==6.0.3 coverage==7.14.0
+          coverage run --branch --source=hack -m unittest discover -s test/preview
+          for d in test/session-slots test/gitops test/site-release; do
+            coverage run --branch --source=hack -a -m unittest discover -s "$d"
+          done
+          mkdir -p cov
+          pct=$(coverage json -o - | jq '.totals.percent_covered | .*10 | round / 10')
+          echo "{\"pct\": $pct}" > cov/python-hack.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cov-python-hack
+          path: cov/*.json
+
+  rust:
+    name: rust (sdk)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: sdk
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/cargo-llvm-cov
+            sdk/target
+          key: sdk-coverage-${{ hashFiles('sdk/Cargo.lock', 'flake.lock') }}
+          restore-keys: |
+            sdk-coverage-
+      - name: Test with coverage
+        env:
+          CARGO_INCREMENTAL: "0"
+        run: |
+          nix develop ..#sdk -c bash -c '
+            command -v cargo-llvm-cov >/dev/null || cargo install cargo-llvm-cov --locked --version 0.6.16
+            cargo llvm-cov --workspace --locked --json --summary-only --output-path "$RUNNER_TEMP/cov.json"'
+          mkdir -p "$GITHUB_WORKSPACE/cov"
+          jq '{pct: (.data[0].totals.lines.percent | .*10 | round / 10)}' "$RUNNER_TEMP/cov.json" > "$GITHUB_WORKSPACE/cov/rust-sdk.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cov-rust-sdk
+          path: cov/*.json
+
+  report:
+    name: report
+    needs: [go, web, python, rust]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: cov-*
+          path: current
+          merge-multiple: true
+
+      # The last successful run on main left its numbers as an artifact.
+      - name: Baseline from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          run=$(gh run list --workflow coverage.yml --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty' || true)
+          if [ -n "$run" ] && gh run download "$run" --name coverage-baseline --dir baseline; then
+            echo "BASELINE=baseline/combined.json" >> "$GITHUB_ENV"
+          else
+            echo "BASELINE=-" >> "$GITHUB_ENV"
+          fi
+
+      - name: Compare
+        id: compare
+        run: |
+          mkdir -p current
+          status=0
+          hack/coverage-report.py current "$BASELINE" comment.md || status=$?
+          cat comment.md >> "$GITHUB_STEP_SUMMARY"
+          # On main there is nothing to compare against: the run sets the baseline.
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then status=0; fi
+          # A component whose job failed has no result: that is the failure.
+          exit $status
+
+      - name: Keep as the baseline
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.compare.outcome == 'success'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-baseline
+          path: current/combined.json
+          retention-days: 90
+
+      # One comment, edited in place. A fork's read-only token cannot
+      # comment; the table is in the run summary then.
+      - name: Comment on the pull request
+        if: always() && github.event_name == 'pull_request' && hashFiles('comment.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          existing=$(gh api "repos/$GH_REPO/issues/$PR/comments" --paginate \
+            --jq '[.[] | select(.body | startswith("<!-- coverage-report -->"))][0].id // empty') || existing=""
+          if [ -n "$existing" ]; then
+            gh api --method PATCH "repos/$GH_REPO/issues/comments/$existing" -F body=@comment.md >/dev/null \
+              || echo "::warning::could not update the comment (read-only token?)"
+          else
+            gh pr comment "$PR" --body-file comment.md \
+              || echo "::warning::could not comment (read-only token?)"
+          fi
