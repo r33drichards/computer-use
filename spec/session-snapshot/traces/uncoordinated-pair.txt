@@ -1,0 +1,127 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 10 and seed 6851410235653841427 with 1 worker on 10 cores with 3641MB heap and 64MB offheap memory (Mac OS X 26.4 aarch64, Azul Systems, Inc. 1.8.0_492 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /Users/robertwendt/.codex/worktrees/73e7/computer-use/spec/session-snapshot/SessionSnapshot.tla
+Parsing file /private/var/folders/ph/qgnwj7nd6lj2ksz6ctdqk1540000gn/T/Naturals.tla
+Semantic processing of module Naturals
+Semantic processing of module SessionSnapshot
+Starting... (2026-10-04 22:40:22)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-04 22:40:22.
+Error: Invariant RestoreUsesCompatibleDisk is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ snapshotEpoch = 0
+/\ chromeFile = 0
+/\ snapshotFile = 0
+/\ memoryEpoch = 0
+/\ restoreAttempts = 0
+/\ missingFile = FALSE
+/\ memoryFile = 0
+/\ databaseCorrupt = FALSE
+/\ diskCaptured = FALSE
+/\ diskSnapshotEpoch = 0
+/\ phase = "running"
+/\ dbEpoch = 0
+/\ writes = 0
+/\ diskSnapshotFile = 0
+
+State 2: <Checkpoint line 38, col 5 to line 46, col 67 of module SessionSnapshot>
+/\ snapshotEpoch = 0
+/\ chromeFile = 0
+/\ snapshotFile = 0
+/\ memoryEpoch = 0
+/\ restoreAttempts = 0
+/\ missingFile = FALSE
+/\ memoryFile = 0
+/\ databaseCorrupt = FALSE
+/\ diskCaptured = FALSE
+/\ diskSnapshotEpoch = 0
+/\ phase = "checkpointed"
+/\ dbEpoch = 0
+/\ writes = 0
+/\ diskSnapshotFile = 0
+
+State 3: <ChromeRotation line 70, col 5 to line 75, col 118 of module SessionSnapshot>
+/\ snapshotEpoch = 0
+/\ chromeFile = 1
+/\ snapshotFile = 0
+/\ memoryEpoch = 0
+/\ restoreAttempts = 0
+/\ missingFile = FALSE
+/\ memoryFile = 1
+/\ databaseCorrupt = FALSE
+/\ diskCaptured = FALSE
+/\ diskSnapshotEpoch = 0
+/\ phase = "checkpointed"
+/\ dbEpoch = 0
+/\ writes = 1
+/\ diskSnapshotFile = 0
+
+State 4: <DiskCheckpoint line 53, col 5 to line 60, col 50 of module SessionSnapshot>
+/\ snapshotEpoch = 0
+/\ chromeFile = 1
+/\ snapshotFile = 0
+/\ memoryEpoch = 0
+/\ restoreAttempts = 0
+/\ missingFile = FALSE
+/\ memoryFile = 1
+/\ databaseCorrupt = FALSE
+/\ diskCaptured = TRUE
+/\ diskSnapshotEpoch = 0
+/\ phase = "checkpointed"
+/\ dbEpoch = 0
+/\ writes = 1
+/\ diskSnapshotFile = 1
+
+State 5: <BeginShutdown line 86, col 5 to line 90, col 88 of module SessionSnapshot>
+/\ snapshotEpoch = 0
+/\ chromeFile = 1
+/\ snapshotFile = 0
+/\ memoryEpoch = 0
+/\ restoreAttempts = 0
+/\ missingFile = FALSE
+/\ memoryFile = 1
+/\ databaseCorrupt = FALSE
+/\ diskCaptured = TRUE
+/\ diskSnapshotEpoch = 0
+/\ phase = "draining"
+/\ dbEpoch = 0
+/\ writes = 1
+/\ diskSnapshotFile = 1
+
+State 6: <Suspend line 93, col 5 to line 98, col 88 of module SessionSnapshot>
+/\ snapshotEpoch = 0
+/\ chromeFile = 1
+/\ snapshotFile = 0
+/\ memoryEpoch = 0
+/\ restoreAttempts = 0
+/\ missingFile = FALSE
+/\ memoryFile = 1
+/\ databaseCorrupt = FALSE
+/\ diskCaptured = TRUE
+/\ diskSnapshotEpoch = 0
+/\ phase = "suspended"
+/\ dbEpoch = 0
+/\ writes = 1
+/\ diskSnapshotFile = 1
+
+State 7: <Restore line 103, col 5 to line 113, col 88 of module SessionSnapshot>
+/\ snapshotEpoch = 0
+/\ chromeFile = 1
+/\ snapshotFile = 0
+/\ memoryEpoch = 0
+/\ restoreAttempts = 1
+/\ missingFile = TRUE
+/\ memoryFile = 0
+/\ databaseCorrupt = FALSE
+/\ diskCaptured = TRUE
+/\ diskSnapshotEpoch = 0
+/\ phase = "restoreFailed"
+/\ dbEpoch = 0
+/\ writes = 1
+/\ diskSnapshotFile = 1
+
+150 states generated, 107 distinct states found, 25 states left on queue.
+The depth of the complete state graph search is 7.
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 4 and the 95th percentile is 4).
+Finished in 00s at (2026-10-04 22:40:22)
