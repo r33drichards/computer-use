@@ -12,7 +12,6 @@ import ipaddress
 import json
 import logging
 import time
-import uuid
 import redis
 
 import aiohttp

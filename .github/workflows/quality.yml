@@ -1,0 +1,223 @@
+name: quality
+
+# The checks that are not one component's tests: lint, fuzzing, valgrind and
+# TLA+ model checking, over the whole repository. The per-component workflows
+# (backend-tests, web-tests, sdk, ...) run the formatters and test suites.
+# What each check covers, and what is still missing, is in docs/ci-notes.md.
+#
+# Runs on every pull request and every push to main, whatever the paths, so
+# that a new component is covered the day it is added (hack/ci-coverage.sh
+# fails when one is not). A nightly run fuzzes for longer. The `report` job
+# keeps one comment on the pull request with every result.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TLA2TOOLS_VERSION: v1.8.0
+  TLA2TOOLS_SHA256: c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Every component has a workflow
+        run: hack/ci-coverage.sh
+
+      - name: Workflows (actionlint)
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck=
+
+      - name: Shell scripts (shellcheck)
+        run: |
+          git ls-files '*.sh' ':!:*/examples/*' \
+            | xargs shellcheck -S warning -x -e SC2148,SC2034
+
+      - name: "Python (ruff: syntax errors, undefined names, unused imports)"
+        run: |
+          python3 -m pip install ruff==0.15.20
+          ruff check --select E9,F --exclude 'test/webhooks-nixos/*-test.py' .
+
+      - name: Go (staticcheck)
+        working-directory: backend
+        run: |
+          go run honnef.co/go/tools/cmd/staticcheck@v0.7.0 \
+            -checks 'all,-ST1000,-ST1003,-ST1005,-ST1016,-ST1020,-ST1021,-ST1022' ./...
+
+  fuzz:
+    name: fuzz (go)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      # 30 s a target on a pull request, 10 minutes a target overnight.
+      FUZZTIME: ${{ github.event_name == 'schedule' && '10m' || '30s' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      # Every func FuzzXxx in every Go module is run: a new fuzz target is
+      # picked up without a change here. `go test -fuzz` takes one target in
+      # one package at a time.
+      - name: Fuzz every target
+        shell: bash
+        run: |
+          status=0
+          for mod in $(git ls-files '*/go.mod' | xargs -n1 dirname); do
+            targets=$(grep -rHE '^func Fuzz[A-Za-z0-9_]*\(' --include='*_test.go' "$mod" || true)
+            [ -z "$targets" ] && continue
+            while IFS=: read -r file line; do
+              pkg=$(dirname "$file")
+              name=$(echo "$line" | sed -E 's/^func (Fuzz[A-Za-z0-9_]*)\(.*/\1/')
+              echo "::group::$pkg $name"
+              (cd "$pkg" && go test . -run '^$' -fuzz "^${name}\$" -fuzztime "$FUZZTIME") || status=1
+              echo "::endgroup::"
+            done <<< "$targets"
+          done
+          exit $status
+
+      # A failing input is written to testdata/fuzz/; commit it as a seed.
+      - name: Keep the failing inputs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fuzz-failures
+          path: "**/testdata/fuzz/**"
+          if-no-files-found: ignore
+
+  valgrind:
+    name: valgrind (sdk tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: sdk
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            sdk/target
+          key: sdk-valgrind-${{ hashFiles('sdk/Cargo.lock', 'flake.lock') }}
+          restore-keys: |
+            sdk-valgrind-
+
+      - name: Install valgrind
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq valgrind
+
+      # The SDK is the repo's native code: a Rust library with a C ABI that
+      # the Go provider links and the Python and JavaScript packages load.
+      # Its tests run under memcheck; an invalid access or a definite leak
+      # fails the job. Debug info keeps the traces readable.
+      - name: Tests under valgrind
+        env:
+          CARGO_PROFILE_DEV_DEBUG: "1"
+          CARGO_INCREMENTAL: "0"
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: valgrind --error-exitcode=99 --leak-check=full --errors-for-leak-kinds=definite
+        run: nix develop ..#sdk -c cargo test --workspace --tests --locked
+
+  tla:
+    name: tla+ (model check)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: TLC
+        run: |
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/tla2tools.jar" \
+            "https://github.com/tlaplus/tlaplus/releases/download/${TLA2TOOLS_VERSION}/tla2tools.jar"
+          echo "${TLA2TOOLS_SHA256}  $RUNNER_TEMP/tla2tools.jar" | sha256sum --check
+          echo "TLA2TOOLS=$RUNNER_TEMP/tla2tools.jar" >> "$GITHUB_ENV"
+
+      # Each spec's configurations must give the result its
+      # `expect-violation` file says (see hack/tlc-check.sh). Specs: spec/opa-replacement/.
+      # spec/opa-replacement/ is the one spec today.
+      - name: Check every spec
+        run: hack/tlc-check.sh
+
+  report:
+    name: report
+    if: github.event_name == 'pull_request' && always()
+    needs: [lint, fuzz, valgrind, tla]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # One comment, edited in place on every push. A pull request from a
+      # fork has a read-only token and cannot comment; the results are then
+      # in the run's summary only.
+      - name: Comment on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          LINT: ${{ needs.lint.result }}
+          FUZZ: ${{ needs.fuzz.result }}
+          VALGRIND: ${{ needs.valgrind.result }}
+          TLA: ${{ needs.tla.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          icon() { case "$1" in success) echo "✅ passed";; skipped) echo "⏭️ skipped";; cancelled) echo "⚪ cancelled";; *) echo "❌ $1";; esac; }
+          {
+            echo "<!-- quality-report -->"
+            echo "### Quality checks"
+            echo
+            echo "| Check | Result |"
+            echo "|---|---|"
+            echo "| Lint (actionlint, shellcheck, ruff, staticcheck, component coverage) | $(icon "$LINT") |"
+            echo "| Fuzzing (every Go \`Fuzz\` target, 30 s each) | $(icon "$FUZZ") |"
+            echo "| Valgrind (SDK tests) | $(icon "$VALGRIND") |"
+            echo "| TLA+ (TLC over \`spec/\`) | $(icon "$TLA") |"
+            echo
+            echo "[Run details]($RUN_URL) · what each check covers: \`docs/ci-notes.md\`"
+          } > comment.md
+          cat comment.md >> "$GITHUB_STEP_SUMMARY"
+          existing=$(gh api "repos/$GH_REPO/issues/$PR/comments" --paginate \
+            --jq '[.[] | select(.body | startswith("<!-- quality-report -->"))][0].id // empty') || existing=""
+          if [ -n "$existing" ]; then
+            gh api --method PATCH "repos/$GH_REPO/issues/comments/$existing" -F body=@comment.md >/dev/null \
+              || echo "::warning::could not update the comment (read-only token?)"
+          else
+            gh pr comment "$PR" --body-file comment.md \
+              || echo "::warning::could not comment (read-only token?)"
+          fi

@@ -1,6 +1,6 @@
 # Bundle server stub: serves ./bundle.tar.gz with an ETag; long-polls when
 # the client sends "Prefer: wait=N" and its If-None-Match is current.
-import hashlib, os, sys, threading, time
+import hashlib, sys, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 cond = threading.Condition()
 state = {"etag": None, "body": None}

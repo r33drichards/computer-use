@@ -1,5 +1,4 @@
 import asyncio
-import dataclasses
 import gzip
 import hashlib
 import hmac

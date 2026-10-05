@@ -1,5 +1,5 @@
 # Shared by the hack/ scripts. Source it; it changes to the repo root.
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || return
 
 CLUSTER=browserjs
 NS=browserjs-sessions
