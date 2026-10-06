@@ -69,7 +69,7 @@ by hand.
   invalid accesses and definite leaks fail it. About 1 minute of test time
   locally.
 - **tla**: one parallel leg per `spec/*/*.cfg`, each `hack/tlc-check.sh <cfg>`
-  (pinned `tla2tools.jar`, checked by sha256). A configuration named in the spec
+  (`tla2tools.jar` v1.7.4, checked by sha256). A configuration named in the spec
   directory's `expect-violation` file must *find* a violation (it pins what
   the model says is broken); every other must hold. Adding a spec: put the
   `.tla` and `.cfg` files in `spec/<name>/`, and list the violating ones.
@@ -130,6 +130,9 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
   driver injects its globals (`cluster`, ...).
 - All third-party actions are pinned to a commit with the version in a
   comment (CONTRIBUTING.md). `go run ...@version` tools are pinned by version.
+- `tla2tools.jar` is pinned to the stable `v1.7.4` release. Do not use `v1.8.0`:
+  it is a rolling tag whose jar changes under the same URL (the sha256 pin broke
+  every TLA+ leg in the nightly run of 2026-10-06).
 - The Go fuzz target so far: `FuzzURLTemplate`
   (`backend/internal/sessions/urls_fuzz_test.go`): the session URL template
   parser, and that URLs it makes are read back by `Match`.
@@ -170,6 +173,12 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 4. Update the matrix, the backlog and the log below.
 
 ## Log
+
+- 2026-10-06: nightly `quality` on main failed in all six `tla+` legs: the
+  `v1.8.0` jar's sha256 no longer matched (rolling release). Pinned `v1.7.4`;
+  all six configs give the expected result locally. Everything else in that
+  run was green (fuzz, valgrind, lint). Open PRs (#135-#181) predate
+  `quality.yml` and have not been re-run against it.
 
 - 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
   and stores only complete baselines (+ nightly renewal); matrix values go

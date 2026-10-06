@@ -30,8 +30,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  TLA2TOOLS_VERSION: v1.8.0
-  TLA2TOOLS_SHA256: c2fe4e56e43bde19f213b4a7e441d037297fda733e503579623e859b79348239
+  TLA2TOOLS_VERSION: v1.7.4
+  TLA2TOOLS_SHA256: 936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88
 
 jobs:
   # The gating scripts' own tests (test/ci).
