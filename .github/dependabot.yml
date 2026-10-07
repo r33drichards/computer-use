@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: {interval: weekly}
+  - package-ecosystem: gomod
+    directories: [/backend, /terraform-provider-computeruse, /terraform-provider-metronome, /sdk/go]
+    schedule: {interval: weekly}
+  - package-ecosystem: cargo
+    directory: /sdk
+    schedule: {interval: weekly}
+  - package-ecosystem: npm
+    directories: [/web, /site, /sdk/js, /images/browser/browser]
+    schedule: {interval: weekly}
+  - package-ecosystem: pip
+    directory: /sdk/python
+    schedule: {interval: weekly}
