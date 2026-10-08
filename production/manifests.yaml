@@ -751,7 +751,7 @@ data:
     \ false\n          capabilities:\n            drop: [\"ALL\"]\n        volumeMounts:\n\
     \          - name: data\n            mountPath: /data/chrome\n            subPath:\
     \ chrome\n          - name: shm\n            mountPath: /dev/shm\n      - name:\
-    \ mcp-js\n        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/mcp-js@sha256:c9ec2afe01a39e354d7ad2ccbe8eef6935fd06cde5779ba83a385fbb54fe0b93\n\
+    \ mcp-js\n        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/mcp-js@sha256:33f405fed26c3f0a8f6d3dbedb3c9dae8548ed17cc61fc3947ac1c92ef9b178e\n\
     \        env:\n          # One-time upload URLs are made from this (mcp-js appends\n\
     \          # /api/artifact-uploads/<token>), so they come back under the\n   \
     \       # session's own prefix.\n          - name: MCP_V8_PUBLIC_URL\n       \
@@ -809,7 +809,7 @@ data:
     \ fit.\ncapacity:\n  nodes: 3\n  cpu: 3213m\n  memory: 12097Mi\n"
 kind: ConfigMap
 metadata:
-  name: session-blueprint-h4ddb57d96
+  name: session-blueprint-7cm7c7b6db
   namespace: browserjs-sessions
   annotations:
     argocd.argoproj.io/sync-wave: '-3'
@@ -1219,7 +1219,7 @@ spec:
         projected:
           sources:
           - configMap:
-              name: session-blueprint-h4ddb57d96
+              name: session-blueprint-7cm7c7b6db
           - configMap:
               name: billing-catalogue
           - configMap:
@@ -2331,7 +2331,7 @@ spec:
           value: '{"mcp_tools":{"pre":[ {"url":"http://policy-operator.browserjs-sessions.svc:8080","policy_path":"browserjs/hooks/$(SESSION_ID)/mcp_tools/pre"}],
             "mode":"all","policies":[ {"url":"file:///etc/mcp/mcp_tools.rego"}, {"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/$(SESSION_ID)/mcp_tools"}]},
             "filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]},"fetch":{"mode":"all","policies":[{"url":"file:///etc/mcp/fetch.rego"},{"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/$(SESSION_ID)/mcp_tools"}]}}'
-        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/mcp-js@sha256:c9ec2afe01a39e354d7ad2ccbe8eef6935fd06cde5779ba83a385fbb54fe0b93
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/mcp-js@sha256:33f405fed26c3f0a8f6d3dbedb3c9dae8548ed17cc61fc3947ac1c92ef9b178e
         name: mcp-js
         ports:
         - containerPort: 8080
