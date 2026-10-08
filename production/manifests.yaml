@@ -623,7 +623,7 @@ data:
     \ https://dex.computeruse.site/dex\nidp_client_id: pomerium\ndatabroker_storage_type:\
     \ file\ndatabroker_storage_connection_string: file:///data/databroker\nruntime_flags:\n\
     \  mcp_dynamic_client_registration: true\nmcp_allowed_client_id_domains:\n- claude.ai\n\
-    timeout_read: 5m\nroutes:\n- name: session-upload\n  from: https://sessions.computeruse.site\n\
+    - chatgpt.com\ntimeout_read: 5m\nroutes:\n- name: session-upload\n  from: https://sessions.computeruse.site\n\
     \  regex: ^/s-[a-z0-9]+/api/artifact-uploads/[0-9a-f]+$\n  to: http://backend\n\
     \  allow_public_unauthenticated_access: true\n  preserve_host_header: true\n \
     \ timeout: 5m\n- name: session-vnc\n  from: https://sessions.computeruse.site\n\
@@ -692,7 +692,7 @@ data:
     \    X-Robots-Tag: noindex, nofollow\n"
 kind: ConfigMap
 metadata:
-  name: pomerium-config-6k8587d8mt
+  name: pomerium-config-m7g8chg6h5
   namespace: browserjs-sessions
   annotations:
     argocd.argoproj.io/sync-wave: '-3'
@@ -1161,7 +1161,7 @@ spec:
           value: '200'
         - name: SIGNUPS_PER_IP_PER_DAY
           value: '5'
-        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:e7a7b6b198f1fe5b21bd3ce31b60c6b4a23c8ee823ee914fcab287ad5027a11c
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:5e73d396eeafb9f546cc4c8401f0fd70ffcfa43bc337d633e332631d09c82a6b
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1744,7 +1744,7 @@ spec:
           type: RuntimeDefault
       volumes:
       - configMap:
-          name: pomerium-config-6k8587d8mt
+          name: pomerium-config-m7g8chg6h5
         name: config
       - name: tls
         secret:
