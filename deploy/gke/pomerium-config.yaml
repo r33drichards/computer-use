@@ -26,9 +26,10 @@ runtime_flags:
   mcp_dynamic_client_registration: true
 
 # MCP clients that identify themselves by a metadata document under these
-# domains may sign users in (Claude's apps and Claude Code).
+# domains may sign users in (Claude's apps and Claude Code, ChatGPT).
 mcp_allowed_client_id_domains:
   - claude.ai
+  - chatgpt.com
 
 # The whole of a request must arrive within this: an upload is up to 16 MiB.
 timeout_read: 5m
