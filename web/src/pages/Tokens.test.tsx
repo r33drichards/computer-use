@@ -40,6 +40,25 @@ describe("tokens", () => {
     expect(writes().at(-1)).toMatchObject({ method: "DELETE" })
   })
 
+  it("creates an MCP token with the selected connection scope", async () => {
+    const { writes } = startBackend()
+    renderAt("/tokens/create", routes)
+    fireEvent.change(await screen.findByPlaceholderText("terraform-ci"), { target: { value: "mcp-agent" } })
+    const connect = screen.getByRole("checkbox", { name: /sessions:connect/ }) as HTMLInputElement
+    expect(connect.checked).toBe(false)
+    expect(screen.getByText("Connect to your sessions over MCP")).toBeTruthy()
+    for (const name of [/sessions:read/, /sessions:write/, /sessions:connect/]) {
+      fireEvent.click(screen.getByRole("checkbox", { name }))
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Create token" }))
+
+    await screen.findByTestId("token-secret")
+    expect(writes()[0]).toMatchObject({
+      path: "/api/tokens",
+      body: { name: "mcp-agent", scopes: ["sessions:read", "sessions:write", "sessions:connect"], expires_in_days: 90 },
+    })
+  })
+
   it("says so where the deployment has no tokens, without an error", async () => {
     startBackend({ tokens: false })
     renderAt("/tokens", routes)

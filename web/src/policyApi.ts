@@ -71,7 +71,7 @@ export interface Preset {
   source: string
 }
 
-export const SCOPES = ["sessions:read", "sessions:write", "policies:read", "policies:write"] as const
+export const SCOPES = ["sessions:read", "sessions:write", "sessions:connect", "policies:read", "policies:write"] as const
 export type Scope = (typeof SCOPES)[number]
 
 export interface Token {

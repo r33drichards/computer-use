@@ -121,7 +121,7 @@ const SIZES = [
   { name: "medium", cpuMillis: 2000, memoryMiB: 5120, warm: false },
   { name: "large", cpuMillis: 3000, memoryMiB: 10240, warm: false },
 ]
-const SCOPES = ["sessions:read", "sessions:write", "policies:read", "policies:write"]
+const SCOPES = ["sessions:read", "sessions:write", "sessions:connect", "policies:read", "policies:write"]
 const ME = { email: "you@example.com", name: "You", admin: false }
 const SESSION_ID = /^s-([a-z2-7]{10}|[a-z0-9]{5})$/
 

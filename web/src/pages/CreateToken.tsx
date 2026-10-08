@@ -22,6 +22,7 @@ import { TOKENS_CRUMB } from "./Tokens"
 const SCOPE_TEXT: Record<Scope, string> = {
   "sessions:read": "List and read your sessions",
   "sessions:write": "Create, rename, stop, resume and delete your sessions",
+  "sessions:connect": "Connect to your sessions over MCP",
   "policies:read": "Read the policies of your sessions",
   "policies:write": "Write the policies of your sessions, and say who manages them",
 }
