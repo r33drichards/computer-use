@@ -128,8 +128,8 @@ request at a time, printing what each step answered.
 To point a real client at a local session, give it
 `https://sessions.localtest.me/<id>/mcp` and the CA
 (`NODE_EXTRA_CA_CERTS=$PWD/.local/tls/ca.crt` for Node-based clients). Only
-clients whose client ID document is under `claude.ai` are accepted. This has
-not been tried with Claude Code.
+clients whose client ID document is under `claude.ai` or `chatgpt.com` are
+accepted. This has not been tried with Claude Code.
 
 ## Changing things
 
