@@ -68,8 +68,8 @@ func ParseURLTemplate(s string) (*URLTemplate, error) {
 		return bad("must be a scheme, a host and " + idPlaceholder + " only")
 	}
 	host, port := hosts.Split(u.Host)
-	if host == "" || strings.ContainsAny(host, " :") {
-		return bad("needs a host besides " + idPlaceholder)
+	if host == "" || strings.ContainsAny(host, " :") || strings.HasPrefix(host, ".") || strings.HasSuffix(host, ".") || strings.Contains(host, "..") {
+		return bad("needs a host besides " + idPlaceholder + ", with no empty labels")
 	}
 	if port != "" {
 		if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {

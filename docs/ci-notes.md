@@ -171,6 +171,13 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 
 ## Log
 
+- 2026-10-08: nightly `quality` run on main (10-min fuzz) failed: FuzzURLTemplate
+  found that a template whose host is only dots (`Http://{id}...`) parsed but
+  its URLs did not match back. `ParseURLTemplate` now rejects empty host
+  labels; the input is a seed in `urls_fuzz_test.go`. Everything else in that
+  run was green, as were the PR and push runs since the tla2tools re-pin
+  (#185). Lesson: the nightly fuzz finds what the 30 s PR run cannot; check it
+  every loop. Backlog unchanged (item 1 next).
 - 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
   and stores only complete baselines (+ nightly renewal); matrix values go
   through `env:`; fuzz legs use their own module's `go.mod`; `tlc-check.sh`

@@ -18,6 +18,8 @@ func FuzzURLTemplate(f *testing.F) {
 		"https://{id}",
 		"https://u@{id}.example.com",
 		"https://{id}.example.com/?q#f",
+		"Http://{id}...", // found by the nightly fuzz run: a host of only dots
+		"https://{id}.a..b",
 	} {
 		f.Add(s)
 	}
