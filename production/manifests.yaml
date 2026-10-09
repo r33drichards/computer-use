@@ -1161,7 +1161,7 @@ spec:
           value: '200'
         - name: SIGNUPS_PER_IP_PER_DAY
           value: '5'
-        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:0239f43b06b1ccaabfe8262cf1bafc22d3799ceeaddd6eb986fb710d76123390
+        image: us-west1-docker.pkg.dev/browserjs-sessions/browserjs/backend@sha256:5e73d396eeafb9f546cc4c8401f0fd70ffcfa43bc337d633e332631d09c82a6b
         livenessProbe:
           httpGet:
             path: /healthz
@@ -2862,7 +2862,7 @@ spec:
   snapshotScope: whole-pod
   storageConfigName: browserjs-sessions
   triggerConfig:
-    postCheckpoint: stop
+    postCheckpoint: resume
     type: manual
 ---
 apiVersion: v1
@@ -2897,39 +2897,34 @@ data:
     \                   warm pool if there is one.\n  EXPECT_STATE_SAVED   1 (default):\
     \ sleep must save the session's state and\n                       wake must bring\
     \ it back as it was (Pod Snapshots).\n                       0: a cluster without\
-    \ snapshots; wake starts it fresh.\n  EXPECT_SNAPSHOT_DISK_CONSISTENCY  1 (default):\
-    \ churn Chromium localStorage\n                       across two snapshot sleep/wake\
-    \ cycles. Set to 0 for\n                       baseline/rollback checks of releases\
-    \ predating the fix.\n                       Only used when EXPECT_STATE_SAVED=1.\n\
-    \  EXPECT_POLICIES      1 (default): the session's policy is changed and must\n\
-    \                       bind. 0: a deployment with session policies off.\n  EXPECT_MCP_CAPABILITIES\
-    \  1 (default): verify skills, PNG imports, fetch and editable fetch\n       \
-    \                permissions. 0: baseline/rollback checks of old releases.\n \
-    \ FETCH_URL            URL to fetch (example.com, or localhost in kind).\n  SESSION_HOOK\
-    \         a command run once the session is running, with\n                  \
-    \     SESSION_ID in its environment (the release workflow\n                  \
-    \     checks the pod's images with it). Its failure fails\n                  \
-    \     the run; its output is shown.\n  START_TIMEOUT        seconds to wait for\
-    \ a session to run (420)\n  SUMMARY              a file the results are appended\
-    \ to, as Markdown\n\"\"\"\nimport base64\nimport hashlib\nimport json\nimport\
-    \ os\nimport re\nimport secrets\nimport ssl\nimport subprocess\nimport sys\nimport\
-    \ time\nimport urllib.error\nimport urllib.parse\nimport urllib.request\n\nDOMAIN\
-    \ = os.environ.get(\"DOMAIN\", \"computeruse.site\")\nAPI = os.environ.get(\"\
-    API_URL\", \"https://api.\" + DOMAIN).rstrip(\"/\")\nAPP = os.environ.get(\"APP_URL\"\
-    , \"https://app.\" + DOMAIN).rstrip(\"/\")\nSITE = os.environ.get(\"SITE_URL\"\
-    , \"https://\" + DOMAIN).rstrip(\"/\")\nAPI_HOST = os.environ.get(\"API_HOST\"\
-    , \"\")\nTOKEN = os.environ.get(\"CANARY_API_TOKEN\", \"\")\nEXPECT_STATE_SAVED\
-    \ = os.environ.get(\"EXPECT_STATE_SAVED\", \"1\") != \"0\"\nEXPECT_SNAPSHOT_DISK_CONSISTENCY\
-    \ = os.environ.get(\"EXPECT_SNAPSHOT_DISK_CONSISTENCY\", \"1\") != \"0\"\nEXPECT_MCP_CAPABILITIES\
-    \ = os.environ.get(\"EXPECT_MCP_CAPABILITIES\", \"1\") != \"0\"\n# The public\
-    \ site is served by this cluster. Its load-balancer hairpin can\n# hit the session's\
-    \ private-network deny rule, so test external HTTPS here.\nFETCH_URL = os.environ.get(\"\
-    FETCH_URL\", \"https://example.com/\" if SITE else \"http://127.0.0.1:8081/healthz\"\
-    )\nEXPECT_POLICIES = os.environ.get(\"EXPECT_POLICIES\", \"1\") != \"0\"\nSTART_TIMEOUT\
-    \ = int(os.environ.get(\"START_TIMEOUT\", \"420\"))\n# Sessions this script made\
-    \ are named so, and it deletes any it finds.\nNAME_PREFIX = \"release-canary-\"\
-    \n# Where a policy taken over by a token says it is managed: this page.\nMANAGED_URL\
-    \ = \"https://github.com/r33drichards/computer-use/blob/main/docs/releases.md\"\
+    \ snapshots; wake starts it fresh.\n  EXPECT_POLICIES      1 (default): the session's\
+    \ policy is changed and must\n                       bind. 0: a deployment with\
+    \ session policies off.\n  EXPECT_MCP_CAPABILITIES  1 (default): verify skills,\
+    \ PNG imports, fetch and editable fetch\n                       permissions. 0:\
+    \ baseline/rollback checks of old releases.\n  FETCH_URL            URL to fetch\
+    \ (example.com, or localhost in kind).\n  SESSION_HOOK         a command run once\
+    \ the session is running, with\n                       SESSION_ID in its environment\
+    \ (the release workflow\n                       checks the pod's images with it).\
+    \ Its failure fails\n                       the run; its output is shown.\n  START_TIMEOUT\
+    \        seconds to wait for a session to run (420)\n  SUMMARY              a\
+    \ file the results are appended to, as Markdown\n\"\"\"\nimport base64\nimport\
+    \ hashlib\nimport json\nimport os\nimport re\nimport secrets\nimport ssl\nimport\
+    \ subprocess\nimport sys\nimport time\nimport urllib.error\nimport urllib.parse\n\
+    import urllib.request\n\nDOMAIN = os.environ.get(\"DOMAIN\", \"computeruse.site\"\
+    )\nAPI = os.environ.get(\"API_URL\", \"https://api.\" + DOMAIN).rstrip(\"/\")\n\
+    APP = os.environ.get(\"APP_URL\", \"https://app.\" + DOMAIN).rstrip(\"/\")\nSITE\
+    \ = os.environ.get(\"SITE_URL\", \"https://\" + DOMAIN).rstrip(\"/\")\nAPI_HOST\
+    \ = os.environ.get(\"API_HOST\", \"\")\nTOKEN = os.environ.get(\"CANARY_API_TOKEN\"\
+    , \"\")\nEXPECT_STATE_SAVED = os.environ.get(\"EXPECT_STATE_SAVED\", \"1\") !=\
+    \ \"0\"\nEXPECT_MCP_CAPABILITIES = os.environ.get(\"EXPECT_MCP_CAPABILITIES\"\
+    , \"1\") != \"0\"\n# The public site is served by this cluster. Its load-balancer\
+    \ hairpin can\n# hit the session's private-network deny rule, so test external\
+    \ HTTPS here.\nFETCH_URL = os.environ.get(\"FETCH_URL\", \"https://example.com/\"\
+    \ if SITE else \"http://127.0.0.1:8081/healthz\")\nEXPECT_POLICIES = os.environ.get(\"\
+    EXPECT_POLICIES\", \"1\") != \"0\"\nSTART_TIMEOUT = int(os.environ.get(\"START_TIMEOUT\"\
+    , \"420\"))\n# Sessions this script made are named so, and it deletes any it finds.\n\
+    NAME_PREFIX = \"release-canary-\"\n# Where a policy taken over by a token says\
+    \ it is managed: this page.\nMANAGED_URL = \"https://github.com/r33drichards/computer-use/blob/main/docs/releases.md\"\
     \n\nCONTEXT = ssl.create_default_context(cafile=os.environ.get(\"CA_FILE\") or\
     \ None)\n\n\nclass NoRedirect(urllib.request.HTTPRedirectHandler):\n    def redirect_request(self,\
     \ *args, **kwargs):\n        return None\n\n\nOPENER = urllib.request.build_opener(urllib.request.HTTPSHandler(context=CONTEXT),\
@@ -3059,36 +3054,8 @@ data:
     \            expect(len(data) == entry[\"size\"] and \"sha256:\" + hashlib.sha256(data).hexdigest()\
     \ == entry[\"digest\"],\n                          \"resource hash or size mismatch\"\
     )\n    return f\"{len(skills)} page skills; manifests and resource hashes verified\"\
-    \n\n\ndef verify_sessionless(mcp):\n    \"\"\"One self-contained POST: no initialize,\
-    \ no Mcp-Session-Id. The\n    per-request-negotiated flow (protocol 2026-07-28)\
-    \ that session-less\n    clients such as OpenAI's connectors speak, with the SEP-2243\
-    \ standard\n    headers. What their \"action discovery\" needs from the server.\"\
-    \"\"\n    marker = \"sl\" + secrets.token_hex(6)\n    message = {\"jsonrpc\":\
-    \ \"2.0\", \"id\": 1, \"method\": \"tools/call\",\n               \"params\":\
-    \ {\"name\": \"run_js\",\n                          \"arguments\": {\"code\":\
-    \ \"console.log(%s)\" % json.dumps(marker)},\n                          \"_meta\"\
-    : {\"io.modelcontextprotocol/protocolVersion\": \"2026-07-28\",\n            \
-    \                        \"io.modelcontextprotocol/clientInfo\": {\"name\": \"\
-    release-canary-sessionless\", \"version\": \"0\"},\n                         \
-    \           \"io.modelcontextprotocol/clientCapabilities\": {}}}}\n    headers\
-    \ = {\"Authorization\": \"Bearer \" + ACCESS[\"token\"],\n               \"Accept\"\
-    : \"application/json, text/event-stream\",\n               \"MCP-Protocol-Version\"\
-    : \"2026-07-28\",\n               \"Mcp-Method\": \"tools/call\",\n          \
-    \     \"Mcp-Name\": \"run_js\"}\n    status, response_headers, raw = http(\"POST\"\
-    , mcp.url, message, headers, 150)\n    expect(status == 200, \"session-less tools/call\
-    \ answered %d: %s\" % (status, raw[:200].decode(errors=\"replace\")))\n    text\
-    \ = raw.decode()\n    if response_headers.get(\"Content-Type\", \"\").startswith(\"\
-    text/event-stream\"):\n        replies = [json.loads(line[5:]) for line in text.splitlines()\
-    \ if line.startswith(\"data:\") and line[5:].strip()]\n        replies = [r for\
-    \ r in replies if r.get(\"id\") == 1]\n        expect(replies, \"session-less:\
-    \ the event stream had no answer\")\n        reply = replies[-1]\n    else:\n\
-    \        reply = json.loads(text)\n    expect(\"error\" not in reply, \"session-less:\
-    \ %s\" % reply.get(\"error\"))\n    out = \"\\n\".join(c.get(\"text\", \"\") for\
-    \ c in reply[\"result\"].get(\"content\", []))\n    expect(marker in out, \"session-less\
-    \ run_js output lacks the marker: %s\" % out[:200])\n    return \"one POST, no\
-    \ session: negotiated 2026-07-28 and ran run_js\"\n\n\ndef verify_png(mcp):\n\
-    \    result = mcp.rpc(\"tools/call\", {\"name\": \"run_js\", \"arguments\": {\n\
-    \        \"code\": \"\"\"\nconst { PNG } = await import('npm:pngjs@7.0.0');\n\
+    \n\n\ndef verify_png(mcp):\n    result = mcp.rpc(\"tools/call\", {\"name\": \"\
+    run_js\", \"arguments\": {\n        \"code\": \"\"\"\nconst { PNG } = await import('npm:pngjs@7.0.0');\n\
     const pixels = [255, 0, 0, 255, 0, 128, 255, 64];\nconst image = new PNG({width:\
     \ 2, height: 1});\nimage.data.set(pixels);\nconst encoded = PNG.sync.write(image);\n\
     const decoded = PNG.sync.read(encoded);\nif (encoded[0] !== 137 || encoded[1]\
@@ -3197,11 +3164,9 @@ data:
     \ out, \"exec: %s\" % out[:300])\n        check(\"exec: a program runs, given\
     \ as {bin, args}\", execute)\n\n        if EXPECT_MCP_CAPABILITIES:\n        \
     \    check(\"MCP skills: catalog, manifests and resource hashes\", lambda: verify_skills(mcp))\n\
-    \            check(\"MCP session-less: one negotiated POST, no session\", lambda:\
-    \ verify_sessionless(mcp))\n            check(\"PNG import: encode and decode\
-    \ preserve pixels\", lambda: verify_png(mcp))\n            check(\"fetch: HTTP\
-    \ response and body through run_js\", lambda: expect_fetch(mcp))\n\n        #\
-    \ --- the policy binds -----------------------------------------------------\n\
+    \            check(\"PNG import: encode and decode preserve pixels\", lambda:\
+    \ verify_png(mcp))\n            check(\"fetch: HTTP response and body through\
+    \ run_js\", lambda: expect_fetch(mcp))\n\n        # --- the policy binds -----------------------------------------------------\n\
     \        if not EXPECT_POLICIES:\n            skip(\"the policy browser-only denies\
     \ exec\", \"EXPECT_POLICIES=0\")\n        else:\n            def restrict():\n\
     \                status, presets = api(\"GET\", \"/v1/policy-presets\")\n    \
@@ -3254,81 +3219,35 @@ data:
     \ exec runs again\", restore)\n            else:\n                skip(\"the policy\
     \ is put back, and exec runs again\", \"it was not changed\")\n\n        # ---\
     \ sleep and wake ---------------------------------------------------------\n \
-    \       # A data: page cannot use localStorage. Serve this throwaway session's\n\
-    \        # test page on loopback instead; no external site or user profile is\n\
-    \        # involved. Rotating bounded keys creates LevelDB write/compaction work\n\
-    \        # while checkpointing. With postCheckpoint=resume, Chromium can change\n\
-    \        # or unlink its database files after the memory snapshot, breaking the\n\
-    \        # next restore. The in-memory marker also rules out a silent cold start.\n\
-    \        disk_regression = EXPECT_STATE_SAVED and EXPECT_SNAPSHOT_DISK_CONSISTENCY\n\
-    \        def prepare_disk_churn():\n            server = \"\"\"\nfrom http.server\
-    \ import BaseHTTPRequestHandler, HTTPServer\nclass Page(BaseHTTPRequestHandler):\n\
-    \    def do_GET(self):\n        body = b'<title>snapshot disk canary</title>'\n\
-    \        self.send_response(200)\n        self.send_header('Content-Type', 'text/html')\n\
-    \        self.send_header('Content-Length', str(len(body)))\n        self.end_headers()\n\
-    \        self.wfile.write(body)\n    def log_message(self, *args):\n        pass\n\
-    HTTPServer(('127.0.0.1', 18765), Page).serve_forever()\n\"\"\"\n            out\
-    \ = mcp.run_js(CALL % ('\"exec\"', '\"exec\"', json.dumps({\n                \"\
-    bin\": \"python3\", \"args\": [\"-u\", \"-c\", server], \"timeout\": 3600,\n \
-    \           })))\n            expect(\"CANARY-RETURNED\" in out and 'started'\
-    \ in out,\n                   \"could not start the isolated snapshot page: \"\
-    \ + out[:200])\n            operations = [\n                {\"type\": \"navigate\"\
-    , \"params\": {\"url\": \"http://127.0.0.1:18765/\"}},\n                {\"type\"\
-    : \"evaluate\", \"params\": {\"script\": \"\"\"\n(() => {\n  window.__canary =\
-    \ %s;\n  localStorage.setItem('canary-marker', window.__canary);\n  window.__canaryWrites\
-    \ = 0;\n  const churn = () => {\n    // At most 512 KiB live, but sustained overwrite\
-    \ traffic rotates the log.\n    for (let i = 0; i < 8; i++) {\n      const n =\
-    \ ++window.__canaryWrites;\n      localStorage.setItem('canary-churn-' + (n %%\
-    \ 8), n + ':' + 'x'.repeat(32768));\n    }\n  };\n  churn();\n  window.__canaryTimer\
-    \ = setInterval(churn, 100);\n  return 'CANARY-DISK-CHURN-READY';\n})()\n\"\"\"\
-    \ % json.dumps(state[\"marker\"])}},\n            ]\n            # The exec job\
-    \ starts asynchronously; give its listener time to bind.\n            until(\"\
-    isolated snapshot page ready\",\n                  lambda: \"CANARY-DISK-CHURN-READY\"\
-    \ in browser(mcp, operations), timeout=30)\n            # Allow the first database\
-    \ writes to reach Chromium's storage process.\n            time.sleep(3)\n   \
-    \         return \"bounded localStorage churn and an in-memory marker on an isolated\
-    \ loopback page\"\n\n        if disk_regression:\n            if not check(\"\
-    snapshot: Chromium storage is changing before sleep\", prepare_disk_churn):\n\
-    \                return\n\n        def sleep():\n            status, s = api(\"\
-    POST\", \"/v1/sessions/%s/sleep\" % sid, timeout=180)\n            expect(status\
-    \ == 200 and isinstance(s, dict), \"POST sleep answered %d: %s\" % (status, s))\n\
-    \            wait_state(sid, \"asleep\", 180)\n            status, s = api(\"\
-    GET\", \"/v1/sessions/\" + sid)\n            saved = bool(s.get(\"stateSaved\"\
-    ))\n            if EXPECT_STATE_SAVED:\n                expect(saved, \"asleep,\
-    \ but stateSaved is not true: it would wake fresh\")\n            return \"asleep,\
-    \ stateSaved %s\" % str(saved).lower()\n        asleep = check(\"sleep: the session\
-    \ is put to sleep\" + (\", its state saved\" if EXPECT_STATE_SAVED else \"\"),\
-    \ sleep)\n\n        def wake():\n            status, s = api(\"POST\", \"/v1/sessions/%s/wake\"\
-    \ % sid)\n            expect(status == 200, \"POST wake answered %d: %s\" % (status,\
-    \ s))\n            took = wait_state(sid, \"running\", START_TIMEOUT)\n      \
-    \      mcp.connect()\n            out = mcp.run_js(\"console.log('awake', 1 +\
-    \ 1)\")\n            expect(\"awake 2\" in out, \"run_js after waking: %s\" %\
-    \ out[:200])\n            if EXPECT_STATE_SAVED:\n                # The page's\
-    \ own memory: there only if the pod came back from\n                # its snapshot.\
-    \ A fresh start reloads the tab, and it is gone.\n                out = browser(mcp,\
-    \ [{\"type\": \"evaluate\", \"params\": {\"script\": \"String(window.__canary)\"\
-    }}])\n                expect(state[\"marker\"] in out, \"the marker left in the\
-    \ page's memory did not survive: %s\" % out[:200])\n                if disk_regression:\n\
-    \                    out = browser(mcp, [{\"type\": \"evaluate\", \"params\":\
-    \ {\"script\": \"\"\"\n(() => {\n  if (localStorage.getItem('canary-marker') !==\
-    \ window.__canary || !(window.__canaryWrites > 8))\n    throw new Error('snapshot\
-    \ lost localStorage or its active writer');\n  return 'CANARY-DISK-RESTORED';\n\
-    })()\n\"\"\"}}])\n                    expect('CANARY-DISK-RESTORED' in out, \"\
-    Chromium storage after wake: \" + out[:250])\n                return \"running\
-    \ after %.0fs, with the page's memory as it was\" % took\n            return \"\
-    running after %.0fs\" % took\n        if asleep:\n            woke = check(\"\
-    wake: it runs again\" + (\" as it was\" if EXPECT_STATE_SAVED else \"\"), wake)\n\
-    \            if woke and disk_regression:\n                # Exercise checkpointing\
-    \ a restored process, not just a fresh one.\n                time.sleep(3)\n \
-    \               if check(\"snapshot: second sleep with Chromium storage active\"\
-    , sleep):\n                    check(\"snapshot: second wake preserves Chromium\
-    \ storage and memory\", wake)\n        else:\n            skip(\"wake\", \"it\
-    \ did not go to sleep\")\n\n    try:\n        session_checks()\n    finally:\n\
-    \        def delete():\n            status, _ = api(\"DELETE\", \"/v1/sessions/\"\
-    \ + sid)\n            expect(status == 204, \"DELETE answered %d\" % status)\n\
-    \            started = time.time()\n            while time.time() - started <\
-    \ 60:\n                status, _ = api(\"GET\", \"/v1/sessions/\" + sid)\n   \
-    \             if status == 404:\n                    return\n                time.sleep(2)\n\
+    \       def sleep():\n            status, s = api(\"POST\", \"/v1/sessions/%s/sleep\"\
+    \ % sid, timeout=180)\n            expect(status == 200 and isinstance(s, dict),\
+    \ \"POST sleep answered %d: %s\" % (status, s))\n            wait_state(sid, \"\
+    asleep\", 180)\n            status, s = api(\"GET\", \"/v1/sessions/\" + sid)\n\
+    \            saved = bool(s.get(\"stateSaved\"))\n            if EXPECT_STATE_SAVED:\n\
+    \                expect(saved, \"asleep, but stateSaved is not true: it would\
+    \ wake fresh\")\n            return \"asleep, stateSaved %s\" % str(saved).lower()\n\
+    \        asleep = check(\"sleep: the session is put to sleep\" + (\", its state\
+    \ saved\" if EXPECT_STATE_SAVED else \"\"), sleep)\n\n        def wake():\n  \
+    \          status, s = api(\"POST\", \"/v1/sessions/%s/wake\" % sid)\n       \
+    \     expect(status == 200, \"POST wake answered %d: %s\" % (status, s))\n   \
+    \         took = wait_state(sid, \"running\", START_TIMEOUT)\n            mcp.connect()\n\
+    \            out = mcp.run_js(\"console.log('awake', 1 + 1)\")\n            expect(\"\
+    awake 2\" in out, \"run_js after waking: %s\" % out[:200])\n            if EXPECT_STATE_SAVED:\n\
+    \                # The page's own memory: there only if the pod came back from\n\
+    \                # its snapshot. A fresh start reloads the tab, and it is gone.\n\
+    \                out = browser(mcp, [{\"type\": \"evaluate\", \"params\": {\"\
+    script\": \"String(window.__canary)\"}}])\n                expect(state[\"marker\"\
+    ] in out, \"the marker left in the page's memory did not survive: %s\" % out[:200])\n\
+    \                return \"running after %.0fs, with the page's memory as it was\"\
+    \ % took\n            return \"running after %.0fs\" % took\n        if asleep:\n\
+    \            check(\"wake: it runs again\" + (\" as it was\" if EXPECT_STATE_SAVED\
+    \ else \"\"), wake)\n        else:\n            skip(\"wake\", \"it did not go\
+    \ to sleep\")\n\n    try:\n        session_checks()\n    finally:\n        def\
+    \ delete():\n            status, _ = api(\"DELETE\", \"/v1/sessions/\" + sid)\n\
+    \            expect(status == 204, \"DELETE answered %d\" % status)\n        \
+    \    started = time.time()\n            while time.time() - started < 60:\n  \
+    \              status, _ = api(\"GET\", \"/v1/sessions/\" + sid)\n           \
+    \     if status == 404:\n                    return\n                time.sleep(2)\n\
     \            raise Failed(\"the session is still there a minute after its deletion\
     \ (%d)\" % status)\n        check(\"the session is deleted\", delete)\n    return\
     \ finish()\n\n\ndef finish():\n    failed = [r for r in results if r[0] is False]\n\
