@@ -13,7 +13,7 @@ import { BlockedWake, DrainingNote, SessionState, useWakeBlock } from "../billin
 import { LifecycleActions, stateSentence } from "../components/SessionLifecycle"
 import { SessionDisk } from "../components/SessionDisk"
 import { SessionSize } from "../components/SessionSize"
-import { VncPane } from "../components/VncPane"
+import { DesktopViewer } from "../components/DesktopViewer"
 import type { PolicySession as Session } from "../policyApi"
 import { isManagedAsCode, policySummaryLine } from "../policyApi"
 import { Shell, api } from "../shell"
@@ -116,7 +116,7 @@ export function SessionDetail({ id }: { id: string }) {
     session.state === "running" ? (
       <>
         <DrainingNote session={session} />
-      <VncPane sessionId={session.id} controls={viewerControls} />
+      <DesktopViewer sessionId={session.id} controls={viewerControls} />
       </>
     ) : (
       <div className="wf-placeholder">
