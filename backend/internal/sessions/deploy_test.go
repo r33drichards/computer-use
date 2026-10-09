@@ -334,3 +334,18 @@ func TestSizesAreTheBlueprintButForResources(t *testing.T) {
 		t.Errorf("the catalogue prices %d sizes, sizes.yaml has %d besides small", len(catalogue.Sizes), len(names)-1)
 	}
 }
+
+func TestSnapshotBlueprintNeverRestartsCheckpointedContainers(t *testing.T) {
+	source, err := os.ReadFile("../../../deploy/gke/blueprint.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var obj map[string]any
+	if err := yaml.Unmarshal(source, &obj); err != nil {
+		t.Fatal(err)
+	}
+	policy, _, _ := unstructured.NestedString(obj, "podTemplate", "spec", "restartPolicy")
+	if policy != "Never" {
+		t.Fatalf("snapshot pods restartPolicy=%q; restarting after checkpoint mutates the PVC", policy)
+	}
+}

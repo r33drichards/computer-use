@@ -240,3 +240,20 @@ func TestWakeIsJudgedAndSleepIsNot(t *testing.T) {
 		t.Fatalf("wake with a card: %d %s", rec.Code, rec.Body)
 	}
 }
+
+func TestLegacySleepReportsSafeMigrationWithoutStopping(t *testing.T) {
+	f, _ := newSnapshotFixture(t)
+	id := f.running()
+	obj := f.sandbox(id)
+	unstructured.RemoveNestedField(obj.Object, "spec", "podTemplate", "spec", "restartPolicy")
+	if _, err := f.client.Resource(sessions.SandboxGVR).Namespace(sessionstest.Namespace).Update(t.Context(), obj, metav1.UpdateOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	rec := f.do(alice, "POST", "/api/sessions/"+id+"/sleep", "")
+	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "save your work") {
+		t.Fatalf("unsafe sleep: %d %s", rec.Code, rec.Body)
+	}
+	if got := f.sandbox(id); operatingMode(got) != "Running" {
+		t.Fatal("unsafe sleep stopped live work")
+	}
+}

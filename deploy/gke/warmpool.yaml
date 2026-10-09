@@ -46,6 +46,8 @@ spec:
       labels:
         app: browserjs-session
     spec:
+      # Checkpointed pods must not restart and change the saved PVC state.
+      restartPolicy: Never
       # The managed add-on's sandbox-core-policy requires gVisor; the label and
       # taint are what GKE puts on the sessions node pool.
       # Prefer packing beside existing sessions, but allow a new node.

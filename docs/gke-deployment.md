@@ -433,6 +433,15 @@ the policy.
   with `vfs.CompleteRestore()` and a missing file. Graceful shutdown after a
   checkpoint is also unsafe for this reason. See [GKE
   guidance](https://docs.cloud.google.com/kubernetes-engine/docs/troubleshooting/pod-snapshots).
+  Session pods also require `restartPolicy: Never`: with `Always`, the kubelet
+  restarted the stopped pod before the backend suspended its Sandbox, reopening
+  the same write window. The release canary checks two consecutive sleep/wake
+  cycles with Chromium storage writes active.
+- **Older desktops need an explicit transition.** Restart policy is immutable
+  on an existing pod. Unsafe legacy desktops refuse state-preserving sleep
+  instead of claiming to save their memory. Save work, then explicitly stop
+  (keeps the disk) and start once to adopt the safe template. Stopping discards
+  process memory; the migration does not silently perform it for the user.
 - **A pod replaced while the session is awake** (node upgrade, eviction) is
   made again by the controller and would be restored from the snapshot of
   the last sleep, over a disk that has moved on. The snapshot is not deleted

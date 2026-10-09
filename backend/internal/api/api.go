@@ -216,6 +216,8 @@ func (a *API) storeError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, sessions.ErrInvalidName), errors.Is(err, sessions.ErrInvalidAction), errors.Is(err, sessions.ErrCanary), errors.Is(err, sessions.ErrInvalidSize):
 		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, sessions.ErrSnapshotRestartPolicy):
+		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, sessions.ErrNoCapacity):
 		// Nothing was made or started. Room comes back as sessions sleep.
 		w.Header().Set("Retry-After", "120")

@@ -29,6 +29,57 @@ var (
 	nodeGVR            = schema.GroupVersionResource{Version: "v1", Resource: "nodes"}
 )
 
+var ErrSnapshotRestartPolicy = errors.New("this desktop must be stopped and started once before state-preserving sleep is safe; save your work, then stop (keeps disk) and start it")
+
+func checkpointSafe(obj *unstructured.Unstructured) bool {
+	policy, _, _ := unstructured.NestedString(obj.Object, "spec", "podTemplate", "spec", "restartPolicy")
+	return policy == "Never"
+}
+
+// The template alone is insufficient: stop/start can race controller deletion,
+// leaving the previous immutable pod spec alive beneath an updated template.
+func (n *snapshotter) ownedPod(ctx context.Context, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	pod, err := n.pods.Get(ctx, obj.GetName(), metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, owner := range pod.GetOwnerReferences() {
+		if owner.Controller != nil && *owner.Controller && owner.UID == obj.GetUID() {
+			return pod, nil
+		}
+	}
+	return nil, errors.New("session pod is not owned by its Sandbox")
+}
+func neverRestarts(pod *unstructured.Unstructured) bool {
+	policy, _, _ := unstructured.NestedString(pod.Object, "spec", "restartPolicy")
+	return policy == "Never"
+}
+
+// A partial container crash does not finish a multi-container pod. Only an
+// abnormal exit alongside a still-running container qualifies: a completed
+// checkpoint must not be mistaken for an application crash while uploading.
+func partialContainerCrash(pod *unstructured.Unstructured) bool {
+	phase, _, _ := unstructured.NestedString(pod.Object, "status", "phase")
+	if phase != "Running" {
+		return false
+	}
+	statuses, _, _ := unstructured.NestedSlice(pod.Object, "status", "containerStatuses")
+	failed, running := false, false
+	for _, raw := range statuses {
+		st, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		if code, found, _ := unstructured.NestedInt64(st, "state", "terminated", "exitCode"); found && code != 0 {
+			failed = true
+		}
+		if _, found, _ := unstructured.NestedMap(st, "state", "running"); found {
+			running = true
+		}
+	}
+	return failed && running
+}
+
 const (
 	AnnSnapshot     = "browserjs.dev/snapshot"      // the PodSnapshot a sleeping session wakes from
 	AnnSnapshotPool = "browserjs.dev/snapshot-pool" // the node pool it was taken on
@@ -56,7 +107,7 @@ type SnapshotOptions struct {
 
 type snapshotter struct {
 	triggers, snapshots dynamic.ResourceInterface
-	nodes               dynamic.ResourceInterface
+	nodes, pods         dynamic.ResourceInterface
 	timeout, poll       time.Duration
 }
 
@@ -75,6 +126,7 @@ func (s *Store) EnableSnapshots(client dynamic.Interface, namespace string, o Sn
 		triggers:  client.Resource(SnapshotTriggerGVR).Namespace(namespace),
 		snapshots: client.Resource(PodSnapshotGVR).Namespace(namespace),
 		nodes:     client.Resource(nodeGVR),
+		pods:      client.Resource(schema.GroupVersionResource{Version: "v1", Resource: "pods"}).Namespace(namespace),
 		timeout:   o.Timeout,
 		poll:      o.Poll,
 	}
@@ -291,7 +343,13 @@ func (s *Store) keepOrDropSnapshot(ctx context.Context, obj *unstructured.Unstru
 		return nil
 	}
 	if name := obj.GetAnnotations()[AnnSnapshot]; name != "" && s.snap.ready(ctx, name) {
+		if !checkpointSafe(obj) {
+			return ErrSnapshotRestartPolicy
+		}
 		return nil
+	}
+	if err := unstructured.SetNestedField(obj.Object, "Never", "spec", "podTemplate", "spec", "restartPolicy"); err != nil {
+		return err
 	}
 	return setSnapshot(obj, nil)
 }
@@ -352,8 +410,21 @@ func (s *Store) sleep(ctx context.Context, id, by string, stillWanted func(Sessi
 			// Still starting: nothing to snapshot.
 		} else if FromSandbox(obj).PendingSize != "" {
 			// It starts next at another size, which cannot restore this pod.
-		} else if snap, err = s.snap.take(ctx, obj, &requested); err != nil {
-			slog.Warn("snapshot failed; the session will wake cold", "session", id, "err", err)
+		} else if !checkpointSafe(obj) {
+			// The policy is immutable on a live pod. Do not silently discard
+			// its memory or checkpoint a pod kubelet can restart onto the PVC.
+			return ErrSnapshotRestartPolicy
+		} else {
+			pod, err := s.snap.ownedPod(ctx, obj)
+			if err != nil {
+				return fmt.Errorf("verify checkpoint pod: %w", err)
+			}
+			if !neverRestarts(pod) {
+				return ErrSnapshotRestartPolicy
+			}
+			if snap, err = s.snap.take(ctx, obj, &requested); err != nil {
+				slog.Warn("snapshot failed; the session will wake cold", "session", id, "err", err)
+			}
 		}
 	}
 	// Once requested, even timeout/cancellation may have completed the pod.
@@ -443,7 +514,7 @@ func (s *Store) waitSuspended(ctx context.Context, id string) error {
 // ColdStart gives up on restoring a waking session from its snapshot: the
 // snapshot is deleted, the pin to its node pool removed, and the pod made
 // again, to start cold on any pool. It reports false, and does nothing, for
-// a session that has no snapshot to give up on.
+// a session with neither a snapshot nor a terminal failed Never-policy pod.
 func (s *Store) ColdStart(ctx context.Context, id string) (bool, error) {
 	if s.snap == nil {
 		return false, nil
@@ -455,11 +526,25 @@ func (s *Store) ColdStart(ctx context.Context, id string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	if obj.GetDeletionTimestamp() != nil || (operatingMode(obj) == "Suspended" && !wakes(obj.GetAnnotations()[AnnStoppedBy])) {
+		return false, ErrStateChanged
+	}
+	// Never prevents corrupting the disk after a checkpoint. For an actual
+	// terminal pod failure, the backend replaces the pod instead of kubelet
+	// restarting containers; healthy or merely slow pods are not restarted.
+	failedPod := false
+	if checkpointSafe(obj) {
+		pod, err := s.snap.ownedPod(ctx, obj)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return false, fmt.Errorf("verify failed pod: %w", err)
+		}
+		failedPod = err == nil && neverRestarts(pod) && (FromSandbox(obj).State == Failed || partialContainerCrash(pod))
+	}
 	deleted, err := s.snap.prune(ctx, id, "")
 	if err != nil {
 		return false, err
 	}
-	if deleted == 0 && obj.GetAnnotations()[AnnSnapshot] == "" && obj.GetAnnotations()[AnnSnapshotPool] == "" {
+	if !failedPod && deleted == 0 && obj.GetAnnotations()[AnnSnapshot] == "" && obj.GetAnnotations()[AnnSnapshotPool] == "" {
 		return false, nil
 	}
 	slog.Warn("restore from snapshot abandoned; starting cold", "session", id)
