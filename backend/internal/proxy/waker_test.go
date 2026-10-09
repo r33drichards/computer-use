@@ -499,3 +499,62 @@ func TestEnsureAwakeWakesASessionItsUserPutToSleep(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// A backend can die after stop-policy checkpointing but before annotating and
+// suspending the Sandbox. The next connection must recover the orphan snapshot.
+func TestEnsureAwakeRecoversCheckpointInterruptedBeforeSleepWasRecorded(t *testing.T) {
+	for _, reason := range []string{"PodSucceeded", "PodFailed"} {
+		t.Run(reason, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			store, client, _ := sessionstest.NewWithSnapshots(t, sessions.SnapshotOptions{Timeout: time.Second})
+			s, err := store.Create(ctx, "interrupted", "user-1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			sessionstest.SetStatus(t, client, s.ID, map[string]any{"nodeName": sessionstest.Node, "conditions": []any{map[string]any{"type": "Finished", "status": "True", "reason": reason}}})
+			if err := client.(*dynfake.FakeDynamicClient).Tracker().Add(sessionstest.Snapshot("orphan", s.ID, "True")); err != nil {
+				t.Fatal(err)
+			}
+			controller := make(chan error, 1)
+			go func() {
+				suspended := false
+				for {
+					obj, err := client.Resource(sessions.SandboxGVR).Namespace(sessionstest.Namespace).Get(ctx, s.ID, metav1.GetOptions{})
+					if err != nil {
+						controller <- err
+						return
+					}
+					mode, _, _ := unstructured.NestedString(obj.Object, "spec", "operatingMode")
+					if mode == "Suspended" && !suspended {
+						if err := sessionstest.TrySetStatus(client, s.ID, sessionstest.Suspended()); err != nil {
+							controller <- err
+							return
+						}
+						suspended = true
+					} else if mode == "Running" && suspended {
+						controller <- sessionstest.TrySetStatus(client, s.ID, sessionstest.Ready("10.0.0.9"))
+						return
+					}
+					select {
+					case <-ctx.Done():
+						controller <- ctx.Err()
+						return
+					case <-time.After(time.Millisecond):
+					}
+				}
+			}()
+			w := &Waker{Store: store, Timeout: time.Second, Poll: time.Millisecond, RestoreTimeout: 10 * time.Millisecond}
+			got, err := w.EnsureAwake(ctx, s.ID)
+			if err != nil || got.PodIP != "10.0.0.9" {
+				t.Fatalf("recovery = %+v, %v", got, err)
+			}
+			if err := <-controller; err != nil {
+				t.Fatal(err)
+			}
+			if left := sessionstest.Snapshots(t, client); len(left) != 0 {
+				t.Fatalf("orphan snapshot left: %v", left)
+			}
+		})
+	}
+}

@@ -107,9 +107,10 @@ func (n *snapshotter) until(ctx context.Context, check func() (bool, error)) err
 }
 
 // take snapshots the session's running pod and waits until the snapshot can
-// be restored from. The pod keeps running. On any failure, including the
-// timeout, nothing is left behind.
-func (n *snapshotter) take(ctx context.Context, sandbox *unstructured.Unstructured) (*snapshot, error) {
+// be restored from. The stop policy completes the pod at checkpoint time.
+// requested records even an ambiguous trigger request, so cancellation must
+// finish a suspend rather than leave a completed pod nominally running.
+func (n *snapshotter) take(ctx context.Context, sandbox *unstructured.Unstructured, requested *bool) (*snapshot, error) {
 	ctx, cancel := context.WithTimeout(ctx, n.timeout)
 	defer cancel()
 	id := sandbox.GetName()
@@ -143,9 +144,6 @@ func (n *snapshotter) take(ctx context.Context, sandbox *unstructured.Unstructur
 		// The pod has its Sandbox's name.
 		"spec": map[string]any{"targetPod": id},
 	}}
-	if _, err := n.triggers.Create(ctx, trigger, metav1.CreateOptions{}); err != nil {
-		return nil, fmt.Errorf("trigger: %w", err)
-	}
 	defer func() {
 		ctx, cancel := cleanupContext(ctx)
 		defer cancel()
@@ -153,6 +151,10 @@ func (n *snapshotter) take(ctx context.Context, sandbox *unstructured.Unstructur
 			slog.Warn("snapshot trigger not removed", "trigger", trigger.GetName(), "err", err)
 		}
 	}()
+	*requested = true
+	if _, err := n.triggers.Create(ctx, trigger, metav1.CreateOptions{}); err != nil {
+		return nil, fmt.Errorf("trigger: %w", err)
+	}
 
 	// The trigger is done when the checkpoint is written; the snapshot is
 	// only restored from once it is Ready (uploaded).
@@ -302,8 +304,8 @@ func (s *Store) keepOrDropSnapshot(ctx context.Context, obj *unstructured.Unstru
 //
 // stillWanted, if not nil, is asked of the session as it is read for the
 // write that suspends it, so once the snapshot is done: a session used in
-// the meantime (or whose owner's credit came back) is left running
-// (ErrStateChanged). That write goes through only if nobody wrote since the
+// the meantime (or whose owner's credit came back) is restored after the
+// completed checkpoint instead of being left asleep (ErrStateChanged). That write goes through only if nobody wrote since the
 // read (modify), and a replica that proxies a call says so with a write
 // (Mark): whichever of the two lands second sees the other. Like an idle
 // Suspend, Sleep never takes over a session that is already suspended. The
@@ -331,6 +333,7 @@ func (s *Store) Sleep(ctx context.Context, id, by string, stillWanted func(Sessi
 
 func (s *Store) sleep(ctx context.Context, id, by string, stillWanted func(Session) bool) error {
 	var snap *snapshot
+	requested := false
 	if s.snap != nil {
 		obj, err := s.client.Get(ctx, id, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
@@ -342,24 +345,42 @@ func (s *Store) sleep(ctx context.Context, id, by string, stillWanted func(Sessi
 		if operatingMode(obj) == "Suspended" || obj.GetDeletionTimestamp() != nil {
 			return ErrStateChanged
 		}
+		if stillWanted != nil && !stillWanted(FromSandbox(obj)) {
+			return ErrStateChanged
+		}
 		if by != StoppedByIdle && FromSandbox(obj).State != Running {
 			// Still starting: nothing to snapshot.
 		} else if FromSandbox(obj).PendingSize != "" {
 			// It starts next at another size, which cannot restore this pod.
-		} else if snap, err = s.snap.take(ctx, obj); err != nil {
+		} else if snap, err = s.snap.take(ctx, obj, &requested); err != nil {
 			slog.Warn("snapshot failed; the session will wake cold", "session", id, "err", err)
 		}
 	}
+	// Once requested, even timeout/cancellation may have completed the pod.
+	// Finish the state transition using a bounded independent context. If the
+	// sleep was cancelled by activity, restore through the normal wake path.
+	cancelled := ctx.Err() != nil
+	if requested {
+		var cancel context.CancelFunc
+		ctx, cancel = cleanupContext(ctx)
+		defer cancel()
+	}
+	resume := false
 	resized := false
 	err := s.modify(ctx, id, func(obj *unstructured.Unstructured) (bool, error) {
 		if operatingMode(obj) == "Suspended" || obj.GetDeletionTimestamp() != nil {
 			return false, ErrStateChanged
 		}
-		if stillWanted != nil && !stillWanted(FromSandbox(obj)) {
+		resume = cancelled || (stillWanted != nil && !stillWanted(FromSandbox(obj)))
+		if resume && !requested {
 			return false, ErrStateChanged
 		}
 		stopClock(obj)
-		setAnnotation(obj, AnnStoppedBy, by)
+		reason := by
+		if resume {
+			reason = StoppedByIdle
+		}
+		setAnnotation(obj, AnnStoppedBy, reason)
 		setAnnotation(obj, AnnDraining, "")
 		setAnnotation(obj, AnnDrainingSince, "")
 		if s.snap != nil {
@@ -393,7 +414,30 @@ func (s *Store) sleep(ctx context.Context, id, by string, stillWanted func(Sessi
 		slog.Info("session snapshotted", "session", id, "snapshot", snap.name, "pool", snap.pool)
 	}
 	s.snap.pruneLogged(ctx, id, keep)
+	if resume {
+		if err := s.waitSuspended(ctx, id); err != nil {
+			return fmt.Errorf("checkpoint completed; session suspended for recovery: %w", err)
+		}
+		if err := s.Wake(ctx, id); err != nil {
+			return err
+		}
+		return ErrStateChanged
+	}
 	return nil
+}
+
+// waitSuspended waits for the controller to remove the completed pod before
+// a new pod can restore. It never force deletes a potentially live pod.
+func (s *Store) waitSuspended(ctx context.Context, id string) error {
+	return s.snap.until(ctx, func() (bool, error) {
+		obj, err := s.client.Get(ctx, id, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		c := conditions(obj)["Suspended"]
+		return operatingMode(obj) != "Suspended" ||
+			(c.status == "True" && c.observedGeneration >= obj.GetGeneration()), nil
+	})
 }
 
 // ColdStart gives up on restoring a waking session from its snapshot: the

@@ -1,13 +1,13 @@
 package idle_test
 
 import (
-	"strings"
 	"testing"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
+	dynfake "k8s.io/client-go/dynamic/fake"
 
 	"github.com/r33drichards/computer-use/backend/internal/idle"
 	"github.com/r33drichards/computer-use/backend/internal/sessions"
@@ -238,8 +238,7 @@ func TestSweepGivesAResumedSessionAFullIdlePeriod(t *testing.T) {
 }
 
 // A snapshot takes a while. A session that is used while its snapshot is
-// taken stays up, and the snapshot is thrown away: by whichever replica it
-// is used through.
+// taken is restored from its checkpoint instead of being left asleep.
 func TestSweepLeavesASessionUsedDuringItsSnapshot(t *testing.T) {
 	store, client, _ := sessionstest.NewWithSnapshots(t, sessions.SnapshotOptions{Timeout: 2 * time.Second})
 	c := &cluster{t: t, store: store, client: client, clock: startingNow()}
@@ -250,7 +249,34 @@ func TestSweepLeavesASessionUsedDuringItsSnapshot(t *testing.T) {
 	// The sweep reads the session, to snapshot it; before the snapshot is
 	// done, another replica has written that it took a call.
 	sessionstest.RaceNextGet(t, client, used, usedNow(c))
+	controller := make(chan error, 1)
+	go func() {
+		for {
+			// Read the tracker directly so this simulated controller does not
+			// consume the race installed on the backend's next GET.
+			raw, err := client.(*dynfake.FakeDynamicClient).Tracker().Get(sessions.SandboxGVR, sessionstest.Namespace, used)
+			if err != nil {
+				controller <- err
+				return
+			}
+			mode, _, _ := unstructured.NestedString(raw.(*unstructured.Unstructured).Object, "spec", "operatingMode")
+			if mode == "Suspended" {
+				controller <- sessionstest.TrySetStatus(client, used, sessionstest.Suspended())
+				return
+			}
+			select {
+			case <-t.Context().Done():
+				controller <- t.Context().Err()
+				return
+			case <-time.After(time.Millisecond):
+			}
+		}
+	}()
 	c.sweep()
+	if err := <-controller; err != nil {
+		t.Fatal(err)
+	}
+	sessionstest.SetStatus(t, client, used, sessionstest.Ready("10.0.0.2"))
 
 	if c.state(used) != sessions.Running {
 		t.Errorf("the session in use was suspended")
@@ -258,8 +284,8 @@ func TestSweepLeavesASessionUsedDuringItsSnapshot(t *testing.T) {
 	if c.state(quiet) != sessions.Stopping {
 		t.Errorf("quiet session state = %s", c.state(quiet))
 	}
-	if got := sessionstest.Snapshots(t, client); len(got) != 1 || !strings.Contains(got[0], quiet) {
-		t.Errorf("snapshots = %v, want one, of the quiet session", got)
+	if got := sessionstest.Snapshots(t, client); len(got) != 2 {
+		t.Errorf("snapshots = %v, want quiet and restored sessions", got)
 	}
 }
 

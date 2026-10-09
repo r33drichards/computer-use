@@ -31,6 +31,10 @@ The environment:
   EXPECT_STATE_SAVED   1 (default): sleep must save the session's state and
                        wake must bring it back as it was (Pod Snapshots).
                        0: a cluster without snapshots; wake starts it fresh.
+  EXPECT_SNAPSHOT_DISK_CONSISTENCY  1 (default): churn Chromium localStorage
+                       across two snapshot sleep/wake cycles. Set to 0 for
+                       baseline/rollback checks of releases predating the fix.
+                       Only used when EXPECT_STATE_SAVED=1.
   EXPECT_POLICIES      1 (default): the session's policy is changed and must
                        bind. 0: a deployment with session policies off.
   EXPECT_MCP_CAPABILITIES  1 (default): verify skills, PNG imports, fetch and editable fetch
@@ -64,6 +68,7 @@ SITE = os.environ.get("SITE_URL", "https://" + DOMAIN).rstrip("/")
 API_HOST = os.environ.get("API_HOST", "")
 TOKEN = os.environ.get("CANARY_API_TOKEN", "")
 EXPECT_STATE_SAVED = os.environ.get("EXPECT_STATE_SAVED", "1") != "0"
+EXPECT_SNAPSHOT_DISK_CONSISTENCY = os.environ.get("EXPECT_SNAPSHOT_DISK_CONSISTENCY", "1") != "0"
 EXPECT_MCP_CAPABILITIES = os.environ.get("EXPECT_MCP_CAPABILITIES", "1") != "0"
 # The public site is served by this cluster. Its load-balancer hairpin can
 # hit the session's private-network deny rule, so test external HTTPS here.
@@ -599,6 +604,64 @@ allow_tool_call if {
                 skip("the policy is put back, and exec runs again", "it was not changed")
 
         # --- sleep and wake ---------------------------------------------------------
+        # A data: page cannot use localStorage. Serve this throwaway session's
+        # test page on loopback instead; no external site or user profile is
+        # involved. Rotating bounded keys creates LevelDB write/compaction work
+        # while checkpointing. With postCheckpoint=resume, Chromium can change
+        # or unlink its database files after the memory snapshot, breaking the
+        # next restore. The in-memory marker also rules out a silent cold start.
+        disk_regression = EXPECT_STATE_SAVED and EXPECT_SNAPSHOT_DISK_CONSISTENCY
+        def prepare_disk_churn():
+            server = """
+from http.server import BaseHTTPRequestHandler, HTTPServer
+class Page(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = b'<title>snapshot disk canary</title>'
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+    def log_message(self, *args):
+        pass
+HTTPServer(('127.0.0.1', 18765), Page).serve_forever()
+"""
+            out = mcp.run_js(CALL % ('"exec"', '"exec"', json.dumps({
+                "bin": "python3", "args": ["-u", "-c", server], "timeout": 3600,
+            })))
+            expect("CANARY-RETURNED" in out and 'started' in out,
+                   "could not start the isolated snapshot page: " + out[:200])
+            operations = [
+                {"type": "navigate", "params": {"url": "http://127.0.0.1:18765/"}},
+                {"type": "evaluate", "params": {"script": """
+(() => {
+  window.__canary = %s;
+  localStorage.setItem('canary-marker', window.__canary);
+  window.__canaryWrites = 0;
+  const churn = () => {
+    // At most 512 KiB live, but sustained overwrite traffic rotates the log.
+    for (let i = 0; i < 8; i++) {
+      const n = ++window.__canaryWrites;
+      localStorage.setItem('canary-churn-' + (n %% 8), n + ':' + 'x'.repeat(32768));
+    }
+  };
+  churn();
+  window.__canaryTimer = setInterval(churn, 100);
+  return 'CANARY-DISK-CHURN-READY';
+})()
+""" % json.dumps(state["marker"])}},
+            ]
+            # The exec job starts asynchronously; give its listener time to bind.
+            until("isolated snapshot page ready",
+                  lambda: "CANARY-DISK-CHURN-READY" in browser(mcp, operations), timeout=30)
+            # Allow the first database writes to reach Chromium's storage process.
+            time.sleep(3)
+            return "bounded localStorage churn and an in-memory marker on an isolated loopback page"
+
+        if disk_regression:
+            if not check("snapshot: Chromium storage is changing before sleep", prepare_disk_churn):
+                return
+
         def sleep():
             status, s = api("POST", "/v1/sessions/%s/sleep" % sid, timeout=180)
             expect(status == 200 and isinstance(s, dict), "POST sleep answered %d: %s" % (status, s))
@@ -622,10 +685,24 @@ allow_tool_call if {
                 # its snapshot. A fresh start reloads the tab, and it is gone.
                 out = browser(mcp, [{"type": "evaluate", "params": {"script": "String(window.__canary)"}}])
                 expect(state["marker"] in out, "the marker left in the page's memory did not survive: %s" % out[:200])
+                if disk_regression:
+                    out = browser(mcp, [{"type": "evaluate", "params": {"script": """
+(() => {
+  if (localStorage.getItem('canary-marker') !== window.__canary || !(window.__canaryWrites > 8))
+    throw new Error('snapshot lost localStorage or its active writer');
+  return 'CANARY-DISK-RESTORED';
+})()
+"""}}])
+                    expect('CANARY-DISK-RESTORED' in out, "Chromium storage after wake: " + out[:250])
                 return "running after %.0fs, with the page's memory as it was" % took
             return "running after %.0fs" % took
         if asleep:
-            check("wake: it runs again" + (" as it was" if EXPECT_STATE_SAVED else ""), wake)
+            woke = check("wake: it runs again" + (" as it was" if EXPECT_STATE_SAVED else ""), wake)
+            if woke and disk_regression:
+                # Exercise checkpointing a restored process, not just a fresh one.
+                time.sleep(3)
+                if check("snapshot: second sleep with Chromium storage active", sleep):
+                    check("snapshot: second wake preserves Chromium storage and memory", wake)
         else:
             skip("wake", "it did not go to sleep")
 
