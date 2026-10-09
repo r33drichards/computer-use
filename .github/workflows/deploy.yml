@@ -1,12 +1,15 @@
 name: deploy
 
-# Applies deploy/gke to the production cluster. Runs automatically when a
-# push to main changes deploy/gke (a merged, reviewed pin or manifest pull
-# request) AND the release canary is on (the variable CANARY; the canary
-# plus rollback is what stands in for the old human gate) — otherwise an
-# automatic run refuses loudly and the workflow is started by hand:
-# Actions, deploy, Run workflow, type "deploy". A manual run works whether
-# or not the canary is on.
+# Applies deploy/gke to the production cluster. Started by hand only; with
+# ARGOCD_ENABLED, releases happen on their own instead — every images build
+# from main runs the "production release" workflow (gitops-release.yml),
+# canary and rollback included, and this workflow refuses.
+#
+# The human gate is the procedure, not a GitHub feature (this repository's
+# plan has no environment protection rules), as for "infra apply":
+#   1. the manifests and the pinned image digests are reviewed in a pull
+#      request and merged to main,
+#   2. start this workflow on main and type "deploy".
 # The procedure and what to check when a step fails: docs/gke-deployment.md.
 #
 # Authentication is keyless: GitHub's OIDC token is exchanged through Workload
@@ -44,11 +47,6 @@ name: deploy
 # checking the backend, and the run says so.
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "deploy/gke/**"
   workflow_dispatch:
     inputs:
       confirm:
@@ -101,11 +99,9 @@ jobs:
     steps:
       - name: Refuse unless confirmed and on main
         env:
-          EVENT: ${{ github.event_name }}
           CONFIRM: ${{ inputs.confirm }}
           REF: ${{ github.ref }}
           ARGOCD_ENABLED: ${{ vars.ARGOCD_ENABLED }}
-          CANARY: ${{ vars.CANARY }}
         run: |
           if [ "$ARGOCD_ENABLED" = true ]; then
             echo "::error::Argo CD owns production; change the production Git branch instead."
@@ -115,14 +111,7 @@ jobs:
             echo "::error::deploy runs only on refs/heads/main, not $REF"
             exit 1
           fi
-          if [ "$EVENT" = push ]; then
-            # The reviewed pull request is the gate; the canary plus
-            # rollback is the net. Without the net, require the hand.
-            if [ "$CANARY" != on ]; then
-              echo "::error::automatic deploy needs the release canary (the variable CANARY is not on); start the deploy workflow by hand instead"
-              exit 1
-            fi
-          elif [ "$CONFIRM" != "deploy" ]; then
+          if [ "$CONFIRM" != "deploy" ]; then
             echo "::error::confirm must be exactly: deploy"
             exit 1
           fi
