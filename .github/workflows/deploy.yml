@@ -1,12 +1,12 @@
 name: deploy
 
-# Applies deploy/gke to the production cluster. Started by hand only.
-#
-# The human gate is the procedure, not a GitHub feature (this repository's
-# plan has no environment protection rules), as for "infra apply":
-#   1. the manifests and the pinned image digests are reviewed in a pull
-#      request and merged to main,
-#   2. start this workflow on main and type "deploy".
+# Applies deploy/gke to the production cluster. Runs automatically when a
+# push to main changes deploy/gke (a merged, reviewed pin or manifest pull
+# request) AND the release canary is on (the variable CANARY; the canary
+# plus rollback is what stands in for the old human gate) — otherwise an
+# automatic run refuses loudly and the workflow is started by hand:
+# Actions, deploy, Run workflow, type "deploy". A manual run works whether
+# or not the canary is on.
 # The procedure and what to check when a step fails: docs/gke-deployment.md.
 #
 # Authentication is keyless: GitHub's OIDC token is exchanged through Workload
@@ -44,6 +44,11 @@ name: deploy
 # checking the backend, and the run says so.
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "deploy/gke/**"
   workflow_dispatch:
     inputs:
       confirm:
@@ -96,9 +101,11 @@ jobs:
     steps:
       - name: Refuse unless confirmed and on main
         env:
+          EVENT: ${{ github.event_name }}
           CONFIRM: ${{ inputs.confirm }}
           REF: ${{ github.ref }}
           ARGOCD_ENABLED: ${{ vars.ARGOCD_ENABLED }}
+          CANARY: ${{ vars.CANARY }}
         run: |
           if [ "$ARGOCD_ENABLED" = true ]; then
             echo "::error::Argo CD owns production; change the production Git branch instead."
@@ -108,7 +115,14 @@ jobs:
             echo "::error::deploy runs only on refs/heads/main, not $REF"
             exit 1
           fi
-          if [ "$CONFIRM" != "deploy" ]; then
+          if [ "$EVENT" = push ]; then
+            # The reviewed pull request is the gate; the canary plus
+            # rollback is the net. Without the net, require the hand.
+            if [ "$CANARY" != on ]; then
+              echo "::error::automatic deploy needs the release canary (the variable CANARY is not on); start the deploy workflow by hand instead"
+              exit 1
+            fi
+          elif [ "$CONFIRM" != "deploy" ]; then
             echo "::error::confirm must be exactly: deploy"
             exit 1
           fi
@@ -147,7 +161,7 @@ jobs:
         env:
           CANARY: ${{ vars.CANARY }}
           CANARY_API_TOKEN: ${{ secrets.CANARY_API_TOKEN }}
-          ISSUER: ${{ inputs.issuer }}
+          ISSUER: ${{ inputs.issuer || 'production' }}
         run: |
           case "$CANARY" in
             on)
@@ -264,7 +278,7 @@ jobs:
 
       - name: Issuers
         env:
-          ISSUER: ${{ inputs.issuer }}
+          ISSUER: ${{ inputs.issuer || 'production' }}
         run: |
           kubectl apply -f deploy/gke/issuers.yaml
           # Ready once the account is registered with Let's Encrypt.
@@ -405,7 +419,7 @@ jobs:
       # not know the option.
       - name: "Release: session images on a canary session"
         id: session_canary
-        if: steps.canary.outputs.on == 'true' && inputs.session_canary == 'auto' && steps.changes.outputs.session_images != '' && steps.changes.outputs.previous != ''
+        if: steps.canary.outputs.on == 'true' && (inputs.session_canary || 'auto') == 'auto' && steps.changes.outputs.session_images != '' && steps.changes.outputs.previous != ''
         env:
           CANARY_API_TOKEN: ${{ secrets.CANARY_API_TOKEN }}
           CANARY_DIGESTS: ${{ steps.changes.outputs.canary_digests }}
@@ -447,7 +461,7 @@ jobs:
       - name: Apply
         id: apply
         env:
-          ISSUER: ${{ inputs.issuer }}
+          ISSUER: ${{ inputs.issuer || 'production' }}
         run: |
           overlay=deploy/gke
           [ "$ISSUER" = production ] || overlay=deploy/gke-staging-issuer
@@ -544,7 +558,7 @@ jobs:
 
       - name: Backend
         env:
-          ISSUER: ${{ inputs.issuer }}
+          ISSUER: ${{ inputs.issuer || 'production' }}
           POMERIUM_RESTARTED: ${{ steps.edge.outputs.restarted }}
           BILLING_CHANGED: ${{ steps.billing.outputs.stripe_changed == 'true' || steps.billing.outputs.metronome_changed == 'true' }}
         run: |
@@ -658,7 +672,7 @@ jobs:
       - name: Status to job summary
         if: ${{ !cancelled() }}
         env:
-          ISSUER: ${{ inputs.issuer }}
+          ISSUER: ${{ inputs.issuer || 'production' }}
         run: |
           {
             echo "## deploy: status afterwards"
