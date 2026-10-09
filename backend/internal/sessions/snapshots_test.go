@@ -1,6 +1,7 @@
 package sessions_test
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"testing"
@@ -146,7 +147,12 @@ func TestSleepDiscardsItsSnapshotIfTheUserStoppedFirst(t *testing.T) {
 	store, client, _ := sessionstest.NewWithSnapshots(t, sessions.SnapshotOptions{Timeout: 2 * time.Second})
 	id := running(t, store, client)
 
+	checks := 0
 	err := store.Sleep(t.Context(), id, sessions.StoppedByIdle, func(sessions.Session) bool {
+		checks++
+		if checks == 1 {
+			return true
+		}
 		// While the snapshot was taken, the user stopped the session.
 		if err := store.Suspend(t.Context(), id, sessions.StoppedByUser); err != nil {
 			t.Error(err)
@@ -406,5 +412,87 @@ func TestUserStopSavesNoState(t *testing.T) {
 	}
 	if err := store.Wake(ctx, id); !errors.Is(err, sessions.ErrStateChanged) {
 		t.Errorf("wake of a stopped session: %v", err)
+	}
+}
+
+// Stop-policy checkpoints complete the old pod. Activity while uploading must
+// recreate it, not leave that completed pod nominally running.
+func TestActivityDuringCheckpointRestoresCompletedPod(t *testing.T) {
+	store, client, _ := sessionstest.NewWithSnapshots(t, sessions.SnapshotOptions{Timeout: time.Second, Poll: time.Millisecond})
+	id := running(t, store, client)
+	controller := observeRecoverySuspend(t, client, id)
+	checks := 0
+	err := store.Sleep(t.Context(), id, sessions.StoppedByIdle, func(sessions.Session) bool { checks++; return checks == 1 })
+	if !errors.Is(err, sessions.ErrStateChanged) {
+		t.Fatalf("Sleep = %v", err)
+	}
+	if err := <-controller; err != nil {
+		t.Fatal(err)
+	}
+	obj := sandbox(t, client, id)
+	if mode(obj) != "Running" || obj.GetAnnotations()[sessions.AnnSnapshot] == "" {
+		t.Fatalf("not restored: %v", obj.Object)
+	}
+}
+
+func observeRecoverySuspend(t *testing.T, client dynamic.Interface, id string) <-chan error {
+	t.Helper()
+	done := make(chan error, 1)
+	go func() {
+		for {
+			obj, err := client.Resource(sessions.SandboxGVR).Namespace(sessionstest.Namespace).Get(t.Context(), id, metav1.GetOptions{})
+			if err != nil {
+				done <- err
+				return
+			}
+			if mode(obj) == "Suspended" {
+				done <- sessionstest.TrySetStatus(client, id, sessionstest.Suspended())
+				return
+			}
+			select {
+			case <-t.Context().Done():
+				done <- t.Context().Err()
+				return
+			case <-time.After(time.Millisecond):
+			}
+		}
+	}()
+	return done
+}
+
+func TestCancelledCheckpointFinishesSuspendAndRestores(t *testing.T) {
+	store, client, gke := sessionstest.NewWithSnapshots(t, sessions.SnapshotOptions{Timeout: time.Second, Poll: time.Millisecond})
+	gke.NotReady = true
+	id := running(t, store, client)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	controller := observeRecoverySuspend(t, client, id)
+	go func() {
+		for {
+			list, err := client.Resource(sessions.PodSnapshotGVR).Namespace(sessionstest.Namespace).List(t.Context(), metav1.ListOptions{})
+			if err != nil {
+				return
+			}
+			if len(list.Items) > 0 {
+				cancel()
+				return
+			}
+			select {
+			case <-t.Context().Done():
+				return
+			case <-time.After(time.Millisecond):
+			}
+		}
+	}()
+	err := store.Sleep(ctx, id, sessions.StoppedBySleep, nil)
+	if !errors.Is(err, sessions.ErrStateChanged) {
+		t.Fatalf("Sleep = %v", err)
+	}
+	if err := <-controller; err != nil {
+		t.Fatal(err)
+	}
+	obj := sandbox(t, client, id)
+	if mode(obj) != "Running" || obj.GetAnnotations()[sessions.AnnSnapshot] != "" {
+		t.Fatalf("not restarted cold: %v", obj.Object)
 	}
 }

@@ -229,7 +229,7 @@ func (w *Waker) await(ctx context.Context, id string) (_ sessions.Session, err e
 	woken := false
 	// While a woken session is on its way up: since when, whether its pod
 	// had a node then, and whether its snapshot was given up already.
-	var since time.Time
+	since := w.clock()
 	scheduled, cold := false, false
 	for {
 		s, err := w.Store.Get(ctx, id)
@@ -244,7 +244,7 @@ func (w *Waker) await(ctx context.Context, id string) (_ sessions.Session, err e
 		case sessions.Stopped:
 			return sessions.Session{}, ErrStopped
 		case sessions.Failed:
-			if !woken || cold {
+			if cold {
 				return sessions.Session{}, ErrFailed
 			}
 		case sessions.Asleep:
@@ -267,7 +267,7 @@ func (w *Waker) await(ctx context.Context, id string) (_ sessions.Session, err e
 				woken, since = true, w.clock()
 			}
 		}
-		if woken && !cold && s.State != sessions.Asleep {
+		if !cold && (s.State == sessions.Starting || s.State == sessions.Failed) {
 			if !scheduled && s.Node != "" {
 				scheduled, since = true, w.clock()
 			}
@@ -275,6 +275,9 @@ func (w *Waker) await(ctx context.Context, id string) (_ sessions.Session, err e
 			if s.State == sessions.Failed || stuck {
 				// The snapshot may be what keeps it from starting (it only
 				// restores on the CPU it was taken on): once, start cold.
+				// Also covers a previous backend dying after a stop-policy
+				// checkpoint, before recording the sleep. ColdStart checks
+				// for orphan snapshots as well as recorded annotations.
 				cold = true
 				did, err := w.Store.ColdStart(ctx, id)
 				switch {

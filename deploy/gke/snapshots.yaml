@@ -36,10 +36,11 @@ spec:
   triggerConfig:
     # Only when the backend asks (a PodSnapshotManualTrigger).
     type: manual
-    # The pod runs on after the checkpoint; the backend suspends the Sandbox
-    # once the snapshot is Ready, and Chromium still exits cleanly, so its
-    # on-disk session restore stays good as the fallback.
-    postCheckpoint: resume
+    # The PVC is not checkpointed. Stop at the checkpoint boundary so Chromium
+    # cannot rotate/unlink LevelDB files (including during graceful shutdown)
+    # after memory has been saved. Resuming here corrupts that correspondence.
+    # https://docs.cloud.google.com/kubernetes-engine/docs/troubleshooting/pod-snapshots
+    postCheckpoint: stop
   snapshotGroupingRules:
     groupByLabelValue:
       # A pod is restored from the newest ready snapshot OF ITS GROUP. This

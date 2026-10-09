@@ -427,12 +427,12 @@ the policy.
 
 ### What is not known until it runs on the cluster
 
-- **The disk is not in the snapshot.** The pod runs on for a moment after
-  the checkpoint and Chromium exits cleanly, writing its profile. The
-  restored browser's memory is from the checkpoint and its disk from a few
-  seconds later. Chromium's databases may or may not take that well
-  (UNVERIFIED). If they do not, the alternative is `postCheckpoint: stop` in
-  the policy, whose effect on a Sandbox pod is itself UNVERIFIED.
+- **The disk is not in the snapshot.** The policy uses `postCheckpoint: stop`
+  to keep the PVC at the checkpoint boundary. `resume` allowed Chromium to
+  unlink a LevelDB log after memory was saved, causing gVisor restore to fail
+  with `vfs.CompleteRestore()` and a missing file. Graceful shutdown after a
+  checkpoint is also unsafe for this reason. See [GKE
+  guidance](https://docs.cloud.google.com/kubernetes-engine/docs/troubleshooting/pod-snapshots).
 - **A pod replaced while the session is awake** (node upgrade, eviction) is
   made again by the controller and would be restored from the snapshot of
   the last sleep, over a disk that has moved on. The snapshot is not deleted

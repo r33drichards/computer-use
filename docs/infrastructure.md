@@ -222,7 +222,7 @@ policies. If it fails, switch `snapshot_token_source` to `federatedP4SA`.
   `spec.snapshotStorageConfig.gcs.{bucket,path,tokenSource}`.
 - `PodSnapshotPolicy` (namespaced): `storageConfigName`, `selector.matchLabels`,
   `triggerConfig.type` (`manual` or `workload`), `triggerConfig.postCheckpoint`
-  (e.g. `resume`), `snapshotScope` (`whole-pod` default, or `rootfs-only`),
+  (`stop` for our writable session PVCs), `snapshotScope` (`whole-pod` default, or `rootfs-only`),
   `retentionConfig.lastAccessTimeout`,
   `snapshotGroupingRules…maxSnapshotCountPerGroup`. "If not set, the Pod
   snapshot will always persist unless manually deleted."
