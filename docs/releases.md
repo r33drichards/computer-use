@@ -182,8 +182,12 @@ hack/release.sh            # or: hack/release.sh backend=sha256:… site=sha256:
 
 `hack/release.sh --no-pin` releases `main` as it is (a manifest change with
 no new image). `DRY_RUN=1` pins locally and stops. Steps 1 to 3 can be done
-by hand, and step 4 is then Actions, **deploy**, Run workflow, confirm
-`deploy`: the canary is the workflow's, not the script's.
+by hand; with the canary on (the variable `CANARY`), step 4 then happens on
+its own — a push to `main` that changes `deploy/gke` starts the **deploy**
+workflow, the reviewed pull request standing in for the typed confirmation
+and the canary plus rollback for the watching eye. With the canary off, an
+automatic run refuses, and step 4 is Actions, **deploy**, Run workflow,
+confirm `deploy`: the canary is the workflow's, not the script's.
 
 ## Turning it on: the owner's one step
 

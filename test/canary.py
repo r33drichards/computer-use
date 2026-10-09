@@ -320,6 +320,39 @@ def verify_skills(mcp):
     return f"{len(skills)} page skills; manifests and resource hashes verified"
 
 
+def verify_sessionless(mcp):
+    """One self-contained POST: no initialize, no Mcp-Session-Id. The
+    per-request-negotiated flow (protocol 2026-07-28) that session-less
+    clients such as OpenAI's connectors speak, with the SEP-2243 standard
+    headers. What their "action discovery" needs from the server."""
+    marker = "sl" + secrets.token_hex(6)
+    message = {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+               "params": {"name": "run_js",
+                          "arguments": {"code": "console.log(%s)" % json.dumps(marker)},
+                          "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                                    "io.modelcontextprotocol/clientInfo": {"name": "release-canary-sessionless", "version": "0"},
+                                    "io.modelcontextprotocol/clientCapabilities": {}}}}
+    headers = {"Authorization": "Bearer " + ACCESS["token"],
+               "Accept": "application/json, text/event-stream",
+               "MCP-Protocol-Version": "2026-07-28",
+               "Mcp-Method": "tools/call",
+               "Mcp-Name": "run_js"}
+    status, response_headers, raw = http("POST", mcp.url, message, headers, 150)
+    expect(status == 200, "session-less tools/call answered %d: %s" % (status, raw[:200].decode(errors="replace")))
+    text = raw.decode()
+    if response_headers.get("Content-Type", "").startswith("text/event-stream"):
+        replies = [json.loads(line[5:]) for line in text.splitlines() if line.startswith("data:") and line[5:].strip()]
+        replies = [r for r in replies if r.get("id") == 1]
+        expect(replies, "session-less: the event stream had no answer")
+        reply = replies[-1]
+    else:
+        reply = json.loads(text)
+    expect("error" not in reply, "session-less: %s" % reply.get("error"))
+    out = "\n".join(c.get("text", "") for c in reply["result"].get("content", []))
+    expect(marker in out, "session-less run_js output lacks the marker: %s" % out[:200])
+    return "one POST, no session: negotiated 2026-07-28 and ran run_js"
+
+
 def verify_png(mcp):
     result = mcp.rpc("tools/call", {"name": "run_js", "arguments": {
         "code": """
@@ -493,6 +526,7 @@ def main():
 
         if EXPECT_MCP_CAPABILITIES:
             check("MCP skills: catalog, manifests and resource hashes", lambda: verify_skills(mcp))
+            check("MCP session-less: one negotiated POST, no session", lambda: verify_sessionless(mcp))
             check("PNG import: encode and decode preserve pixels", lambda: verify_png(mcp))
             check("fetch: HTTP response and body through run_js", lambda: expect_fetch(mcp))
 
