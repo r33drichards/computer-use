@@ -358,11 +358,25 @@ func (s *Store) Update(ctx context.Context, id string, name *string, action stri
 			return err
 		}
 		ann := obj.GetAnnotations()
+		if action == ActionResume && operatingMode(obj) == "Suspended" && !checkpointSafe(obj) && ann[AnnSnapshot] != "" && s.snap.ready(ctx, ann[AnnSnapshot]) {
+			return ErrSnapshotRestartPolicy
+		}
+		if action == ActionStop || operatingMode(obj) == "Suspended" {
+			// Only a new pod sees a new restart policy. An explicit stop
+			// migrates old sessions without altering a running pod's memory.
+			spec := patch["spec"].(map[string]any)
+			spec["podTemplate"] = map[string]any{"spec": map[string]any{"restartPolicy": "Never"}}
+		}
 		if action == ActionStop || ann[AnnSnapshot] == "" || !s.snap.ready(ctx, ann[AnnSnapshot]) {
 			annotations[AnnSnapshot], annotations[AnnSnapshotPool] = nil, nil
 			if _, pinned := ann[AnnSnapshotPool]; pinned {
 				spec, _ := patch["spec"].(map[string]any)
-				spec["podTemplate"] = map[string]any{"spec": map[string]any{"nodeSelector": map[string]any{LabelPool: nil}}}
+				podTemplate, _ := spec["podTemplate"].(map[string]any)
+				if podTemplate == nil {
+					podTemplate = map[string]any{"spec": map[string]any{}}
+					spec["podTemplate"] = podTemplate
+				}
+				podTemplate["spec"].(map[string]any)["nodeSelector"] = map[string]any{LabelPool: nil}
 			}
 		}
 	}

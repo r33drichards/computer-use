@@ -496,3 +496,162 @@ func TestCancelledCheckpointFinishesSuspendAndRestores(t *testing.T) {
 		t.Fatalf("not restarted cold: %v", obj.Object)
 	}
 }
+
+func setRestartPolicy(t *testing.T, client dynamic.Interface, id, policy string) {
+	t.Helper()
+	obj := sandbox(t, client, id)
+	if policy == "" {
+		unstructured.RemoveNestedField(obj.Object, "spec", "podTemplate", "spec", "restartPolicy")
+	} else {
+		_ = unstructured.SetNestedField(obj.Object, policy, "spec", "podTemplate", "spec", "restartPolicy")
+	}
+	if _, err := client.Resource(sessions.SandboxGVR).Namespace(sessionstest.Namespace).Update(t.Context(), obj, metav1.UpdateOptions{}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSleepRefusesRestartablePodWithoutLosingMemory(t *testing.T) {
+	for _, policy := range []string{"", "Always", "OnFailure"} {
+		t.Run(policy, func(t *testing.T) {
+			store, client, _ := sessionstest.NewWithSnapshots(t, sessions.SnapshotOptions{})
+			id := running(t, store, client)
+			setRestartPolicy(t, client, id, policy)
+			if err := store.Sleep(t.Context(), id, sessions.StoppedBySleep, nil); !errors.Is(err, sessions.ErrSnapshotRestartPolicy) {
+				t.Fatalf("Sleep = %v", err)
+			}
+			if obj := sandbox(t, client, id); mode(obj) != "Running" {
+				t.Fatalf("live memory interrupted: %v", obj.Object)
+			}
+			for _, action := range client.(*dynfake.FakeDynamicClient).Actions() {
+				if action.GetVerb() == "create" && action.GetResource() == sessions.SnapshotTriggerGVR {
+					t.Fatal("unsafe pod checkpointed")
+				}
+			}
+			if err := store.Suspend(t.Context(), id, sessions.StoppedByUser); err != nil {
+				t.Fatal(err)
+			}
+			sessionstest.SetStatus(t, client, id, sessionstest.Suspended())
+			if err := store.Resume(t.Context(), id); err != nil {
+				t.Fatal(err)
+			}
+			obj := sandbox(t, client, id)
+			got, _, _ := unstructured.NestedString(obj.Object, "spec", "podTemplate", "spec", "restartPolicy")
+			if got != "Never" || mode(obj) != "Running" {
+				t.Fatalf("stop/start did not migrate: %v", obj.Object)
+			}
+		})
+	}
+}
+
+func TestWakeDoesNotSilentlyDropLegacyMemory(t *testing.T) {
+	for _, explicit := range []bool{false, true} {
+		store, client, _ := sessionstest.NewWithSnapshots(t, sessions.SnapshotOptions{})
+		id := asleep(t, store, client)
+		setRestartPolicy(t, client, id, "Always")
+		var err error
+		if explicit {
+			err = store.Resume(t.Context(), id)
+		} else {
+			err = store.Wake(t.Context(), id)
+		}
+		if !errors.Is(err, sessions.ErrSnapshotRestartPolicy) {
+			t.Fatalf("wake explicit=%v: %v", explicit, err)
+		}
+		if obj := sandbox(t, client, id); mode(obj) != "Suspended" || obj.GetAnnotations()[sessions.AnnSnapshot] == "" {
+			t.Fatal("legacy memory lost")
+		}
+	}
+}
+
+func TestColdStartRecoversFailedNeverPodWithoutSnapshot(t *testing.T) {
+	store, client, _ := sessionstest.NewWithSnapshots(t, sessions.SnapshotOptions{Poll: time.Millisecond})
+	id := running(t, store, client)
+	sessionstest.SetStatus(t, client, id, map[string]any{"conditions": []any{map[string]any{"type": "Finished", "status": "True", "reason": "PodFailed"}}})
+	controller := observeRecoverySuspend(t, client, id)
+	did, err := store.ColdStart(t.Context(), id)
+	if err != nil || !did {
+		t.Fatalf("ColdStart = %v, %v", did, err)
+	}
+	if err := <-controller; err != nil {
+		t.Fatal(err)
+	}
+	if obj := sandbox(t, client, id); mode(obj) != "Running" {
+		t.Fatal("failed pod not replaced")
+	}
+}
+
+func actualPod(t *testing.T, client dynamic.Interface, id, policy string, status map[string]any) {
+	t.Helper()
+	obj := sandbox(t, client, id)
+	controller := true
+	pod := &unstructured.Unstructured{Object: map[string]any{"apiVersion": "v1", "kind": "Pod", "metadata": map[string]any{"name": id, "namespace": sessionstest.Namespace}, "spec": map[string]any{"restartPolicy": policy}, "status": status}}
+	pod.SetOwnerReferences([]metav1.OwnerReference{{APIVersion: obj.GetAPIVersion(), Kind: "Sandbox", Name: id, UID: obj.GetUID(), Controller: &controller}})
+	if err := client.(*dynfake.FakeDynamicClient).Tracker().Add(pod); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRapidStopResumeCannotCheckpointOldAlwaysPod(t *testing.T) {
+	store, client, _ := sessionstest.NewWithSnapshots(t, sessions.SnapshotOptions{})
+	id := running(t, store, client)
+	setRestartPolicy(t, client, id, "Always")
+	actualPod(t, client, id, "Always", map[string]any{"phase": "Running"})
+	if err := store.Suspend(t.Context(), id, sessions.StoppedByUser); err != nil {
+		t.Fatal(err)
+	}
+	// No controller suspension: the original pod still exists.
+	if err := store.Resume(t.Context(), id); err != nil {
+		t.Fatal(err)
+	}
+	sessionstest.SetStatus(t, client, id, sessionstest.Ready("10.0.0.7"))
+	if err := store.Sleep(t.Context(), id, sessions.StoppedBySleep, nil); !errors.Is(err, sessions.ErrSnapshotRestartPolicy) {
+		t.Fatalf("unsafe old pod Sleep = %v", err)
+	}
+	if mode(sandbox(t, client, id)) != "Running" {
+		t.Fatal("live pod interrupted")
+	}
+	for _, action := range client.(*dynfake.FakeDynamicClient).Actions() {
+		if action.GetVerb() == "create" && action.GetResource() == sessions.SnapshotTriggerGVR {
+			t.Fatal("old immutable pod checkpointed")
+		}
+	}
+}
+
+func TestColdStartRecognizesPartialCrashButNotCompletedCheckpoint(t *testing.T) {
+	for _, tc := range []struct {
+		name, phase           string
+		exit                  int64
+		otherRunning, recover bool
+	}{
+		{"partial failure", "Running", 137, true, true},
+		{"completed checkpoint", "Succeeded", 0, false, false},
+		{"checkpoint finishing", "Running", 0, true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			store, client, _ := sessionstest.NewWithSnapshots(t, sessions.SnapshotOptions{Poll: time.Millisecond})
+			id := running(t, store, client)
+			sessionstest.SetStatus(t, client, id, map[string]any{"conditions": []any{map[string]any{"type": "Ready", "status": "False", "reason": "PodNotReady"}}})
+			other := map[string]any{"terminated": map[string]any{"exitCode": int64(0)}}
+			if tc.otherRunning {
+				other = map[string]any{"running": map[string]any{}}
+			}
+			actualPod(t, client, id, "Never", map[string]any{"phase": tc.phase, "containerStatuses": []any{
+				map[string]any{"name": "browser", "state": map[string]any{"terminated": map[string]any{"exitCode": tc.exit}}},
+				map[string]any{"name": "mcp-js", "state": other},
+			}})
+			var done <-chan error
+			if tc.recover {
+				done = observeRecoverySuspend(t, client, id)
+			}
+			did, err := store.ColdStart(t.Context(), id)
+			if err != nil || did != tc.recover {
+				t.Fatalf("ColdStart = %v, %v; want %v", did, err, tc.recover)
+			}
+			if done != nil {
+				if err := <-done; err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
+	}
+}

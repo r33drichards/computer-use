@@ -61,6 +61,10 @@ kind: Role
 metadata:
   name: backend-snapshots
 rules:
+  # Verify the actual immutable restart policy and terminal container status.
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get"]
   - apiGroups: ["podsnapshot.gke.io"]
     resources: ["podsnapshotmanualtriggers"]
     verbs: ["create", "get", "delete"]

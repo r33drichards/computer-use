@@ -147,7 +147,7 @@ type GKE struct {
 // (Node, in pool Pool) for sessions to run on, and a GKE to take snapshots.
 func NewWithSnapshots(t *testing.T, o sessions.SnapshotOptions) (*sessions.Store, dynamic.Interface, *GKE) {
 	t.Helper()
-	store, client := New(t)
+	store, client := newStore(t, strings.Replace(Blueprint, "  spec:\n    containers:", "  spec:\n    restartPolicy: Never\n    containers:", 1))
 	fake := client.(*dynfake.FakeDynamicClient)
 	node := &unstructured.Unstructured{Object: map[string]any{
 		"apiVersion": "v1", "kind": "Node",
@@ -156,6 +156,25 @@ func NewWithSnapshots(t *testing.T, o sessions.SnapshotOptions) (*sessions.Store
 	if err := fake.Tracker().Add(node); err != nil {
 		t.Fatal(err)
 	}
+	// Model controller-created pods from each Sandbox template, unless a
+	// regression installs an explicit pod (e.g. an old immutable policy).
+	fake.PrependReactor("get", "pods", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		name := action.(k8stesting.GetAction).GetName()
+		gvr := schema.GroupVersionResource{Version: "v1", Resource: "pods"}
+		if pod, err := fake.Tracker().Get(gvr, Namespace, name); err == nil {
+			return true, pod, nil
+		}
+		raw, err := fake.Tracker().Get(sessions.SandboxGVR, Namespace, name)
+		if err != nil {
+			return true, nil, err
+		}
+		obj := raw.(*unstructured.Unstructured)
+		spec, _, _ := unstructured.NestedMap(obj.Object, "spec", "podTemplate", "spec")
+		pod := &unstructured.Unstructured{Object: map[string]any{"apiVersion": "v1", "kind": "Pod", "metadata": map[string]any{"name": name, "namespace": Namespace}, "spec": spec}}
+		controller := true
+		pod.SetOwnerReferences([]metav1.OwnerReference{{APIVersion: obj.GetAPIVersion(), Kind: "Sandbox", Name: name, UID: obj.GetUID(), Controller: &controller}})
+		return true, pod, nil
+	})
 	gke := &GKE{client: fake}
 	fake.PrependReactor("create", sessions.SnapshotTriggerGVR.Resource, func(action k8stesting.Action) (bool, runtime.Object, error) {
 		trigger := action.(k8stesting.CreateAction).GetObject().(*unstructured.Unstructured)
@@ -432,7 +451,9 @@ const WarmPoolName = "s"
 // becomes the Sandbox's controlling owner and names it in its status.
 func PlayClaimController(t *testing.T, client dynamic.Interface, warm ...string) {
 	t.Helper()
-	playClaimController(t, client, func() map[string]any { return map[string]any{} }, warm)
+	playClaimController(t, client, func() map[string]any {
+		return map[string]any{"podTemplate": map[string]any{"spec": map[string]any{"restartPolicy": "Never"}}}
+	}, warm)
 }
 
 func playClaimController(t *testing.T, client dynamic.Interface, spec func() map[string]any, warm []string) {
