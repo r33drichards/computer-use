@@ -130,9 +130,10 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
   driver injects its globals (`cluster`, ...).
 - All third-party actions are pinned to a commit with the version in a
   comment (CONTRIBUTING.md). `go run ...@version` tools are pinned by version.
-- The Go fuzz target so far: `FuzzURLTemplate`
+- Go fuzz targets so far: `FuzzURLTemplate`
   (`backend/internal/sessions/urls_fuzz_test.go`): the session URL template
-  parser, and that URLs it makes are read back by `Match`.
+  parser, and that URLs it makes are read back by `Match`; `FuzzSplit`
+  (`hosts`) and `FuzzSameHost` (`auth`): host parsing and matching.
 
 ## Fixed in the first pass
 
@@ -146,7 +147,7 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
    lowest packages with `go tool cover -func`); a floor per component.
 
 1. More Go fuzz targets: webhook payload parsers (`billing/stripe`,
-   `billing/metronome`), `hosts.Split`, `auth.SameHost`, policy JSON bodies.
+   `billing/metronome`), policy JSON bodies.
 2. `cargo fuzz` for the SDK's request/response decoding (the SDK is the
    native-code surface; also try valgrind on the provider's cgo link).
 3. ESLint and a formatter (prettier or biome) for `web/` and `site/`.
@@ -171,6 +172,11 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 
 ## Log
 
+- 2026-10-09: loop run. Commits since last entry (#183-#189) touched no CI
+  except the tla2tools pin; `ci-coverage.sh` clean. Backlog 1: added
+  `FuzzSplit`, `FuzzSameHost` (15 s local runs, no findings). The new
+  `quality` workflow's runs on main were not inspected (no Actions access
+  checked this loop).
 - 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
   and stores only complete baselines (+ nightly renewal); matrix values go
   through `env:`; fuzz legs use their own module's `go.mod`; `tlc-check.sh`
