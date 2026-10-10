@@ -152,8 +152,10 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 3. ESLint and a formatter (prettier or biome) for `web/` and `site/`.
 4. `ruff format` baseline commit, then `ruff format --check` in CI.
 5. Staticcheck for `terraform-provider-*`; drop the ST exclusions.
-6. Dependency and supply-chain checks: Dependabot for actions, Go, Cargo,
-   npm; `govulncheck`, `cargo audit`, `npm audit`; secret scanning.
+6. Supply-chain checks: `govulncheck`, `cargo audit`, `npm audit`, secret
+   scanning. (Dependabot is in place: `.github/dependabot.yml`, weekly, grouped;
+   add an entry when a new go.mod, Cargo.toml, package.json or Dockerfile
+   directory appears.)
 7. More TLA+: the lease/capacity, drain and autoscale logic
    (`backend/internal/sessions/capacity.go`, `docs/warm-pool.md`) have no spec.
 8. Required status checks: make `quality / report`'s jobs required in branch
@@ -170,6 +172,11 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 4. Update the matrix, the backlog and the log below.
 
 ## Log
+
+- 2026-10-10: loop. Nothing new in CI since the last pass (main, PR and nightly
+  `quality` runs all green; `ci-coverage.sh` clean). Added
+  `.github/dependabot.yml` (actions, Go x4, Cargo, npm x3, Docker x5).
+  Next: backlog 1 (more fuzz targets), 3 (eslint/formatter for web).
 
 - 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
   and stores only complete baselines (+ nightly renewal); matrix values go
