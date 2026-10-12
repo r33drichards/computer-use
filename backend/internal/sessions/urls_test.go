@@ -82,6 +82,9 @@ func TestParseURLTemplateRejects(t *testing.T) {
 		"sessions.example.com/{id}",                   // no scheme
 		"https://{id}",                                // no domain to be under
 		"https://{id}.",                               // no domain to be under
+		"http://{id}..",                               // an empty label (found by fuzzing)
+		"http://{id}.0..",                             // same, after a label
+		"https://{id}.sessions..example.com",          // an empty label
 		"{id}.sessions.example.com",                   // no scheme
 		"ftp://{id}.sessions.example.com",             // not http(s)
 		"https://{id}.sessions.example.com/base",      // a path

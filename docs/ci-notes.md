@@ -171,6 +171,16 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 
 ## Log
 
+- 2026-10-12: loop. Nightly `quality` failed on Oct 11 and 12 only in
+  `fuzz FuzzURLTemplate`: a real bug, not a flake. `http://{id}..` parsed, but
+  `hosts.Split` drops one trailing dot so the session's own URL did not read
+  back through `Match`. `ParseURLTemplate` now rejects hosts with an empty
+  label (also `{id}.0..`, found by the local re-fuzz); regression cases added
+  to `TestParseURLTemplateRejects`. Everything
+  else green (valgrind, TLC x6, lint x5). Still open: no `dependabot.yml`
+  (backlog 6); backlog 1-5, 7-9 untouched. Lesson: a red nightly fuzz job
+  is a finding; read the log first, the input is in the `fuzz-failure-*`
+  artifact.
 - 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
   and stores only complete baselines (+ nightly renewal); matrix values go
   through `env:`; fuzz legs use their own module's `go.mod`; `tlc-check.sh`
