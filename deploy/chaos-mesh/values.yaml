@@ -1,0 +1,67 @@
+# Production installation only; experiments and namespace opt-ins are separate changes.
+enableProfiling: false
+controllerManager:
+  replicaCount: 3
+  enableFilterNamespace: true
+  allowHostNetworkTesting: false
+  nodeSelector:
+    cloud.google.com/gke-nodepool: system
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+chaosDaemon:
+  runtime: containerd
+  socketPath: /run/containerd/containerd.sock
+  # Host daemon uses the default runtime, including on gVisor session nodes.
+  # Controllers and dashboard remain on the system pool.
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: cloud.google.com/gke-nodepool
+                operator: In
+                values: [system]
+          - matchExpressions:
+              - key: sandbox.gke.io/runtime
+                operator: In
+                values: [gvisor]
+  tolerations:
+    - key: sandbox.gke.io/runtime
+      operator: Equal
+      value: gvisor
+      effect: NoSchedule
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+dashboard:
+  securityMode: true
+  nodeSelector:
+    cloud.google.com/gke-nodepool: system
+  service:
+    type: ClusterIP
+  persistentVolume:
+    enabled: true
+    storageClassName: standard-rwo
+    size: 8Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+dnsServer:
+  nodeSelector:
+    cloud.google.com/gke-nodepool: system
+  resources:
+    requests:
+      cpu: 100m
+      memory: 70Mi
+    limits:
+      memory: 256Mi
