@@ -23,6 +23,8 @@ on:
       - "docs/contracts/policy/**"
       - "hack/**"
       - "test/canary.py"
+      - "test/private_diagnostic_file.py"
+      - "test/private-diagnostic-file-test.py"
       - "test/canary-kind.sh"
       - ".github/workflows/canary-kind.yml"
   workflow_dispatch:
@@ -46,12 +48,25 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Bind tested source
+        id: source
+        env:
+          EXPECTED_SOURCE: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          bash test/ci-source-binding.sh
+          node --test test/ci-source-binding.test.mjs
 
       - name: Scripts
         run: |
           set -euo pipefail
           shellcheck -S warning hack/release.sh test/canary-kind.sh
           python3 -m py_compile test/canary.py
+          python3 -B test/canary-pod-diagnostics-test.py
+          python3 -B test/bounded-process-test.py
+          python3 -B test/private-diagnostic-file-test.py
+          python3 -B test/chromium-launch-lock-test.py
           # Without a token it says so and does nothing.
           if env -u CANARY_API_TOKEN test/canary.py; then
             echo "::error::canary.py ran without a token"
@@ -82,24 +97,21 @@ jobs:
           df -h /
 
       - name: test/canary.py
+        env:
+          SESSION_FAILURE_HOOK: "python3 test/canary-pod-diagnostics.py"
+          CANARY_DIAGNOSTICS_DIR: ${{ runner.temp }}/canary-pod-diagnostics
         run: |
           printf '## The release canary, on kind\n\n' >> "$GITHUB_STEP_SUMMARY"
           UP=0 SUMMARY="$GITHUB_STEP_SUMMARY" test/canary-kind.sh
 
-      - name: What the cluster looked like
+      - name: Owned canary pod diagnostics
         if: ${{ failure() }}
-        run: |
-          export KUBECONFIG="$PWD/.local/kubeconfig"
-          ns=browserjs-sessions
-          kubectl -n "$ns" get pods,sandboxes.agents.x-k8s.io,sessionpolicies.browserjs.dev,pvc -o wide || true
-          kubectl -n "$ns" describe pods -l app=browserjs-session | tail -80 || true
-          for target in deployment/backend deployment/policy-operator deployment/opa statefulset/pomerium; do
-            echo "=== $target"
-            kubectl -n "$ns" logs "$target" --all-containers --tail=60 || true
-          done
-          for pod in $(kubectl -n "$ns" get pods -l app=browserjs-session -o name); do
-            echo "=== $pod"
-            kubectl -n "$ns" logs "$pod" --all-containers --prefix --tail=40 || true
-          done
-          kubectl -n "$ns" get events --sort-by=.lastTimestamp | tail -60 || true
-          kubectl -n agent-sandbox-system logs deploy/agent-sandbox-controller --tail=40 || true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: canary-pod-diagnostics
+          path: ${{ runner.temp }}/canary-pod-diagnostics
+          if-no-files-found: warn
+          retention-days: 7
+
+      # Failure evidence comes only from the pre-cleanup, owned-pod collector.
+      # Never replace it with namespace-wide describe/logs/events dumps.

@@ -66,7 +66,7 @@ env_block() { # session id
     "mode":"all","policies":[
     {"url":"file:///etc/mcp/mcp_tools.rego"},
     {"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/$1/mcp_tools"}]},
-    "filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]},"fetch":{"mode":"all","policies":[{"url":"file:///etc/mcp/fetch.rego"},{"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/$1/mcp_tools"}]}}
+    "filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]},"fetch":{"mode":"all","policies":[{"url":"file:///etc/mcp/fetch.rego"},{"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/$1/mcp_tools"}]},"modules":{"mode":"all","policies":[{"url":"file:///etc/mcp/modules.rego"},{"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/$1/mcp_tools"}]}}
 BLOCK
 }
 

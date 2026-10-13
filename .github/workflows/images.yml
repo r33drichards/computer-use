@@ -33,7 +33,12 @@ on:
       - "site/reference/**"
       - "README.md"
       - ".github/workflows/images.yml"
+      - ".github/image-build-matrix.json"
+      - "test/build-context-receipt*.py"
+      - "test/ci-source-binding*"
+      - "test/image-helper-trigger-test.py"
       - "hack/site-release.sh"
+      - "hack/policy-stage.sh"
       - "deploy/argocd/**"
       - "deploy/gke/**"
       - "deploy/base/**"
@@ -56,7 +61,12 @@ on:
       - "site/reference/**"
       - "README.md"
       - ".github/workflows/images.yml"
+      - ".github/image-build-matrix.json"
+      - "test/build-context-receipt*.py"
+      - "test/ci-source-binding*"
+      - "test/image-helper-trigger-test.py"
       - "hack/site-release.sh"
+      - "hack/policy-stage.sh"
       - "deploy/argocd/**"
       - "deploy/gke/**"
       - "deploy/base/**"
@@ -103,6 +113,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           # The filter compares two commits; both must be present.
           fetch-depth: 0
 
@@ -129,14 +140,8 @@ jobs:
           # likewise, for the same layout); its Dockerfile is named
           # ("file"), and what the build may see is its own
           # images/policy-operator/Dockerfile.dockerignore.
-          table='[
-            {"name":"backend","context":".",             "timeout":30, "cache":true, "free_disk":false},
-            {"name":"mcp-js", "context":".", "file":"images/mcp-js/Dockerfile", "timeout":90, "cache":true, "free_disk":true},
-            {"name":"browser","context":"images/browser","timeout":120,"cache":false,"free_disk":true},
-            {"name":"site",   "context":"site",          "timeout":15, "cache":true, "free_disk":false},
-            {"name":"policy-operator","context":".","file":"images/policy-operator/Dockerfile","timeout":15,"cache":true,"free_disk":false},
-            {"name":"billing-operator","context":".","file":"images/billing-operator/Dockerfile","timeout":15,"cache":true,"free_disk":false}
-          ]'
+          # Matrix data comes from the same immutable checkout as the build.
+          table="$(cat .github/image-build-matrix.json)"
 
           changed_files() {
             case "$EVENT" in
@@ -173,12 +178,12 @@ jobs:
             echo "Changed files:"
             printf '%s\n' "$files" | sed 's/^/  /'
             touches() { grep -Eq "$1" <<<"$files"; }
-            if touches '^\.github/workflows/images\.yml$'; then
+            if touches '^\.github/(workflows/images\.yml|image-build-matrix\.json)$|^test/(build-context-receipt[^/]*\.py|ci-source-binding[^/]*|image-helper-trigger-test\.py)$'; then
               # The pipeline itself changed: prove it on every image.
               wanted=(backend mcp-js browser site policy-operator billing-operator)
             else
               if touches '^(Dockerfile$|\.dockerignore$|backend/|web/)'; then wanted+=(backend); fi
-              if touches '^(images/mcp-js/|site/(tutorials|guides|reference|explanation)/)'; then wanted+=(mcp-js); fi
+              if touches '^(images/mcp-js/|site/(tutorials|guides|reference|explanation)/|docs/contracts/policy/(decision-module\.rego\.tmpl|examples/unrestricted\.rego)$|backend/internal/policy/presets/unrestricted\.rego$|deploy/gke/(blueprint|warmpool)\.yaml$|deploy/base/opa\.yaml$|hack/policy-stage\.sh$)'; then wanted+=(mcp-js); fi
               if touches '^images/browser/'; then wanted+=(browser); fi
               if touches '^(site/|hack/site-release\.sh$)'; then wanted+=(site); fi
               if touches '^(images/policy-operator/|docs/contracts/policy/)'; then wanted+=(policy-operator); fi
@@ -215,6 +220,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Bind tested source
+        id: source
+        env:
+          EXPECTED_SOURCE: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          bash test/ci-source-binding.sh
+          node --test test/ci-source-binding.test.mjs
+          python3 -B test/image-helper-trigger-test.py
 
       # A hosted runner has about 14 GB free; the browser image needs its
       # Nix store, a copy of it, and the exported layer.
@@ -230,6 +245,32 @@ jobs:
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
+      - name: Path-context receipt tests
+        id: context_test
+        run: python3 -B test/build-context-receipt-test.py
+
+      - name: Path-context receipt
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
+        env:
+          BUILD_NAME: ${{ matrix.name }}
+          BUILD_CONTEXT: ${{ matrix.context }}
+          BUILD_FILE: ${{ matrix.file }}
+          EXPECTED_SOURCE: ${{ steps.source.outputs.sha }}
+          RECEIPT_RUN_ID: ${{ github.run_id }}
+          RECEIPT_JOB: ${{ github.job }}
+          RECEIPT_TEST_OUTCOME: ${{ steps.context_test.outcome }}
+          RECEIPT_FILE: ${{ runner.temp }}/path-context/${{ matrix.name }}.json
+        run: python3 -B test/build-context-receipt.py
+
+      - name: Upload associated context receipt
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: path-context-${{ github.job }}-${{ matrix.name }}-${{ steps.source.outputs.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/path-context/${{ matrix.name }}.json
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -238,12 +279,33 @@ jobs:
           platforms: linux/amd64
           push: false
           provenance: false
+          labels: org.opencontainers.image.revision=${{ steps.source.outputs.sha }}
           # The browser image is started below: it has to be in Docker.
-          load: ${{ matrix.name == 'browser' }}
-          tags: ${{ matrix.name == 'browser' && 'browser:ci' || '' }}
+          load: ${{ matrix.name == 'browser' || matrix.name == 'mcp-js' }}
+          tags: ${{ matrix.name == 'browser' && 'browser:ci' || (matrix.name == 'mcp-js' && 'mcp-js:ci' || '') }}
           cache-from: ${{ matrix.cache && format('type=gha,scope={0}', matrix.name) || '' }}
           # Pull requests can read main's cache; what they write stays theirs.
           cache-to: ${{ matrix.cache && format('type=gha,scope={0},mode=max,ignore-error=true', matrix.name) || '' }}
+
+      - name: Actual module-policy image smoke
+        timeout-minutes: 6
+        if: matrix.name == 'mcp-js'
+        env:
+          RECEIPT_FILE: ${{ runner.temp }}/module-fixture/receipt.json
+          EXPECTED_SOURCE: ${{ steps.source.outputs.sha }}
+        run: |
+          python3 -B images/mcp-js/module_fixture_receipt.py "$RECEIPT_FILE" "$EXPECTED_SOURCE" "$GITHUB_RUN_ID" "$GITHUB_JOB"
+          python3 -B images/mcp-js/test-module-policy-contract.py
+          python3 -B images/mcp-js/test-module-policy-image.py mcp-js:ci "$RECEIPT_FILE" "$EXPECTED_SOURCE" "$GITHUB_RUN_ID" "$GITHUB_JOB"
+
+      - name: Separate bounded module fixture receipt
+        if: ${{ !cancelled() && matrix.name == 'mcp-js' && steps.source.outcome == 'success' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: module-fixture-${{ steps.source.outputs.sha }}-${{ github.run_id }}-${{ github.job }}
+          path: ${{ runner.temp }}/module-fixture/receipt.json
+          if-no-files-found: warn
+          retention-days: 14
 
       # The image as a session pod runs it (uid 1000, no capabilities), with
       # its XFCE desktop checked on the real display: window manager, panel,
@@ -256,6 +318,7 @@ jobs:
         run: |
           docker image ls browser:ci
           images/browser/test/desktop-image-smoke.sh browser:ci desktop-smoke-out
+          bash images/browser/test/keyring-capability-image-smoke.sh browser:ci desktop-smoke-out/keyring-capabilities
 
       - name: Screenshots and logs of the smoke test
         if: matrix.name == 'browser' && !cancelled()

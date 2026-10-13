@@ -70,16 +70,22 @@ fi
 # One start at a time: two callers at once (a launcher click and a
 # browser_execute call) must not both find no browser and start one each.
 lock="$RUNTIME/chromium-start.lock"
+acquired=""
 for _ in $(seq 1 300); do
-  mkdir "$lock" 2>/dev/null && break
-  # A starter that died holding it.
-  if [ -n "$(find "$lock" -maxdepth 0 -mmin +1 2>/dev/null)" ]; then rmdir "$lock" 2>/dev/null || true; fi
+  if mkdir -m 700 "$lock" 2>/dev/null; then acquired=1; break; fi
+  # Never remove another starter's lock, even if it looks old.
   sleep 0.2
 done
-trap 'rmdir "$lock" 2>/dev/null || true' EXIT
+[ -n "$acquired" ] || { echo 'chromium: launch lock unavailable' >&2; exit 1; }
+owned_lock_identity="$(stat -c '%d:%i' "$lock")"
+release_launch_lock() {
+  [ "$(stat -c '%d:%i' "$lock" 2>/dev/null || true)" = "$owned_lock_identity" ] || return 0
+  rmdir "$lock" 2>/dev/null || true
+}
+trap release_launch_lock EXIT
 
 if [ -n "$(browser_pids)" ]; then
-  rmdir "$lock" 2>/dev/null || true
+  release_launch_lock
   trap - EXIT
   # Started without a window (BROWSER_START_HIDDEN) and none opened since:
   # the window this opens is its first, and is maximised like one.

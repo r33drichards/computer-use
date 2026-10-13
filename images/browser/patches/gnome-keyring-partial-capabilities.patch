@@ -1,0 +1,26 @@
+--- a/daemon/gkd-capability.c
++++ b/daemon/gkd-capability.c
+@@ -120,6 +120,10 @@
+ 			break;
+ 		case CAPNG_PARTIAL: { /* File system based capabilities */
+ 			capng_select_t set = CAPNG_SELECT_CAPS;
++			/* Snapshot before clear: never request a capability not granted
++			 * to this process (e.g. a container without IPC_LOCK). */
++			int retain_ipc_lock = capng_have_capability (CAPNG_PERMITTED,
++								 CAP_IPC_LOCK);
+ 			if (!capng_have_capability (CAPNG_EFFECTIVE,
+ 							    CAP_IPC_LOCK)) {
+ 				check_memlock ("insufficient process capabilities, insecure memory might get used");
+@@ -132,9 +136,10 @@
+ 				set = CAPNG_SELECT_BOTH;
+ 			}
+ 
+-			 /* Drop all capabilities except ipc_lock */
++			 /* Drop all capabilities; retain ipc_lock only if granted. */
+ 			capng_clear (CAPNG_SELECT_BOTH);
+-			if ((rc = capng_update (CAPNG_ADD,
++			if (retain_ipc_lock &&
++			    (rc = capng_update (CAPNG_ADD,
+ 						CAPNG_EFFECTIVE|CAPNG_PERMITTED,
+ 						CAP_IPC_LOCK)) != 0) {
+ 				early_error ("error updating process capabilities", rc);

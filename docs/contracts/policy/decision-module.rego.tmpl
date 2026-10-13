@@ -25,3 +25,11 @@ allow if {
 	input.url_parsed.scheme in {"http", "https"}
 	data.browserjs.tenant["{{SESSION_ID}}"].allow_tool_call == true
 }
+
+# Pinned loader redirects are not reauthorized. Only an explicit context-free
+# full module-network grant can permit retrieval; no URL/model-supplied grant.
+allow if {
+	input.resolved_url == input.specifier
+	input.url_parsed.scheme in {"http", "https"}
+	data.browserjs.tenant["{{SESSION_ID}}"].allow_unrestricted_modules == true with input as {}
+}

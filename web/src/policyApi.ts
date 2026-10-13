@@ -265,10 +265,11 @@ export function updatedByLabel(by?: string): string {
   return `by ${by}`
 }
 
-const UNRESTRICTED = "package computeruse.policy import rego.v1 allow_tool_call := true".replace(/\s+/g, "")
+const UNRESTRICTED = "package computeruse.policy import rego.v1 allow_tool_call := true allow_unrestricted_modules := true".replace(/\s+/g, "")
 
 // True for the `unrestricted` preset: the module that, with its comments and
-// whitespace removed, is the package, the import and `allow_tool_call := true`.
+// whitespace removed, includes BOTH explicit true grants in the canonical preset.
+// Legacy tool-only grants are not labelled unrestricted; this never grants authority.
 // Anything else may restrict something, and is not called unrestricted.
 export function isUnrestricted(p: Pick<Policy, "kind" | "source">): boolean {
   if (p.kind !== "rego" || !p.source) return false

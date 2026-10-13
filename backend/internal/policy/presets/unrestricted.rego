@@ -8,3 +8,6 @@ import rego.v1
 # and desktop_execute on server "browser"; exec, stream_logs, search_logs and
 # kill on server "exec". This allows all of them, with any arguments.
 allow_tool_call := true
+
+# Explicit full module transport authority (including redirects/npm/jsr).
+allow_unrestricted_modules := true

@@ -8,6 +8,8 @@ COPY . .
 # exec-smoke does the same for shell commands (mcp-exec, as the entrypoint
 # starts it), and checks that a web page's requests to it are refused.
 RUN nix --extra-experimental-features "nix-command flakes" --option filter-syscalls false \
+      build -L --no-link .#keyring-smoke \
+ && nix --extra-experimental-features "nix-command flakes" --option filter-syscalls false \
       build -L --no-link .#desktop-smoke \
  && nix --extra-experimental-features "nix-command flakes" --option filter-syscalls false \
       build -L --no-link .#exec-smoke \
