@@ -3,6 +3,7 @@ package sessions
 import (
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -28,6 +29,9 @@ type URLTemplate struct {
 	port   string // "" for the scheme's own port
 	inPath bool   // the path form
 }
+
+// hostName is a template host once lower-cased: dotted, non-empty labels.
+var hostName = regexp.MustCompile(`^[a-z0-9_-]+(\.[a-z0-9_-]+)*$`)
 
 var defaultPorts = map[string]string{"http": "80", "https": "443"}
 
@@ -70,6 +74,12 @@ func ParseURLTemplate(s string) (*URLTemplate, error) {
 	host, port := hosts.Split(u.Host)
 	if host == "" || strings.ContainsAny(host, " :") {
 		return bad("needs a host besides " + idPlaceholder)
+	}
+	// Only dotted names of plain labels: with an empty label ("..") or bytes
+	// that lower-casing rewrites, Match would not read back a URL made from
+	// the host.
+	if !hostName.MatchString(host) {
+		return bad("host must be dotted labels of letters, digits, - and _")
 	}
 	if port != "" {
 		if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {

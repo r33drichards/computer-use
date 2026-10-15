@@ -171,6 +171,20 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 
 ## Log
 
+- 2026-10-15: nightly `quality` on main had been red since 2026-10-11 with two
+  causes. (1) Every `tla+` leg failed at the sha256 check again: v1.8.0's
+  `tla2tools.jar` is rebuilt daily (Build-TimeStamp is the same day), so no
+  pin of it can hold. Pinned v1.7.4 (final, last modified 2024-08-08) instead;
+  all six `spec/opa-replacement` configs give the expected outcome with it.
+  (2) The 10-minute nightly fuzz found a real bug in `ParseURLTemplate`: a host
+  with an empty label or non-ASCII bytes (`http://{id}...`) was accepted but
+  Match did not read its URLs back. The host must now be dotted labels of
+  `[a-z0-9_-]`; both inputs are committed seeds under
+  `backend/internal/sessions/testdata/fuzz/`. A 90 s fuzz run is clean after
+  the fix. Open: PR #192 (fuzz `hosts.Split`/`auth.SameHost`, Dependabot, backlog
+  1 and 6) is red only because of the TLA+ pin; it needs this branch merged
+  into it. Next: backlog 2-5.
+
 - 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
   and stores only complete baselines (+ nightly renewal); matrix values go
   through `env:`; fuzz legs use their own module's `go.mod`; `tlc-check.sh`

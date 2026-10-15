@@ -30,11 +30,13 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # The tlaplus project republishes v1.8.0's tla2tools.jar (it is a rolling
-  # pre-release), so this hash follows the asset, not the version: when every
-  # tla+ job fails at "sha256sum --check", re-pin to the current asset's hash.
-  TLA2TOOLS_VERSION: v1.8.0
-  TLA2TOOLS_SHA256: 7beec0f04818732a62fa193731711a99aa4f11279499b2360a7d156c519ea78d
+  # v1.8.0 is a rolling pre-release: the tlaplus project rebuilds its
+  # tla2tools.jar daily, so no hash of it stays valid (it rotted twice, on
+  # 2026-10-06 and 2026-10-11). Pin a release that is never rebuilt; move to
+  # a newer one only when it is a dated, final release (check the asset's
+  # Last-Modified does not change between two days).
+  TLA2TOOLS_VERSION: v1.7.4
+  TLA2TOOLS_SHA256: 936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88
 
 jobs:
   # The gating scripts' own tests (test/ci).
