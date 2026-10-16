@@ -171,6 +171,16 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 
 ## Log
 
+- 2026-10-16: nightly `quality` on main had been red since at least 10-13:
+  (1) every tla+ leg failed the `tla2tools.jar` sha256 check again, because
+  v1.8.0 is a rolling pre-release; pinned to the immutable `v1.7.4` tag
+  instead (all six configs give the expected holds/violations). (2) the
+  nightly fuzz found a real bug: template `http://{id}...` parsed but `Match`
+  could not read its URLs back (empty host label); `ParseURLTemplate` now
+  rejects empty labels, seed in `testdata/fuzz/FuzzURLTemplate/dotonly`.
+  Open PR #192 (more fuzz targets + Dependabot, backlog 1 and 6) is still
+  unmerged; merge it rather than redoing it. Lesson: read the nightly runs on
+  main first; a red schedule run is the signal nobody is watching.
 - 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
   and stores only complete baselines (+ nightly renewal); matrix values go
   through `env:`; fuzz legs use their own module's `go.mod`; `tlc-check.sh`

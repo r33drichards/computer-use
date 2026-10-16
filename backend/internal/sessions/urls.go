@@ -71,6 +71,11 @@ func ParseURLTemplate(s string) (*URLTemplate, error) {
 	if host == "" || strings.ContainsAny(host, " :") {
 		return bad("needs a host besides " + idPlaceholder)
 	}
+	// An empty label ("{id}..", ".example.com") is not a host a request can
+	// carry back: Split drops a trailing dot, so Match could not read it.
+	if strings.HasPrefix(host, ".") || strings.HasSuffix(host, ".") || strings.Contains(host, "..") {
+		return bad("host has an empty label")
+	}
 	if port != "" {
 		if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {
 			return bad("port is not a number")
