@@ -140,6 +140,20 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 - Unused Python imports removed (6 files); `hack/lib.sh` `cd` without
   `|| return`.
 
+## Fixed in the 2026-10-17 pass
+
+- Nightly `quality` on main had failed since at least 10-14 (4 runs):
+  (1) every `tla+` job: the v1.8.0 `tla2tools.jar` asset is republished under
+  its tag, so the sha256 pin broke again; now pinned to the fixed v1.7.4
+  release (all 6 configs give the expected result). Never pin a rolling
+  release. (2) `FuzzURLTemplate` found a real bug: a template host with an
+  empty label (`http://{id}.00000000..`) made URLs `Match` could not read
+  back. `ParseURLTemplate` now rejects it; the input is a committed seed.
+- Local TLC runs must not share `/tmp` concurrently (standard-module
+  extraction races): run configs one at a time or with separate `TMPDIR`s.
+- PR #192 (fuzz `hosts.Split`/`auth.SameHost`, Dependabot) from an earlier
+  loop is still open; backlog items 1 and 6 wait on it.
+
 ## Backlog (in order)
 
 0. Coverage: measure the gaps above; raise `backend` from 59.9% (list the
@@ -170,6 +184,9 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 4. Update the matrix, the backlog and the log below.
 
 ## Log
+
+- 2026-10-17: fixed the two nightly failures above (TLA+ pin, URL template
+  fuzz bug). Checked: all TLC configs, fuzz 60 s clean, `go test`, gofmt, vet.
 
 - 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
   and stores only complete baselines (+ nightly renewal); matrix values go
