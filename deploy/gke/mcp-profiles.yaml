@@ -1,0 +1,9 @@
+profiles:
+  nocodb:
+    fetchHeaderSecret:
+      name: mcp-profile-nocodb
+      key: fetch-header-config
+    instructions: '@/etc/mcp/profiles/nocodb/instructions.md'
+    skillsDirs:
+      - /etc/mcp/skills
+      - /etc/mcp/profiles/nocodb/skills

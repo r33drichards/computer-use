@@ -58,6 +58,9 @@ type Store struct {
 	// See policy.go. policies is nil when sessions get no SessionPolicy.
 	policies      dynamic.ResourceInterface
 	defaultPolicy PolicySpec
+
+	// Operator-defined, secret-backed mcp-js configurations.
+	mcpProfiles map[string]MCPProfile
 }
 
 // NewStore parses blueprint (see deploy/base/blueprint.yaml for the format).
@@ -167,6 +170,12 @@ func (s *Store) CreateSized(ctx context.Context, name, owner, size string, asked
 	}
 	// A canary session has images no warm pod runs: it starts cold.
 	canary := imageDigests(ctx)
+	profile := mcpProfileFrom(ctx)
+	if profile != "" {
+		if _, ok := s.mcpProfiles[profile]; !ok {
+			return Session{}, fmt.Errorf("%w: %q", ErrMCPProfile, profile)
+		}
+	}
 	if canary != nil {
 		if err := CheckImageDigests(canary); err != nil {
 			return Session{}, err
@@ -176,7 +185,7 @@ func (s *Store) CreateSized(ctx context.Context, name, owner, size string, asked
 	if diskGB < 0 {
 		return Session{}, ErrInvalidDisk
 	}
-	if s.warmPool != "" && canary == nil && size == DefaultSize && (diskGB == 0 || diskGB == diskGBOf(s.small)) {
+	if s.warmPool != "" && canary == nil && profile == "" && size == DefaultSize && (diskGB == 0 || diskGB == diskGBOf(s.small)) {
 		warm, err := s.createWarm(ctx, name, owner, policy)
 		if err == nil {
 			return warm, nil
@@ -212,6 +221,12 @@ func (s *Store) CreateSized(ctx context.Context, name, owner, size string, asked
 	spec["operatingMode"] = "Running"
 	// Its idle period starts now (activity.go).
 	annotations[AnnLastActive] = time.Now().UTC().Format(timeLayout)
+	if profile != "" {
+		if err := s.applyMCPProfile(spec, profile); err != nil {
+			return Session{}, err
+		}
+		annotations[AnnMCPProfile] = profile
+	}
 	if canary != nil {
 		if err := applyImageDigests(spec, canary); err != nil {
 			return Session{}, err

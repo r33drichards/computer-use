@@ -39,13 +39,21 @@ type Sizer interface {
 	Resize(ctx context.Context, id, size string) error
 }
 
+// MCPProfiler is implemented by stores configured with operator-defined,
+// secret-backed mcp-js profiles. Profile contents never cross the API.
+type MCPProfiler interface {
+	MCPProfiles() []string
+	SetMCPProfile(ctx context.Context, id, name string) error
+}
+
 type API struct {
-	store     Store
-	sizer     Sizer // nil: small only
-	diskFlags DiskFlagClient
-	authz     authz.Checker
-	urls      *sessions.URLTemplate
-	cap       int
+	store       Store
+	sizer       Sizer       // nil: small only
+	mcpProfiler MCPProfiler // nil: no MCP profiles
+	diskFlags   DiskFlagClient
+	authz       authz.Checker
+	urls        *sessions.URLTemplate
+	cap         int
 
 	// The lock is per user, and this replica's: it keeps the same user's
 	// creates here from interleaving. A create on another replica is
@@ -60,6 +68,9 @@ type API struct {
 
 	// Who may ask for a canary session (see SetCanary). Empty: nobody.
 	canary map[string]bool
+	// Who may select an operator-defined MCP profile. As with canaries this
+	// is by subject, because an API token is never itself an admin.
+	mcpProfileUsers map[string]bool
 
 	onCreated func(id string) // nil: nothing (see OnCreated)
 }
@@ -77,13 +88,24 @@ func (a *API) SetCanary(emails []string) {
 	}
 }
 
+// SetMCPProfileUsers names the identities whose requests may select one of
+// the profiles configured by the deployment. It grants no access to profile
+// contents or Kubernetes Secrets.
+func (a *API) SetMCPProfileUsers(emails []string) {
+	a.mcpProfileUsers = map[string]bool{}
+	for _, email := range emails {
+		a.mcpProfileUsers[email] = true
+	}
+}
+
 // OnCreated has f called with the ID of each session this API creates or
 // adopts from the warm pool, after it is made. f must not block.
 func (a *API) OnCreated(f func(id string)) { a.onCreated = f }
 
 func New(store Store, az authz.Checker, urls *sessions.URLTemplate, maxPerUser int) *API {
 	sizer, _ := store.(Sizer)
-	return &API{store: store, sizer: sizer, authz: az, urls: urls, cap: maxPerUser, petName: petName}
+	mcpProfiler, _ := store.(MCPProfiler)
+	return &API{store: store, sizer: sizer, mcpProfiler: mcpProfiler, authz: az, urls: urls, cap: maxPerUser, petName: petName}
 }
 
 // petName is an adjective and an animal, like "brave-otter".
@@ -216,6 +238,10 @@ func (a *API) storeError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, sessions.ErrInvalidName), errors.Is(err, sessions.ErrInvalidAction), errors.Is(err, sessions.ErrCanary), errors.Is(err, sessions.ErrInvalidSize):
 		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, sessions.ErrMCPProfile):
+		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, sessions.ErrMCPProfileState):
+		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, sessions.ErrSnapshotRestartPolicy):
 		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, sessions.ErrNoCapacity):
@@ -252,6 +278,18 @@ func (a *API) me(w http.ResponseWriter, _ *http.Request, u auth.User) {
 }
 
 // offered is the sizes a session can have here, small first.
+func (a *API) hasMCPProfile(want string) bool {
+	if a.mcpProfiler == nil || want == "" {
+		return false
+	}
+	for _, name := range a.mcpProfiler.MCPProfiles() {
+		if name == want {
+			return true
+		}
+	}
+	return false
+}
+
 func (a *API) offered() []sessions.SizeInfo {
 	if a.sizer == nil {
 		return []sessions.SizeInfo{{Name: sessions.DefaultSize, Warm: true}}
@@ -312,7 +350,8 @@ func (a *API) create(w http.ResponseWriter, r *http.Request, u auth.User) {
 		DiskGB int           `json:"diskGB"`
 		Policy *policy.Input `json:"policy"`
 		// Container name to image digest: see SetCanary.
-		Canary map[string]string `json:"canary"`
+		Canary     map[string]string `json:"canary"`
+		MCPProfile string            `json:"mcpProfile"`
 	}
 	// The name is optional, and so is a body that would only carry it.
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, a.maxCreateBody())).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
@@ -346,6 +385,17 @@ func (a *API) create(w http.ResponseWriter, r *http.Request, u auth.User) {
 			return
 		}
 		ctx = sessions.WithImageDigests(ctx, body.Canary)
+	}
+	if body.MCPProfile != "" {
+		if !a.mcpProfileUsers[u.Subject] {
+			writeError(w, http.StatusForbidden, "MCP profiles are for the deployment admin")
+			return
+		}
+		if !a.hasMCPProfile(body.MCPProfile) {
+			writeError(w, http.StatusBadRequest, "unknown MCP profile")
+			return
+		}
+		ctx = sessions.WithMCPProfile(ctx, body.MCPProfile)
 	}
 
 	// Checked before anything is created: an invalid policy creates nothing.
@@ -472,13 +522,35 @@ func (a *API) get(w http.ResponseWriter, r *http.Request, id string) {
 
 func (a *API) patch(w http.ResponseWriter, r *http.Request, id string) {
 	var body struct {
-		Name   *string `json:"name"`
-		Action string  `json:"action"`
-		Size   *string `json:"size"`
-		DiskGB *int    `json:"diskGB"`
+		Name       *string `json:"name"`
+		Action     string  `json:"action"`
+		Size       *string `json:"size"`
+		DiskGB     *int    `json:"diskGB"`
+		MCPProfile *string `json:"mcpProfile"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "body must be JSON")
+		return
+	}
+	if body.MCPProfile != nil {
+		u, _ := auth.UserFrom(r.Context())
+		if body.Name != nil || body.Size != nil || body.DiskGB != nil || body.Action != "" {
+			writeError(w, http.StatusBadRequest, "mcpProfile must be changed in its own request")
+			return
+		}
+		if !a.mcpProfileUsers[u.Subject] {
+			writeError(w, http.StatusForbidden, "MCP profiles are for the deployment admin")
+			return
+		}
+		if !a.hasMCPProfile(*body.MCPProfile) {
+			writeError(w, http.StatusBadRequest, "unknown MCP profile")
+			return
+		}
+		if err := a.mcpProfiler.SetMCPProfile(r.Context(), id, *body.MCPProfile); err != nil {
+			a.storeError(w, err)
+			return
+		}
+		a.get(w, r, id)
 		return
 	}
 	if err := a.mayResume(r.Context(), id, body.Action); err != nil {

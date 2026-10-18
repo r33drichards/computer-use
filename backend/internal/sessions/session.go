@@ -107,6 +107,7 @@ type Session struct {
 	DiskGB      int    `json:"diskGB,omitempty"`
 	Size        string `json:"size"`
 	PendingSize string `json:"pendingSize,omitempty"`
+	MCPProfile  string `json:"mcpProfile,omitempty"`
 	PodIP       string `json:"-"`
 	Node        string `json:"-"` // the node its pod is scheduled to, if any
 	// PolicyCapable is whether the session's mcp-js asks OPA for decisions,
@@ -155,10 +156,11 @@ func conditions(obj *unstructured.Unstructured) map[string]condition {
 func FromSandbox(obj *unstructured.Unstructured) Session {
 	spec, _ := obj.Object["spec"].(map[string]any)
 	s := Session{
-		ID:      obj.GetName(),
-		Name:    obj.GetAnnotations()[AnnName],
-		Owner:   obj.GetAnnotations()[AnnOwner],
-		Created: obj.GetCreationTimestamp().Time,
+		ID:         obj.GetName(),
+		Name:       obj.GetAnnotations()[AnnName],
+		Owner:      obj.GetAnnotations()[AnnOwner],
+		Created:    obj.GetCreationTimestamp().Time,
+		MCPProfile: obj.GetAnnotations()[AnnMCPProfile],
 
 		PolicyCapable:  PolicyCapable(obj),
 		WebhookCapable: WebhookCapable(obj),

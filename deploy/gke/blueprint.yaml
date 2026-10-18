@@ -119,6 +119,7 @@ podTemplate:
           # Native pre hook records attempts; existing policies authorize every call.
           # Session policy: every tool call and fetch request is also put to the shared OPA, at
           # this session's own path. Written by hack/policy-stage.sh.
+          # Fetch policy runs before @inject so injected credentials are never sent to OPA.
           - name: MCP_V8_POLICIES_JSON
             value: >-
               {"mcp_tools":{"pre":[
@@ -126,7 +127,7 @@ podTemplate:
               "mode":"all","policies":[
               {"url":"file:///etc/mcp/mcp_tools.rego"},
               {"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/{{ .ID }}/mcp_tools"}]},
-              "filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]},"fetch":{"mode":"all","policies":[{"url":"file:///etc/mcp/fetch.rego"},{"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/{{ .ID }}/mcp_tools"}]}}
+              "filesystem":{"policies":[{"url":"file:///etc/mcp/filesystem.rego"}]},"fetch":{"mode":"all","stack":["@policy","@inject","@execute"],"policies":[{"url":"file:///etc/mcp/fetch.rego"},{"url":"http://opa.browserjs-sessions.svc:8181","policy_path":"browserjs/decision/{{ .ID }}/mcp_tools"}]}}
         ports:
           - name: mcp
             containerPort: 8080

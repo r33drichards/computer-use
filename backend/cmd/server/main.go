@@ -13,6 +13,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -120,6 +121,18 @@ func run() error {
 			return err
 		}
 		slog.Info("session sizes", "sizes", store.Sizes(), "capacity", file.Capacity)
+	}
+	if cfg.MCPProfilesPath != "" {
+		raw, err := os.ReadFile(cfg.MCPProfilesPath)
+		if err != nil {
+			return fmt.Errorf("MCP_PROFILES_PATH: %w", err)
+		}
+		profiles, err := sessions.ParseMCPProfiles(raw)
+		if err != nil {
+			return err
+		}
+		store.EnableMCPProfiles(profiles)
+		slog.Info("MCP profiles", "profiles", store.MCPProfiles())
 	}
 	if cfg.Snapshots {
 		store.EnableSnapshots(dyn, cfg.Namespace, sessions.SnapshotOptions{Timeout: cfg.SnapshotTimeout})
@@ -329,6 +342,9 @@ func newHandlerWith(cfg config.Config, verifier auth.Verifier, store *sessions.S
 	// The release's canary (docs/releases.md): the admins, by address, may
 	// start a session on other digests of the session images.
 	sessionAPI.SetCanary(cfg.AdminEmails)
+	// Profiles are likewise selected by admin identities even through API
+	// tokens, which deliberately never carry the admin bit.
+	sessionAPI.SetMCPProfileUsers(cfg.AdminEmails)
 
 	sessionAPI.EnablePolicies(policies)
 	// A new session's Chromium starts in the background, ready for the first
