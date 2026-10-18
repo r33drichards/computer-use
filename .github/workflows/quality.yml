@@ -34,7 +34,7 @@ env:
   # pre-release), so this hash follows the asset, not the version: when every
   # tla+ job fails at "sha256sum --check", re-pin to the current asset's hash.
   TLA2TOOLS_VERSION: v1.8.0
-  TLA2TOOLS_SHA256: 7beec0f04818732a62fa193731711a99aa4f11279499b2360a7d156c519ea78d
+  TLA2TOOLS_SHA256: 15d103b7e5617780bcc904c0af12f1ad242e2b345c0301136c5be4588f17edac
 
 jobs:
   # The gating scripts' own tests (test/ci).
