@@ -73,6 +73,31 @@ jobs:
           location: us-west1-a
           use_dns_based_endpoint: true
 
+      - name: Sync NocoDB MCP profile secret
+        env:
+          FETCH_HEADERS: ${{ secrets.NOCODB_MCP_FETCH_HEADER_CONFIG }}
+        run: |
+          [ -n "$FETCH_HEADERS" ] || { echo '::error::NOCODB_MCP_FETCH_HEADER_CONFIG is required'; exit 1; }
+          # Validate without printing the secret. This profile must inject one
+          # xc-token only on the exact NocoDB host.
+          jq -e '
+            type == "array" and length == 1 and
+            (.[0] | type == "object" and keys == ["headers", "host", "override"]) and
+            .[0].host == "nocodb-render-mvp.onrender.com" and
+            (.[0].headers | type == "object" and keys == ["xc-token"] and
+              (.["xc-token"] | type == "string" and length > 0)) and
+            (.[0].override == true)
+          ' <<<"$FETCH_HEADERS" >/dev/null || {
+            echo '::error::NOCODB_MCP_FETCH_HEADER_CONFIG is not the expected one-host xc-token rule'
+            exit 1
+          }
+          umask 077
+          file="$RUNNER_TEMP/nocodb-fetch-headers.json"
+          printf '%s' "$FETCH_HEADERS" >"$file"
+          kubectl -n "$NS" create secret generic mcp-profile-nocodb \
+            --from-file=fetch-header-config="$file" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+          rm -f "$file"
+
       - name: Bootstrap session capacity lease
         # Argo CD excludes Leases, so this must precede the new backend.
         run: kubectl apply -f deploy/gke/session-capacity.yaml

@@ -56,14 +56,24 @@ spec:
               value: "true"
             - name: FEATURE_FLAGS_PATH
               value: /etc/browserjs-flags/flags.json
+            # Non-secret profile definitions. Header values live only in the
+            # Kubernetes Secrets referenced by this file.
+            - name: MCP_PROFILES_PATH
+              value: /etc/browserjs-mcp-profiles/profiles.yaml
             - name: WARM_POOL
               value: s
 
           volumeMounts:
+            - name: mcp-profiles
+              mountPath: /etc/browserjs-mcp-profiles
+              readOnly: true
             - name: feature-flags
               mountPath: /etc/browserjs-flags
               readOnly: true
       volumes:
+        - name: mcp-profiles
+          configMap:
+            name: mcp-profiles
         - name: feature-flags
           configMap:
             name: feature-flags

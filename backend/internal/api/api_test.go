@@ -23,6 +23,7 @@ import (
 	"github.com/r33drichards/computer-use/backend/internal/sessions"
 	"github.com/r33drichards/computer-use/backend/internal/sessions/sessionstest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type fixture struct {
@@ -685,4 +686,115 @@ func TestCreateAnnouncesTheSession(t *testing.T) {
 	if len(got) != 2 {
 		t.Errorf("announced %d sessions for two creates and a refused one", len(got))
 	}
+}
+
+func TestMCPProfilesAreForNamedAddressesOnly(t *testing.T) {
+	store, client := sessionstest.New(t)
+	store.EnableMCPProfiles(testProfiles(t))
+	mux := http.NewServeMux()
+	a := api.New(store, authz.NewOwners(store, 0), sessionstest.URLs(), 2)
+	a.SetMCPProfileUsers([]string{"root@example.com"})
+	a.Register(mux)
+	f := &fixture{t: t, handler: mux, api: a, store: store, client: client}
+
+	token := auth.User{Subject: "root@example.com"}
+	rec := f.do(token, "POST", "/api/sessions", `{"name":"integrated","mcpProfile":"nocodb"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("named address: %d %s", rec.Code, rec.Body)
+	}
+	got := decode[session](t, rec)
+	if got.MCPProfile != "nocodb" {
+		t.Errorf("profile = %q", got.MCPProfile)
+	}
+	obj, err := client.Resource(sessions.SandboxGVR).Namespace(sessionstest.Namespace).Get(t.Context(), got.ID, metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if obj.GetAnnotations()[sessions.AnnMCPProfile] != "nocodb" {
+		t.Errorf("annotation = %q", obj.GetAnnotations()[sessions.AnnMCPProfile])
+	}
+
+	for name, c := range map[string]struct {
+		user auth.User
+		body string
+		want int
+	}{
+		"somebody else":   {alice, `{"mcpProfile":"nocodb"}`, http.StatusForbidden},
+		"admin bit alone": {auth.User{Subject: "other@example.com", Admin: true}, `{"mcpProfile":"nocodb"}`, http.StatusForbidden},
+		"unknown":         {token, `{"mcpProfile":"missing"}`, http.StatusBadRequest},
+	} {
+		rec := f.do(c.user, "POST", "/api/sessions", c.body)
+		if rec.Code != c.want {
+			t.Errorf("%s: %d %s, want %d", name, rec.Code, rec.Body, c.want)
+		}
+	}
+}
+
+func TestMCPProfileRetrofitRequiresAuthorizedCleanStop(t *testing.T) {
+	store, client := sessionstest.New(t)
+	store.EnableMCPProfiles(testProfiles(t))
+	mux := http.NewServeMux()
+	a := api.New(store, authz.NewOwners(store, 0), sessionstest.URLs(), 3)
+	a.SetMCPProfileUsers([]string{"root@example.com"})
+	a.Register(mux)
+	f := &fixture{t: t, handler: mux, api: a, store: store, client: client}
+
+	root := auth.User{Subject: "root@example.com"}
+	s, err := store.Create(t.Context(), "existing", root.Subject)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec := f.do(root, "PATCH", "/api/sessions/"+s.ID, `{"mcpProfile":"nocodb"}`); rec.Code != http.StatusConflict {
+		t.Fatalf("running retrofit: %d %s", rec.Code, rec.Body)
+	}
+	if rec := f.do(root, "PATCH", "/api/sessions/"+s.ID, `{"name":"changed","mcpProfile":"nocodb"}`); rec.Code != http.StatusBadRequest {
+		t.Fatalf("mixed retrofit: %d %s", rec.Code, rec.Body)
+	}
+
+	resource := client.Resource(sessions.SandboxGVR).Namespace(sessionstest.Namespace)
+	obj, err := resource.Get(t.Context(), s.ID, metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := unstructured.SetNestedField(obj.Object, "Suspended", "spec", "operatingMode"); err != nil {
+		t.Fatal(err)
+	}
+	ann := obj.GetAnnotations()
+	ann[sessions.AnnStoppedBy] = sessions.StoppedByUser
+	obj.SetAnnotations(ann)
+	if err := unstructured.SetNestedSlice(obj.Object, []any{map[string]any{"type": "Suspended", "status": "True"}}, "status", "conditions"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := resource.Update(t.Context(), obj, metav1.UpdateOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	resp := f.do(root, "PATCH", "/api/sessions/"+s.ID, `{"mcpProfile":"nocodb"}`)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("stopped retrofit: %d %s", resp.Code, resp.Body)
+	}
+	if got := decode[session](t, resp); got.MCPProfile != "nocodb" {
+		t.Errorf("profile = %q", got.MCPProfile)
+	}
+
+	ownedByAlice, err := store.Create(t.Context(), "other", alice.Subject)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec := f.do(alice, "PATCH", "/api/sessions/"+ownedByAlice.ID, `{"mcpProfile":"nocodb"}`); rec.Code != http.StatusForbidden {
+		t.Fatalf("non-admin owner: %d %s", rec.Code, rec.Body)
+	}
+}
+
+func testProfiles(t *testing.T) sessions.MCPProfilesFile {
+	t.Helper()
+	profiles, err := sessions.ParseMCPProfiles([]byte(`profiles:
+  nocodb:
+    fetchHeaderSecret: {name: mcp-profile-nocodb, key: fetch-header-config}
+    instructions: '@/etc/mcp/profiles/nocodb/instructions.md'
+    skillsDirs: [/etc/mcp/skills, /etc/mcp/profiles/nocodb/skills]
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return profiles
 }

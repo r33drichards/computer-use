@@ -35,7 +35,8 @@ is added when there is something to say about `starting` or `failed`.
 way there) has a snapshot to wake from; without it the session starts fresh
 from its disk. `size` is `small`, `medium` or `large`
 ([Session sizes](/reference/session-sizes)); `pendingSize` is added while a
-change of size waits for the session's next start. An ID
+change of size waits for the session's next start. `mcpProfile` is added when
+an operator profile is active; it is the public profile name, never its secret. An ID
 is `s-` and five or ten lower-case characters.
 
 `policy` summarizes the session's policy: its kind, version, state, management
@@ -54,9 +55,9 @@ Paths are under `/api` on the app's host and under `/v1` on the API host.
 | `GET /me` | Who is calling | `200` |
 | `GET /sessions` | Lists your sessions | `200` array |
 | `GET /sizes` | Lists the sizes a session can have, and what each gives the desktop | `200` `{default, sizes: [{name, cpuMillis, memoryMiB, warm}]}` |
-| `POST /sessions` | Creates one. Body `{"name": "...", "size": "small" \| "medium" \| "large"}`, all fields optional; the size defaults to `small`. Also accepts `policy: {kind: "rego", source: "...", management?}` | `201` session. `409` at the limit, or when there is no room for the size (`"code": "no_capacity"`). `400` for a bad name or size |
+| `POST /sessions` | Creates one. Body `{"name": "...", "size": "small" \| "medium" \| "large"}`, all fields optional; the size defaults to `small`. Also accepts `policy: {kind: "rego", source: "...", management?}` and operator-only `mcpProfile: "name"` | `201` session. `409` at the limit, or when there is no room for the size (`"code": "no_capacity"`). `400` for a bad name or size |
 | `GET /sessions/{id}` | Reads one | `200` session |
-| `PATCH /sessions/{id}` | Renames, resizes, stops or resumes. Body `{"name": "...", "size": "...", "action": "stop" \| "resume"}`, all optional | `200` session. `400` for a bad name, size or action, and then nothing of the request is done. `409` (`no_capacity`) when a resume finds no room |
+| `PATCH /sessions/{id}` | Renames, resizes, stops or resumes. Body `{"name": "...", "size": "...", "action": "stop" \| "resume"}`, all optional. An operator may set `mcpProfile` in a request of its own while the session is fully stopped | `200` session. `400` for a bad name, size or action, and then nothing of the request is done. `409` (`no_capacity`) when a resume finds no room |
 | `POST /sessions/{id}/sleep` | Puts a running session to sleep: takes a snapshot, then removes the desktop. Answers when the snapshot is done, which takes seconds. No body | `200` session. `409` if it is starting, stopping, stopped or failed |
 | `POST /sessions/{id}/wake` | Starts a session that is asleep (from its snapshot) or stopped (fresh). Does not wait for it to run. No body | `200` session. `402` or `403` if billing refuses. `409` (`no_capacity`) when there is no room for its size |
 | `DELETE /sessions/{id}` | Deletes it and its disk | `204` |
@@ -64,6 +65,10 @@ Paths are under `/api` on the app's host and under `/v1` on the API host.
 A session that is not yours answers `404`, like one that does not exist.
 With a token, every route that changes a session needs the scope
 `sessions:write`; without it the answer is `403`.
+
+MCP profiles are deployment-defined, secret-backed mcp-js configurations. Only
+the deployment admin identity may select one, even through an API token. See
+[the operator guide](https://github.com/r33drichards/computer-use/blob/main/docs/mcp-profiles.md).
 
 `sleep` is what happens to an idle session, asked for. It answers `200` and
 changes nothing if the session is already asleep. If the snapshot could not

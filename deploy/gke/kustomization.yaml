@@ -65,6 +65,9 @@ configMapGenerator:
   - name: feature-flags
     files:
       - flags.json=feature-flags.json
+  - name: mcp-profiles
+    files:
+      - profiles.yaml=mcp-profiles.yaml
   - name: session-slot-controller
     files:
       - session-slots.py

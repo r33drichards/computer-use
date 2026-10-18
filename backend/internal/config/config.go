@@ -42,8 +42,11 @@ type Config struct {
 	// be there: every session is then small.
 	SizesPath        string
 	FeatureFlagsPath string
-	WarmCapacity     bool
-	WebDir           string // built UI to serve
+	// MCPProfilesPath names an optional operator-controlled YAML file of
+	// secret-backed mcp-js profiles.
+	MCPProfilesPath string
+	WarmCapacity    bool
+	WebDir          string // built UI to serve
 
 	// Passed through to the UI in /config.js.
 	SignOutURL string
@@ -133,6 +136,7 @@ func FromEnv(get func(string) string) (Config, error) {
 		SignOutURL:       or("SIGN_OUT_URL", "/.pomerium/sign_out"),
 		WarmPool:         get("WARM_POOL"),
 		FeatureFlagsPath: get("FEATURE_FLAGS_PATH"),
+		MCPProfilesPath:  get("MCP_PROFILES_PATH"),
 		WarmCapacity:     get("WARM_CAPACITY") == "true",
 	}
 	c.SizesPath = or("SIZES_PATH", filepath.Join(filepath.Dir(c.BlueprintPath), "sizes.yaml"))
