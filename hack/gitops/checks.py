@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Require every check of the merged PR's tested head before publishing."""
+"""Require every check of the merged PR's tested head before publishing.
+
+Repin rolling test dependencies on the PR itself: rerunning a merged head keeps
+that head's workflow definition, not a later fix from main.
+"""
 import json
 import os
 import subprocess
