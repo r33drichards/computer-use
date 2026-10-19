@@ -146,14 +146,14 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
    lowest packages with `go tool cover -func`); a floor per component.
 
 1. More Go fuzz targets: webhook payload parsers (`billing/stripe`,
-   `billing/metronome`), `hosts.Split`, `auth.SameHost`, policy JSON bodies.
+   `billing/metronome`), policy JSON bodies. (`hosts.Split` and
+   `auth.SameHost` done 2026-10-13.)
 2. `cargo fuzz` for the SDK's request/response decoding (the SDK is the
    native-code surface; also try valgrind on the provider's cgo link).
 3. ESLint and a formatter (prettier or biome) for `web/` and `site/`.
 4. `ruff format` baseline commit, then `ruff format --check` in CI.
 5. Staticcheck for `terraform-provider-*`; drop the ST exclusions.
-6. Dependency and supply-chain checks: Dependabot for actions, Go, Cargo,
-   npm; `govulncheck`, `cargo audit`, `npm audit`; secret scanning.
+6. Dependency and supply-chain checks: (Dependabot done 2026-10-13); `govulncheck`, `cargo audit`, `npm audit`; secret scanning.
 7. More TLA+: the lease/capacity, drain and autoscale logic
    (`backend/internal/sessions/capacity.go`, `docs/warm-pool.md`) have no spec.
 8. Required status checks: make `quality / report`'s jobs required in branch
@@ -170,6 +170,16 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 4. Update the matrix, the backlog and the log below.
 
 ## Log
+
+- 2026-10-13: scheduled loop. PR #182 is merged; no new components or specs
+  since. Added `FuzzSplit` (`backend/internal/hosts`) and `FuzzSameHost`
+  (`backend/internal/auth`), 20-30 s local runs clean (an early idempotence
+  property for `Split` was wrong: `Split("..")` trims once; Unicode case
+  mapping does not round-trip; the checks now say only what holds), and
+  `.github/dependabot.yml` (actions, Go x4, Cargo, npm x4, Docker x6; weekly).
+  Note: many open PRs (#181 snapshot spec `spec/session-snapshot`) predate
+  #182; when one merges, the `tla` job picks its `.cfg` files up
+  automatically, but its `check.sh` expectations must go in `expect-violation`.
 
 - 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
   and stores only complete baselines (+ nightly renewal); matrix values go
