@@ -171,6 +171,14 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 
 ## Log
 
+- 2026-10-19: the nightly `quality` run has failed since 10-11 on
+  `fuzz FuzzURLTemplate` (10 min): a template host ending in more than one dot
+  (`http://{id}.0..`) parsed, but `hosts.Split` trims only one dot so `Match`
+  did not read back its own URLs. `ParseURLTemplate` now rejects empty labels;
+  seed kept in `testdata/fuzz/FuzzURLTemplate/trailing-dots`. 40 s local fuzz
+  clean. Note: PR #192 (fuzz `hosts.Split`/`auth.SameHost`, Dependabot) is still
+  open and its tla+ leg failed at the time (the tools asset was repinned since,
+  #194): rebase it and re-run; backlog items 1 and 6 depend on it.
 - 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
   and stores only complete baselines (+ nightly renewal); matrix values go
   through `env:`; fuzz legs use their own module's `go.mod`; `tlc-check.sh`
