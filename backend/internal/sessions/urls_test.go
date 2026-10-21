@@ -90,6 +90,8 @@ func TestParseURLTemplateRejects(t *testing.T) {
 		"https://user@{id}.sessions.example.com",      // userinfo
 		"https://{id}.sessions.example.com:port",      // bad port
 		"https://{id}.sessions example.com",           // not a host
+		"http://{id}...",                              // empty host labels
+		"https://{id}..example.com",                   // empty host label
 		"https://{id}.sessions.example.com:8080:8080", // not a host
 	} {
 		if tmpl, err := ParseURLTemplate(s); err == nil {

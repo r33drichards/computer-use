@@ -171,6 +171,15 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 
 ## Log
 
+- 2026-10-21: nightly `quality` had failed 4 days running (Oct 18-21). (1) every
+  tla+ leg: `tla2tools.jar` (rolling v1.8.0 asset) was republished again, so
+  repinned the sha256 (third time: expect it again; the failure is at
+  `sha256sum --check` within 2 s). Backlog: stop depending on a rolling asset
+  (vendor the jar via a cached/mirrored release, or pin another immutable
+  source). (2) `FuzzURLTemplate` found a real bug: `ParseURLTemplate` accepted
+  `http://{id}...` (empty host labels) whose URLs `Match` could not read back.
+  Now rejected; seed committed under `testdata/fuzz/`, cases added to
+  `urls_test.go`. The coverage workflow is green.
 - 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
   and stores only complete baselines (+ nightly renewal); matrix values go
   through `env:`; fuzz legs use their own module's `go.mod`; `tlc-check.sh`
