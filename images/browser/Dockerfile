@@ -10,6 +10,8 @@ COPY . .
 RUN nix --extra-experimental-features "nix-command flakes" --option filter-syscalls false \
       build -L --no-link .#desktop-smoke \
  && nix --extra-experimental-features "nix-command flakes" --option filter-syscalls false \
+      build -L --no-link .#history-smoke \
+ && nix --extra-experimental-features "nix-command flakes" --option filter-syscalls false \
       build -L --no-link .#exec-smoke \
  && nix --extra-experimental-features "nix-command flakes" --option filter-syscalls false \
       build .#runtime -o /result \

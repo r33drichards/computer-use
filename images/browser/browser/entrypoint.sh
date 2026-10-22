@@ -16,6 +16,9 @@ PROFILE_DIR="$DATA_DIR/chrome"
 # Where Chromium downloads to and its file chooser opens, and what the session
 # page lists (files.js). In the profile's volume, so it outlives the pod.
 export FILES_DIR="${FILES_DIR:-$PROFILE_DIR/Downloads}"
+if [ "${SESSION_MODE:-0}" = 1 ]; then
+  export HISTORY_DIR="${HISTORY_DIR:-$PROFILE_DIR/desktop-history}"
+fi
 SCREEN="${SCREEN_GEOMETRY:-1280x800x24}"
 # WxHxDepth, the size before any viewer asks for another; Chromium wants its
 # window size as "W,H".

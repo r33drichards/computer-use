@@ -1,0 +1,9 @@
+.desktop-history { margin-bottom: 12px; }
+.desktop-history-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.desktop-history-bar label { display: flex; align-items: center; gap: 8px; }
+.desktop-history-bar input { width: 70px; }
+.desktop-history-timeline { width: 100%; margin: 16px 0 8px; accent-color: #0972d3; }
+.desktop-history-caption { justify-content: space-between; font-size: 12px; color: #5f6b7a; margin-bottom: 8px; }
+.desktop-history-playback { background: #111; min-height: 300px; display: flex; align-items: center; justify-content: center; color: white; }
+.desktop-history-playback video { display: block; width: 100%; max-height: 75vh; object-fit: contain; }
+.desktop-viewer:fullscreen { overflow: auto; background: white; padding: 16px; }

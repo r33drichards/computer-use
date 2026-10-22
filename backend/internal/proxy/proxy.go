@@ -130,6 +130,7 @@ func (p *Proxy) RegisterApp(mux *http.ServeMux) {
 	p.init()
 	mux.HandleFunc("POST /api/sessions/{id}/vnc-ticket", p.vncTicket)
 	p.registerFiles(mux)
+	p.registerHistory(mux)
 }
 
 // route is what a request for a session was matched to.
@@ -370,6 +371,9 @@ func (p *Proxy) forwardWith(w http.ResponseWriter, r *http.Request, s sessions.S
 			pr.Out.Header.Del("Cookie")
 			for name := range pr.Out.Header {
 				if strings.HasPrefix(name, "X-Pomerium-") {
+					pr.Out.Header.Del(name)
+				}
+				if strings.HasPrefix(path, "/history/") && (strings.HasPrefix(name, "Sec-Fetch-") || name == "Origin") {
 					pr.Out.Header.Del(name)
 				}
 			}
