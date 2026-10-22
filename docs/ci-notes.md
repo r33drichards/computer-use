@@ -171,6 +171,13 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 
 ## Log
 
+- 2026-10-22: nightly `quality` red 5 days running. (1) all TLA+ legs: the
+  rolling `v1.8.0` jar changed again; pinned immutable `v1.7.4` instead (all 6
+  configs give the expected results). (2) fuzz found `FuzzURLTemplate` input
+  `http://{id}.0000000..`: hosts with an empty label/trailing dot did not
+  round-trip through `Match`; `ParseURLTemplate` now rejects them, input kept
+  as a seed. Open PRs not yet re-checked: #192 (fuzz tests + Dependabot) covers
+  backlog 1 and 6; avoid duplicating it.
 - 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
   and stores only complete baselines (+ nightly renewal); matrix values go
   through `env:`; fuzz legs use their own module's `go.mod`; `tlc-check.sh`
