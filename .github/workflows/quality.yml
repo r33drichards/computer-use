@@ -29,13 +29,6 @@ concurrency:
   group: quality-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # The tlaplus project republishes v1.8.0's tla2tools.jar (it is a rolling
-  # pre-release), so this hash follows the asset, not the version: when every
-  # tla+ job fails at "sha256sum --check", re-pin to the current asset's hash.
-  TLA2TOOLS_VERSION: v1.8.0
-  TLA2TOOLS_SHA256: 15d103b7e5617780bcc904c0af12f1ad242e2b345c0301136c5be4588f17edac
-
 jobs:
   # The gating scripts' own tests (test/ci).
   scripts:
@@ -241,11 +234,11 @@ jobs:
           persist-credentials: false
 
       - name: TLC
+        # The jar is vendored: upstream republishes v1.8.0's asset, which broke
+        # every tla+ job each time a hash was pinned (see docs/ci-notes.md).
         run: |
-          curl --fail --location --retry 3 --output "$RUNNER_TEMP/tla2tools.jar" \
-            "https://github.com/tlaplus/tlaplus/releases/download/${TLA2TOOLS_VERSION}/tla2tools.jar"
-          echo "${TLA2TOOLS_SHA256}  $RUNNER_TEMP/tla2tools.jar" | sha256sum --check
-          echo "TLA2TOOLS=$RUNNER_TEMP/tla2tools.jar" >> "$GITHUB_ENV"
+          sha256sum --check hack/tools/tla2tools.jar.sha256
+          echo "TLA2TOOLS=$GITHUB_WORKSPACE/hack/tools/tla2tools.jar" >> "$GITHUB_ENV"
 
       - name: Check the configuration
         env:

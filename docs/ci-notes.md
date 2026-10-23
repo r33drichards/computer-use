@@ -69,7 +69,7 @@ by hand.
   invalid accesses and definite leaks fail it. About 1 minute of test time
   locally.
 - **tla**: one parallel leg per `spec/*/*.cfg`, each `hack/tlc-check.sh <cfg>`
-  (pinned `tla2tools.jar`, checked by sha256). A configuration named in the spec
+  (vendored `hack/tools/tla2tools.jar`, checked by `.sha256` beside it). A configuration named in the spec
   directory's `expect-violation` file must *find* a violation (it pins what
   the model says is broken); every other must hold. Adding a spec: put the
   `.tla` and `.cfg` files in `spec/<name>/`, and list the violating ones.
@@ -152,8 +152,7 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 3. ESLint and a formatter (prettier or biome) for `web/` and `site/`.
 4. `ruff format` baseline commit, then `ruff format --check` in CI.
 5. Staticcheck for `terraform-provider-*`; drop the ST exclusions.
-6. Dependency and supply-chain checks: Dependabot for actions, Go, Cargo,
-   npm; `govulncheck`, `cargo audit`, `npm audit`; secret scanning.
+6. Dependency and supply-chain checks: (Dependabot added 2026-10-23) `govulncheck`, `cargo audit`, `npm audit`; secret scanning.
 7. More TLA+: the lease/capacity, drain and autoscale logic
    (`backend/internal/sessions/capacity.go`, `docs/warm-pool.md`) have no spec.
 8. Required status checks: make `quality / report`'s jobs required in branch
@@ -170,6 +169,17 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 4. Update the matrix, the backlog and the log below.
 
 ## Log
+
+- 2026-10-23: nightly `quality` had failed on main for 5+ days, two causes.
+  (1) every tla+ leg: upstream republished the rolling v1.8.0 `tla2tools.jar`
+  again (third hash drift: #185, #194), so a downloaded-and-hashed jar cannot
+  be stable: the jar is now vendored in `hack/tools/` (to update: replace both
+  files, run `hack/tlc-check.sh`). (2) `FuzzURLTemplate` found a real bug:
+  `ParseURLTemplate` accepted hosts with an empty label (`{id}.x..`) that
+  `Match` can never match; now rejected, failing input kept as a seed under
+  `testdata/fuzz/`. Added `.github/dependabot.yml` (actions, Go x4, Cargo,
+  npm x4). Verified locally: all 6 TLC configs, sessions tests, 40 s fuzz,
+  actionlint, ci-coverage.
 
 - 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
   and stores only complete baselines (+ nightly renewal); matrix values go
