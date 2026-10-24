@@ -130,9 +130,12 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
   driver injects its globals (`cluster`, ...).
 - All third-party actions are pinned to a commit with the version in a
   comment (CONTRIBUTING.md). `go run ...@version` tools are pinned by version.
-- The Go fuzz target so far: `FuzzURLTemplate`
+- The Go fuzz targets so far: `FuzzURLTemplate`
   (`backend/internal/sessions/urls_fuzz_test.go`): the session URL template
-  parser, and that URLs it makes are read back by `Match`.
+  parser, and that URLs it makes are read back by `Match`; `FuzzSplit`
+  (`hosts`) and `FuzzSameHost` (`auth`): Host header parsing and matching.
+- `.github/dependabot.yml` opens weekly update PRs for actions, Go, Cargo and
+  npm manifests; add an entry when a manifest is added.
 
 ## Fixed in the first pass
 
@@ -146,14 +149,14 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
    lowest packages with `go tool cover -func`); a floor per component.
 
 1. More Go fuzz targets: webhook payload parsers (`billing/stripe`,
-   `billing/metronome`), `hosts.Split`, `auth.SameHost`, policy JSON bodies.
+   `billing/metronome`), policy JSON bodies, MCP profile parsing
+   (`sessions/mcp_profiles.go`, new in #193).
 2. `cargo fuzz` for the SDK's request/response decoding (the SDK is the
    native-code surface; also try valgrind on the provider's cgo link).
 3. ESLint and a formatter (prettier or biome) for `web/` and `site/`.
 4. `ruff format` baseline commit, then `ruff format --check` in CI.
 5. Staticcheck for `terraform-provider-*`; drop the ST exclusions.
-6. Dependency and supply-chain checks: Dependabot for actions, Go, Cargo,
-   npm; `govulncheck`, `cargo audit`, `npm audit`; secret scanning.
+6. Dependency and supply-chain checks (Dependabot done): `govulncheck`, `cargo audit`, `npm audit`; secret scanning.
 7. More TLA+: the lease/capacity, drain and autoscale logic
    (`backend/internal/sessions/capacity.go`, `docs/warm-pool.md`) have no spec.
 8. Required status checks: make `quality / report`'s jobs required in branch
@@ -171,6 +174,10 @@ needs Java and is exercised by the `tla+` jobs on the real specs.
 
 ## Log
 
+- 2026-10-24: loop. Only #193 touched code since the last entry (new
+  `mcp_profiles.go`, tested; no new component or spec). `ci-coverage.sh`
+  clean. Added `FuzzSplit`, `FuzzSameHost` (15 s each locally, clean) and
+  `dependabot.yml`. Next: backlog 0/1 (webhook parsers), 3, 4.
 - 2026-10-05 (fifth): review of PR #182: coverage fails on any non-success job
   and stores only complete baselines (+ nightly renewal); matrix values go
   through `env:`; fuzz legs use their own module's `go.mod`; `tlc-check.sh`

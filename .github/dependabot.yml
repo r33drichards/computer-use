@@ -1,0 +1,31 @@
+# Weekly update PRs, so the pinned action SHAs and dependencies do not rot.
+# The PRs run the same checks as any other (quality.yml, coverage.yml, ...).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+  - package-ecosystem: gomod
+    directory: /backend
+    schedule: { interval: weekly }
+  - package-ecosystem: gomod
+    directory: /terraform-provider-computeruse
+    schedule: { interval: weekly }
+  - package-ecosystem: gomod
+    directory: /terraform-provider-metronome
+    schedule: { interval: weekly }
+  - package-ecosystem: gomod
+    directory: /sdk/go
+    schedule: { interval: weekly }
+  - package-ecosystem: cargo
+    directory: /sdk
+    schedule: { interval: weekly }
+  - package-ecosystem: npm
+    directory: /web
+    schedule: { interval: weekly }
+  - package-ecosystem: npm
+    directory: /site
+    schedule: { interval: weekly }
+  - package-ecosystem: npm
+    directory: /sdk/js
+    schedule: { interval: weekly }
