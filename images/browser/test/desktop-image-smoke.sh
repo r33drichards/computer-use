@@ -12,6 +12,7 @@ set -euo pipefail
 image="${1:?usage: desktop-image-smoke.sh <image> [<output directory>]}"
 out="${2:-desktop-smoke-out}"
 name="desktop-smoke-$$"
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 mkdir -p "$out"
 data="$(mktemp -d)"
 sudo chown 1000:1000 "$data"
@@ -310,6 +311,22 @@ else
   bad "a second terminal window did not appear"
 fi
 
+# Force a worker timeout while Ctrl is down, then verify the terminal
+# receives actual typed and pasted bytes, not just a success response.
+recovery_receipt=/tmp/input-recovery-receipt
+xfce4-terminal --disable-server --title DIPInputRecovery -x bash -c   'for _ in 1 2; do IFS= read -r line || exit 1; printf "%s\n" "$line"; done >"$1"' bash "$recovery_receipt"   >>/tmp/smoke-terminal.log 2>&1 &
+recovery_window() { xdotool search --onlyvisible --name '^DIPInputRecovery$'; }
+module_path="$(find /nix/store -maxdepth 1 -name '*-browser-mcp-*' -type d | while IFS= read -r pkg; do
+  candidate="$pkg/lib/node_modules/browser-mcp/desktop.js"
+  if [ -f "$candidate" ]; then printf '%s\n' "$candidate"; break; fi
+done)"
+if wait_for 20 recovery_window && [ -n "$module_path" ] &&
+   node /tmp/input-recovery-smoke.mjs "$module_path" "$recovery_receipt"; then
+  ok "a worker timeout does not poison subsequent XFCE typing or paste"
+else
+  bad "desktop input did not recover after a held-key worker timeout"
+fi
+
 # The terminal's tools.
 missing=""
 for tool in bash ls cp find grep sed awk diff less which file tree ps top clear tar gzip bzip2 xz zip unzip \
@@ -425,6 +442,7 @@ start
 seconds_until "the environment file exists" '[ -s /tmp/runtime/session-env ]'
 seconds_until "the MCP server answers /healthz" '. /tmp/runtime/session-env; curl -fsS --max-time 1 http://127.0.0.1:8081/healthz'
 seconds_until "the panel has a window" '. /tmp/runtime/session-env; wmctrl -lx | grep -qi xfce4-panel'
+docker cp "$script_dir/input-recovery-smoke.mjs" "$name:/tmp/input-recovery-smoke.mjs"
 inside first || status=1
 copy_out first-empty.png desktop.png applications.png final.png desktop-execute.png
 docker logs "$name" >"$out/container-first.log" 2>&1 || true

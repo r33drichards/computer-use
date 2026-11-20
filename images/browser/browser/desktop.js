@@ -224,7 +224,7 @@ const MAX_IMAGES = 10;
 // (keys, mouse buttons) is released before returning, failed or not: a
 // modifier stuck down would garble everything the person at the VNC view and
 // the next call do.
-export async function runOperations(nut, { operations, config = {} }, { size, png = encodePng } = {}) {
+export async function runOperations(nut, { operations, config = {} }, { size, png = encodePng, reportHeld } = {}) {
   const settings = { ...DEFAULT_CONFIG, ...config };
   nut.keyboard.config.autoDelayMs = settings.keyboardDelayMs;
   nut.mouse.config.autoDelayMs = settings.mouseDelayMs;
@@ -263,6 +263,18 @@ export async function runOperations(nut, { operations, config = {} }, { size, pn
 
   const heldKeys = new Set();
   const heldButtons = new Set();
+  const journal = () => reportHeld?.({ keys: [...heldKeys], buttons: [...heldButtons] });
+  // Record before touching X. The parent acknowledges the record first, so a
+  // killed worker cannot send a key-down the parent does not know about.
+  const withHeld = async (set, names, action) => {
+    const added = names.filter((name) => !set.has(name));
+    for (const name of added) set.add(name);
+    if (added.length) await journal();
+    const result = await action();
+    for (const name of added) set.delete(name);
+    if (added.length) await journal();
+    return result;
+  };
 
   const run = {
     'mouse.setPosition': async (p) => {
@@ -276,59 +288,68 @@ export async function runOperations(nut, { operations, config = {} }, { size, pn
     'mouse.getPosition': async () => plainPoint(await nut.mouse.getPosition()),
     'mouse.click': async (p) => {
       await moveIfGiven(p);
-      await nut.mouse.click(buttonOf(p));
+      await withHeld(heldButtons, [p.button || 'LEFT'], () => nut.mouse.click(buttonOf(p)));
       return { clicked: p.button || 'LEFT', ...plainPoint(await nut.mouse.getPosition()) };
     },
     'mouse.doubleClick': async (p) => {
       await moveIfGiven(p);
-      await nut.mouse.doubleClick(buttonOf(p));
+      await withHeld(heldButtons, [p.button || 'LEFT'], () => nut.mouse.doubleClick(buttonOf(p)));
       return { doubleClicked: p.button || 'LEFT', ...plainPoint(await nut.mouse.getPosition()) };
     },
     'mouse.pressButton': async (p) => {
       heldButtons.add(p.button || 'LEFT');
+      await journal();
       await nut.mouse.pressButton(buttonOf(p));
       return { pressed: p.button || 'LEFT' };
     },
     'mouse.releaseButton': async (p) => {
       await nut.mouse.releaseButton(buttonOf(p));
       heldButtons.delete(p.button || 'LEFT');
+      await journal();
       return { released: p.button || 'LEFT' };
     },
     'mouse.drag': async (p) => {
       const to = at(p.to, 'to ');
       if (p.from) await nut.mouse.setPosition(at(p.from, 'from '));
       // nut.js presses LEFT, moves along the path, and releases.
-      heldButtons.add('LEFT');
-      await nut.mouse.drag(nut.straightTo(to));
-      heldButtons.delete('LEFT');
+      await withHeld(heldButtons, ['LEFT'], () => nut.mouse.drag(nut.straightTo(to)));
       return { dragged_to: plainPoint(p.to) };
     },
     'keyboard.type': async (p) => {
       if (p.text !== undefined) {
         for (const step of typingSteps(p.text)) {
-          if (step.text) await nut.keyboard.type(step.text);
-          else if (step.key) await nut.keyboard.type(nut.Key[step.key]);
+          if (step.text) {
+            // The native text path may briefly hold Shift for uppercase text.
+            const modifiers = /[A-Z]/.test(step.text) ? ['LeftShift'] : [];
+            await withHeld(heldKeys, modifiers, () => nut.keyboard.type(step.text));
+          } else if (step.key) {
+            await withHeld(heldKeys, [step.key], () => nut.keyboard.type(nut.Key[step.key]));
+          }
           else {
             const combo = [nut.Key.LeftShift, nut.Key[step.shifted]];
-            heldKeys.add('LeftShift');
-            await nut.keyboard.pressKey(...combo);
-            await nut.keyboard.releaseKey(...combo);
-            heldKeys.delete('LeftShift');
+            await withHeld(heldKeys, ['LeftShift', step.shifted], async () => {
+              await nut.keyboard.pressKey(...combo);
+              await nut.keyboard.releaseKey(...combo);
+            });
           }
         }
         return { typed: p.text.length + ' chars' };
       }
-      await nut.keyboard.type(...keysOf(p));
+      for (const name of p.keys) {
+        await withHeld(heldKeys, [name], () => nut.keyboard.type(nut.Key[name]));
+      }
       return { typed: p.keys };
     },
     'keyboard.pressKey': async (p) => {
       for (const k of p.keys) heldKeys.add(k);
+      await journal();
       await nut.keyboard.pressKey(...keysOf(p));
       return { pressed: p.keys };
     },
     'keyboard.releaseKey': async (p) => {
       await nut.keyboard.releaseKey(...keysOf(p));
       for (const k of p.keys) heldKeys.delete(k);
+      await journal();
       return { released: p.keys };
     },
     'screen.width': async () => screen.width,
@@ -382,10 +403,18 @@ export async function runOperations(nut, { operations, config = {} }, { size, pn
   const released = [];
   if (heldKeys.size) {
     const names = [...heldKeys].reverse();
-    await nut.keyboard.releaseKey(...names.map((k) => nut.Key[k])).then(() => released.push(...names), () => {});
+    await nut.keyboard.releaseKey(...names.map((k) => nut.Key[k])).then(() => {
+      released.push(...names);
+      heldKeys.clear();
+    }, () => {});
+    await journal();
   }
   for (const name of heldButtons) {
-    await nut.mouse.releaseButton(nut.Button[name]).then(() => released.push(name), () => {});
+    await nut.mouse.releaseButton(nut.Button[name]).then(() => {
+      released.push(name);
+      heldButtons.delete(name);
+    }, () => {});
+    await journal();
   }
   return { results, images, screen, ...(released.length ? { released } : {}) };
 }
@@ -415,6 +444,59 @@ export function createDesktop({ start = startWorker, getSize = displaySize, time
   let worker = null; // { child, sizeKey }
   let tail = Promise.resolve();
   let nextId = 1;
+  let pendingRecovery = null;
+
+  const hasHeld = (state) => !!(state?.keys.length || state?.buttons.length);
+  const stopAndWait = (child) => new Promise((resolve, reject) => {
+    if (child.exitCode != null || child.signalCode != null) return resolve();
+    const exited = () => { clearTimeout(timer); resolve(); };
+    const timer = setTimeout(() => {
+      child.off('exit', exited);
+      reject(new Error('desktop worker did not exit after SIGKILL'));
+    }, 2000);
+    child.once('exit', exited);
+    try {
+      child.kill('SIGKILL');
+    } catch (err) {
+      clearTimeout(timer);
+      child.off('exit', exited);
+      reject(err);
+    }
+  });
+
+  async function recover() {
+    if (!pendingRecovery) return;
+    const { child, held, stopped } = pendingRecovery;
+    if (!stopped) {
+      await stopAndWait(child);
+      pendingRecovery.stopped = true;
+    }
+    // The old process is dead. Release only its journaled input through a
+    // fresh X connection before sending another operation to the display.
+    const cleaner = start();
+    const id = nextId++;
+    const recovered = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('desktop input cleanup timed out')), 4000);
+      const exit = () => reject(new Error('desktop input cleanup worker exited'));
+      const message = (msg) => {
+        if (msg?.id !== id) return;
+        if (msg.error) reject(new Error(msg.error));
+        else if (msg.recovered) resolve();
+      };
+      cleaner.on('message', message);
+      cleaner.once('exit', exit);
+      cleaner.on('error', reject);
+      cleaner.send({ id, recoverHeld: held }, (err) => { if (err) reject(err); });
+      cleaner.once('exit', () => clearTimeout(timer));
+    });
+    try {
+      await recovered;
+      pendingRecovery = null;
+    } finally {
+      // Never allow a still-running recovery worker to race the next call.
+      await stopAndWait(cleaner);
+    }
+  }
 
   function stop() {
     if (!worker) return;
@@ -449,13 +531,27 @@ export function createDesktop({ start = startWorker, getSize = displaySize, time
       const gone = () => {
         if (worker && worker.child === child) worker = null;
       };
+      let held = null;
+      const saveRecovery = (stopped) => {
+        if (hasHeld(held)) pendingRecovery = { child, held, stopped };
+      };
       const onMessage = (msg) => {
         if (!msg || msg.id !== id) return;
+        if (msg.held) {
+          held = msg.held;
+          child.send({ id, ackHeld: msg.seq }, (err) => { if (err) onError(err); });
+          return;
+        }
+        if (hasHeld(held)) {
+          gone();
+          saveRecovery(false);
+        }
         if (msg.error) done(reject, new Error(msg.error));
         else done(resolve, msg);
       };
       const onExit = (code, signal) => {
         gone();
+        saveRecovery(true);
         done(
           reject,
           new Error(
@@ -466,12 +562,16 @@ export function createDesktop({ start = startWorker, getSize = displaySize, time
       };
       const onError = (err) => {
         gone();
+        saveRecovery(false);
         done(reject, new Error(`the desktop worker could not be started: ${messageOf(err)}`));
       };
       const timer = setTimeout(() => {
         gone();
-        child.kill('SIGKILL');
+        saveRecovery(false);
+        // Detach listeners first; the old worker's exit cannot race the
+        // timeout result. recover() waits for it if there is held input.
         done(reject, new Error(`the call took longer than ${timeoutMs / 1000} s and was stopped`));
+        if (!hasHeld(held)) child.kill('SIGKILL');
       }, timeoutMs);
       child.on('message', onMessage);
       child.once('exit', onExit);
@@ -487,7 +587,14 @@ export function createDesktop({ start = startWorker, getSize = displaySize, time
     if (wrong) return Promise.resolve(errorResult(`Error: ${wrong}`));
     const run = tail.then(async () => {
       try {
-        const { results, images, screen, released } = await send(await getSize(), args);
+        await recover();
+        let output;
+        try {
+          output = await send(await getSize(), args);
+        } finally {
+          await recover();
+        }
+        const { results, images, screen, released } = output;
         const failed = results.find((r) => !r.success);
         const body = JSON.stringify({ results, screen, ...(released ? { released } : {}) }, null, 2);
         return {

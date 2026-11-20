@@ -237,7 +237,7 @@ test('operations become the nut.js calls of the same name, in order', async () =
     ['scrollDown', 3],
     ['scrollUp', 1],
     ['type', 'hello'],
-    ['type', K('Tab'), K('Enter')],
+    ['type', K('Tab')], ['type', K('Enter')],
     ['pressKey', K('LeftControl'), K('A')],
     ['releaseKey', K('LeftControl'), K('A')],
     ['setContent', 'héllo'],
@@ -365,7 +365,7 @@ test('the pipeline stops at the first failure and attaches a screenshot', async 
   assert.equal(results[1].operation, 'mouse.click');
   assert.equal(results[1].error, 'click failed');
   assert.equal(images.length, 1);
-  assert.deepEqual(nut.calls.map((c) => c[0]), ['setPosition', 'click', 'grab']);
+  assert.deepEqual(nut.calls.map((c) => c[0]), ['setPosition', 'click', 'grab', 'releaseButton']);
 });
 
 test('nut.js rejecting with a string is still an error message', async () => {
@@ -570,4 +570,65 @@ test('a call that never answers is stopped, and its worker killed', async () => 
   assert.equal(started[0].killed, true);
   assert.equal((await desktop(call)).isError, undefined);
   assert.equal(started.length, 2);
+});
+
+test('hold journal precedes native input and keeps failed releases pending', async () => {
+  const seen = [];
+  const nut = fakeNut();
+  nut.keyboard.pressKey = async () => { seen.push('press'); };
+  nut.keyboard.releaseKey = async () => { throw new Error('release failed'); };
+  await runOperations(nut, { operations: [op('keyboard.pressKey', { keys: ['LeftControl'] })] }, {
+    reportHeld: async ({ keys, buttons }) => { seen.push({ keys, buttons }); },
+  });
+  assert.deepEqual(seen, [
+    { keys: ['LeftControl'], buttons: [] }, 'press', { keys: ['LeftControl'], buttons: [] },
+  ]);
+});
+
+test('timed-out worker cannot leave its chord held into the next desktop call', async () => {
+  const events = [];
+  const started = [];
+  const pressed = new Set();
+  const bad = new Set(['LeftControl', 'LEFT']);
+  const start = () => {
+    const worker = new EventEmitter();
+    const index = started.push(worker) - 1;
+    worker.kill = (signal) => {
+      events.push(`kill:${index}`);
+      setImmediate(() => {
+        events.push(`exit:${index}`);
+        worker.signalCode = signal;
+        worker.emit('exit', null, signal);
+      });
+    };
+    worker.send = (msg, cb) => {
+      cb?.();
+      setImmediate(() => {
+        if (index === 0) {
+          if (msg.ackHeld === 1) {
+            for (const key of bad) pressed.add(key);
+            events.push('pressed');
+          } else {
+            worker.emit('message', { id: msg.id, seq: 1, held: { keys: ['LeftControl'], buttons: ['LEFT'] } });
+          }
+        } else if (msg.recoverHeld) {
+          assert.deepEqual(msg.recoverHeld, { keys: ['LeftControl'], buttons: ['LEFT'] });
+          for (const key of bad) pressed.delete(key);
+          events.push('released');
+          worker.emit('message', { id: msg.id, recovered: true });
+        } else {
+          assert.deepEqual([...pressed], []);
+          events.push('next');
+          worker.emit('message', { id: msg.id, results: [], images: [], screen: msg.size });
+        }
+      });
+    };
+    return worker;
+  };
+  const desktop = createDesktop({ start, getSize: async () => null, timeoutMs: 35 });
+  const first = desktop({ operations: [op('keyboard.pressKey', { keys: ['LeftControl'] })] });
+  const next = desktop(call);
+  assert.match((await first).content[0].text, /took longer/);
+  assert.equal((await next).isError, undefined);
+  assert.deepEqual(events, ['pressed', 'kill:0', 'exit:0', 'released', 'kill:1', 'exit:1', 'next']);
 });

@@ -13,7 +13,27 @@ function loadNut() {
   return nutPromise;
 }
 
+let nextSeq = 1;
+const acknowledgments = new Map();
+function reportHeld(id, held) {
+  return new Promise((resolve, reject) => {
+    const seq = nextSeq++;
+    acknowledgments.set(seq, resolve);
+    process.send({ id, seq, held }, (err) => {
+      if (!err) return;
+      acknowledgments.delete(seq);
+      reject(err);
+    });
+  });
+}
+
 process.on('message', async (msg) => {
+  if (msg.ackHeld !== undefined) {
+    const resolve = acknowledgments.get(msg.ackHeld);
+    acknowledgments.delete(msg.ackHeld);
+    resolve?.();
+    return;
+  }
   try {
     let nut;
     try {
@@ -22,7 +42,16 @@ process.on('message', async (msg) => {
       nutPromise = null;
       throw new Error(`nut.js could not be loaded (${process.platform}/${process.arch}, DISPLAY=${process.env.DISPLAY || ''}): ${err.message || err}`);
     }
-    process.send({ id: msg.id, ...(await runOperations(nut, msg, { size: msg.size || undefined })) });
+    if (msg.recoverHeld) {
+      const { keys, buttons } = msg.recoverHeld;
+      if (keys.length) await nut.keyboard.releaseKey(...[...keys].reverse().map((name) => nut.Key[name]));
+      for (const name of buttons) await nut.mouse.releaseButton(nut.Button[name]);
+      process.send({ id: msg.id, recovered: true });
+      return;
+    }
+    process.send({ id: msg.id, ...(await runOperations(nut, msg, {
+      size: msg.size || undefined, reportHeld: (held) => reportHeld(msg.id, held),
+    })) });
   } catch (err) {
     process.send({ id: msg.id, error: (err && err.message) || String(err) });
   }
