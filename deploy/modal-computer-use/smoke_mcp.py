@@ -26,9 +26,14 @@ def json_reply(stream, request_id):
             if line.startswith(b"data:"):
                 data.append(line[5:].strip())
             elif not line.strip() and data:
-                message = json.loads(b"\n".join(data))
+                payload = b"\n".join(data)
                 data.clear()
-                if message.get("id") == request_id:
+                # Streamable HTTP can prime the SSE stream with an empty
+                # data field before returning a JSON-RPC response.
+                if not payload.strip():
+                    continue
+                message = json.loads(payload)
+                if isinstance(message, dict) and message.get("id") == request_id:
                     return message
         raise ValueError("No matching MCP reply in SSE response")
     body = stream.read(MAX_REPLY + 1)
@@ -109,7 +114,7 @@ def main():
     # A fixed local screenshot, never sent to this script or printed.
     code = """
 const result = await mcp.callTool('browser', 'desktop_execute', {
-  operations: [{ type: 'screen.grab', params: {} }],
+  operations: [{ type: 'screen.grabRegion', params: {left: 0, top: 0, width: 16, height: 16} }],
 });
 if (result.isError || !result.content?.some(item => item.type === 'image' && item.data?.length)) {
   throw new Error('Desktop screenshot did not return image content');
@@ -120,7 +125,10 @@ console.log('COMPUTERUSE_DESKTOP_SMOKE_OK');
     inner = result.get("result", {})
     if inner.get("isError") or "COMPUTERUSE_DESKTOP_SMOKE_OK" not in json.dumps(inner):
         raise ValueError("run_js did not confirm desktop screenshot")
-    print("PASS: run_js reached desktop_execute and obtained an image")
+    _, reply, _ = post("tools/list", {})
+    if "run_js" not in {tool.get("name") for tool in reply.get("result", {}).get("tools", [])}:
+        raise ValueError("MCP session no longer returned the expected tools after the screenshot")
+    print("PASS: run_js captured a 16×16 image and MCP session remained usable")
 
 
 if __name__ == "__main__":
