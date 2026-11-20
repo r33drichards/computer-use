@@ -11,7 +11,7 @@ if MODE not in {"modal-proxy", "app-bearer"}:
 # are attached in default mode; neither child inherits Modal's environment.
 secrets = [modal.Secret.from_name("computer-use-mcp-bearer-digest")] if MODE == "app-bearer" else []
 app = modal.App("isolated-computer-use-mcp")
-@app.function(image=image, secrets=secrets, cpu=1.5, memory=3072,
+@app.function(image=image.env({"COMPUTER_USE_AUTH_MODE": MODE}), secrets=secrets, cpu=1.5, memory=3072,
               min_containers=0, max_containers=1, scaledown_window=120,
               timeout=300)
 @modal.concurrent(max_inputs=8)
