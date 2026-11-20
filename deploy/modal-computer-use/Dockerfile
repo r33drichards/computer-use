@@ -9,16 +9,17 @@ RUN git init && git remote add origin https://github.com/r33drichards/computer-u
 WORKDIR /src/images/browser
 # Apply the local narrow overlay on Debian (sed is not in nixos/nix).
 # Require each exact upstream process line and its PID bookkeeping before
-# deleting only those two launch blocks. Keep the entire source subtree.
+# disabling the public VNC gateway. Keep the original loopback exec server.
 RUN test "$(grep -c '^EXEC_LOG_DIR=.*bash "\$EXEC_SERVER" &$' browser/entrypoint.sh)" = 1 && \
     test "$(grep -c '^websockify --web .* &$' browser/entrypoint.sh)" = 1 && \
     grep -A1 '^EXEC_LOG_DIR=' browser/entrypoint.sh | grep -Fx 'pids+=($!)' && \
     grep -A1 '^websockify --web' browser/entrypoint.sh | grep -Fx 'pids+=($!)' && \
     test "$(grep -Fc "listen(PORT, '::'" browser/server.js)" = 1 && \
-    sed -i '/^EXEC_LOG_DIR=/{N;d;}' browser/entrypoint.sh && \
     sed -i '/^websockify --web/{N;d;}' browser/entrypoint.sh && \
     sed -i "s/listen(PORT, '::'/listen(PORT, '127.0.0.1'/" browser/server.js && \
-    ! grep -Eq '^EXEC_LOG_DIR=|^websockify --web' browser/entrypoint.sh && \
+    grep -Fq -- '--bind-address 127.0.0.1' browser/exec-server.sh && \
+    grep -Fq -- '--reject-browser-requests' browser/exec-server.sh && \
+    ! grep -Eq '^websockify --web' browser/entrypoint.sh && \
     test "$(grep -Fc "listen(PORT, '127.0.0.1'" browser/server.js)" = 1 && \
     bash -n browser/entrypoint.sh
 

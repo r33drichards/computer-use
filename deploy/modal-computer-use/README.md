@@ -11,17 +11,19 @@ session ID, login state, GitHub credentials, or files. It does not connect to yo
 Mac. The browser and MCP processes run as different unprivileged UIDs with
 separate working directories and only explicit environment variables. No disk
 volume is attached. Idle scale-down and redeploy erase the desktop. Only the
-MCP path is exposed, with one worker; the browser MCP and runtime listen on
-loopback, noVNC and the shell MCP are not started, and mcp-js's direct JS
-filesystem and fetch policies deny by default. Browser browsing can still
-access the network. Desktop control can open a terminal in this isolated
-desktop, so do not attach private mounts, credentials, or broad infrastructure
-access. This is not an egress policy or a replacement for the full GKE setup.
+MCP path is exposed, with one worker; the browser MCP, desktop exec MCP and
+runtime listen on loopback, and noVNC is not started. Only the authenticated
+gateway reaches the desktop's exec tools via the existing MCP-JS wrapper.
+Commands run as the unprivileged desktop user, not the gateway or MCP-JS user.
+There is no command allowlist. The direct JS filesystem, subprocess and fetch
+policies still deny by default. Do not attach private mounts, credentials, or
+broad infrastructure access. This is not an egress policy or a replacement for
+the full GKE setup.
 
 ## Build, smoke-test and publish
 
 The [image workflow](../../.github/workflows/modal-computer-use-image.yml) builds
-for linux/amd64 on a GitHub-hosted runner. It runs MCP discovery and a synthetic
+for linux/amd64 on a GitHub-hosted runner. It runs MCP discovery and an unprivileged desktop exec check and a synthetic
 16×16 desktop screenshot in the **built image**, with no external network or
 published port, and publishes that exact image only on a trusted repository
 push. Published tags identify source commit and CI run, and the job summary

@@ -9,9 +9,28 @@ TOKEN = "0123456789abcdef" * 4  # Only this unexposed test app; not a credential
 MARKER = "COMPUTERUSE_DESKTOP_SMOKE_OK"
 SCREEN_TEST = f"""
 const nested = mcp.listTools();
-if (mcp.servers.includes('exec') || nested.some(tool => tool.server === 'exec')) {{
-  throw new Error('Unexpected shell MCP upstream');
+const execNames = nested.filter(tool => tool.server === 'exec').map(tool => tool.name).sort();
+if (JSON.stringify(execNames) !== JSON.stringify(['exec', 'kill', 'search_logs', 'stream_logs'])) {{
+  throw new Error('Unexpected desktop exec tool contract');
 }}
+const parse = response => {{
+  if (response.isError) throw new Error('Desktop exec returned a tool error');
+  const text = response.content?.find(x => x.type === 'text')?.text;
+  if (!text) throw new Error('Desktop exec did not return text');
+  return JSON.parse(text);
+}};
+const launched = parse(await mcp.callTool('exec', 'exec', {{bin: 'id', args: ['-u'], timeout: 4}}));
+let uidValidated = false;
+for (let i = 0; i < 30; i++) {{
+  const poll = parse(await mcp.callTool('exec', 'stream_logs', {{id: launched.id, offset: 0}}));
+  if (poll.status === 'completed:0') {{
+    uidValidated = poll.logs.trim() === '1000';
+    break;
+  }}
+  if (poll.status !== 'running') break;
+  await new Promise(resolve => setTimeout(resolve, 100));
+}}
+if (!uidValidated) throw new Error('Desktop exec did not prove the unprivileged desktop UID');
 if (!nested.some(tool => tool.server === 'browser' && tool.name === 'desktop_execute')) {{
   throw new Error('Desktop tool is missing');
 }}
@@ -53,8 +72,9 @@ async def verify():
             _init = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": initialize}
             if (await client.post("/mcp", json=_init)).status_code != 401:
                 raise ValueError("Uncredentialed MCP accepted")
-            if (await client.post("/vnc", json=_init, headers=headers)).status_code != 404:
-                raise ValueError("Unexpected public route accepted")
+            for unexpected in ("/vnc", "/exec"):
+                if (await client.post(unexpected, json=_init, headers=headers)).status_code != 404:
+                    raise ValueError("Unexpected public route accepted")
 
             async def post(identifier, method, params=None):
                 data = {"jsonrpc": "2.0", "method": method}
@@ -85,5 +105,5 @@ async def verify():
             }})
             if result.get("isError") or MARKER not in json.dumps(result):
                 raise ValueError("run_js did not confirm a synthetic screen grab")
-            print("PASS: loopback MCP authenticated, listed tools and executed desktop screenshot")
+            print("PASS: authenticated MCP executed as desktop UID 1000 and captured a screenshot")
             return "desktop MCP ready"

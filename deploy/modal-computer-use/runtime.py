@@ -16,6 +16,8 @@ BROWSER_STATE = "/var/lib/modal-desktop"
 MCP_STATE = "/var/lib/modal-mcp"
 CONFIG = f"{MCP_STATE}/servers.json"
 BROWSER_CONFIG = {"name": "browser", "transport": "http", "url": f"{BROWSER}/mcp"}
+EXEC_CONFIG = {"name": "exec", "transport": "http", "url": "http://127.0.0.1:8082/mcp"}
+UPSTREAMS = (BROWSER_CONFIG, EXEC_CONFIG)
 POLICY = {
     "mcp_tools": {"policies": [{"url": "file:///etc/mcp/wrapper-tools.rego"}]},
     "filesystem": {"policies": [{"url": "file:///etc/mcp/wrapper-filesystem.rego"}]},
@@ -83,7 +85,7 @@ def terminate(process):
 
 
 def prepare_files():
-    # Only the outer service can modify its policy; no separate exec MCP exists.
+    # Only the outer service can modify its policy.
     policy_dir = "/etc/mcp"
     policy_files = {
         "wrapper-tools.rego": '''package mcp.tools
@@ -91,6 +93,10 @@ default allow := false
 allow if {
     input.server == "browser"
     input.tool in {"browser_execute", "desktop_execute"}
+}
+allow if {
+    input.server == "exec"
+    input.tool in {"exec", "stream_logs", "search_logs", "kill"}
 }
 ''',
         "wrapper-filesystem.rego": '''package mcp.filesystem
@@ -107,4 +113,4 @@ default allow := false
     fd = os.open(CONFIG, os.O_NOFOLLOW | os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w") as file:
         os.fchown(file.fileno(), MCP_UID, MCP_UID)
-        json.dump([BROWSER_CONFIG], file)
+        json.dump(UPSTREAMS, file)
