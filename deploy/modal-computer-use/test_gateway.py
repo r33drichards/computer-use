@@ -6,7 +6,7 @@ from unittest.mock import patch
 import httpx
 
 from gateway import MAX_REQUEST_BYTES, bearer_digest_matches, create_app
-from runtime import BROWSER_CONFIG, DESKTOP_UID, MCP_UID, desktop_env, mcp_env, start_unprivileged
+from runtime import BROWSER_CONFIG, DESKTOP_UID, EXEC_CONFIG, MCP_UID, UPSTREAMS, desktop_env, mcp_env, start_unprivileged
 
 TOKEN = "a" * 64  # Public test fixture, not a credential.
 DIGEST = hashlib.sha256(TOKEN.encode()).hexdigest()
@@ -63,7 +63,7 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await self.client.get("/mcp", headers=headers)).status_code, 401)
         self.assertEqual((await self.client.get("/mcp?token=no", headers=self.auth)).status_code, 400)
         self.assertEqual((await self.client.get("/mcp", headers={**self.auth, "origin": "https://other.test"})).status_code, 400)
-        for path in ("/", "/mcp/", "/healthz", "/api/artifacts", "/vnc"):
+        for path in ("/", "/mcp/", "/healthz", "/api/artifacts", "/vnc", "/exec"):
             self.assertEqual((await self.client.get(path, headers=self.auth)).status_code, 404)
         self.assertEqual((await self.client.get("/mcp", headers=self.auth)).status_code, 405)
         self.assertEqual((await self.client.head("/mcp", headers=self.auth)).status_code, 405)
@@ -93,6 +93,10 @@ class RuntimeTests(unittest.TestCase):
         self.assertNotEqual(MCP_UID, DESKTOP_UID)
         self.assertEqual(BROWSER_CONFIG["url"], "http://127.0.0.1:8081/mcp")
         self.assertEqual(mcp_env()["MCP_V8_BIND_HOST"], "127.0.0.1")
+        self.assertEqual(EXEC_CONFIG, {"name": "exec", "transport": "http",
+                                       "url": "http://127.0.0.1:8082/mcp"})
+        self.assertEqual(UPSTREAMS, (BROWSER_CONFIG, EXEC_CONFIG))
+        self.assertFalse(set(EXEC_CONFIG) & {"auth", "headers", "env"})
         with patch("runtime.subprocess.Popen") as spawn:
             start_unprivileged("/example", DESKTOP_UID, desktop_env(), "/tmp")
             self.assertEqual(spawn.call_args.kwargs["user"], DESKTOP_UID)
