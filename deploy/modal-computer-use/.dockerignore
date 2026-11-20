@@ -1,0 +1,6 @@
+*
+!Dockerfile
+!requirements-runtime.txt
+!gateway.py
+!runtime.py
+!verify.py
