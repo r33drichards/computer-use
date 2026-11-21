@@ -1,5 +1,4 @@
 """Disk-only, single-writer checkpoint service for the existing MCP gateway."""
-import asyncio
 import base64
 import json
 import time
