@@ -1,5 +1,5 @@
 FROM debian:trixie-slim AS browser-source
-ARG COMPUTER_USE_REV=63bab526d2a999af969657f70a342dfebe1cbb63
+ARG COMPUTER_USE_REV=895ef338092ddb478a90bb6a6cfcb5422bcd8a62
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
