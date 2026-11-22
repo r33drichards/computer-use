@@ -1,10 +1,19 @@
 """Disk-only, single-writer checkpoint service for the existing MCP gateway."""
 import base64
 import json
+import logging
 import time
 import uuid
 
 import modal
+
+LOG = logging.getLogger(__name__)
+SNAPSHOT_TIMEOUT = 120
+RETRY_DELAY = 600
+
+
+class DesktopRecoveryError(RuntimeError):
+    """An uncheckpointed generation could not be confirmed ready."""
 
 # The Sandbox exposes no port. The bridge runs only over Modal's authenticated
 # control plane and has a fixed upstream target. Never send owner auth to it.
@@ -152,6 +161,8 @@ class Controller:
             if row["active"] not in (None, box.object_id):
                 raise RuntimeError("conflicting desktop generation")
         else:
+            if row.get("checkpoint_pending"):
+                raise DesktopRecoveryError("desktop stopped during an uncommitted checkpoint; refusing stale restore")
             if not row["fresh"] and not row["disk"]:
                 raise RuntimeError("checkpoint missing: refusing empty workspace")
             image = modal.Image.from_id(row["disk"]) if row["disk"] else self.image
@@ -164,19 +175,45 @@ class Controller:
         # Store the binding before exposing any mutable session to the owner.
         row = await self.save(row, active=box.object_id, fresh=False, last=time.time())
         await command(box, CONTROL, "ready", row["slot"])
+        if row.get("checkpoint_pending"):
+            row = await self.save(row, checkpoint_pending=False, checkpoint_retry_after=time.time()+RETRY_DELAY)
         if not row["disk"]:
             await self.seal(box, row, keep=True)
         return box
 
+    async def snapshot(self, box):
+        return await box.snapshot_filesystem.aio(timeout=SNAPSHOT_TIMEOUT, ttl=30*86400)
+
+    async def recover_checkpoint(self, box, row):
+        await command(box, CONTROL, "ready", row["slot"])
+        # Re-read in case the failed state write actually committed on the server.
+        current = await self.record()
+        if current["active"] != box.object_id:
+            raise DesktopRecoveryError("desktop generation changed during checkpoint recovery")
+        await self.save(current, checkpoint_pending=False, checkpoint_retry_after=time.time()+RETRY_DELAY)
+
     async def seal(self, box, row, *, keep=False):
-        # Mark the verified old checkpoint authoritative until replacement is
-        # committed. A failed snapshot resumes this same desktop, not an empty one.
-        await command(box, CONTROL, "drained", row["slot"])
+        # Record the intent before draining. Pending blocks silent restoration of
+        # stale disk if the actor dies during a snapshot and its Sandbox is lost.
+        row = await self.save(row, checkpoint_pending=True, checkpoint_retry_after=time.time()+RETRY_DELAY)
+        phase = "drain"
         try:
-            image = await box.snapshot_filesystem.aio(timeout=55, ttl=30*86400)
-            row = await self.save(row, disk=image.object_id)
-        except Exception:
-            await command(box, CONTROL, "ready", row["slot"])
+            await command(box, CONTROL, "drained", row["slot"])
+            phase = "snapshot"
+            image = await self.snapshot(box)
+            phase = "persist"
+            row = await self.save(row, disk=image.object_id, checkpoint_pending=False, checkpoint_retry_after=0)
+        except Exception as original:
+            try:
+                await self.recover_checkpoint(box, row)
+            except Exception as recovery:
+                LOG.error("Desktop checkpoint %s failed (%s); recovery failed (%s); retaining binding and disk",
+                          phase, type(original).__name__, type(recovery).__name__)
+                raise DesktopRecoveryError(
+                    f"desktop checkpoint {phase} failed; same-generation recovery failed ({type(recovery).__name__})"
+                ) from original
+            LOG.warning("Desktop checkpoint %s failed (%s); same generation resumed, retry delayed",
+                        phase, type(original).__name__)
             raise
         if keep:
             await command(box, CONTROL, "ready", row["slot"])
@@ -187,14 +224,24 @@ class Controller:
 
     async def checkpoint_if_idle(self):
         row = await self.record()
-        if not row["active"] or time.time()-row["last"] < self.idle or time.time() < row.get("bridge_deadline", 0):
+        now = time.time()
+        if (not row["active"] or now-row["last"] < self.idle
+                or now < max(row.get("bridge_deadline", 0), row.get("checkpoint_retry_after", 0))):
             return False
         box = await self.active()
         if box is None:
+            if row.get("checkpoint_pending"):
+                # Preserve the recovery fence and previous saved image.
+                return False
             await self.save(row, active=None, slot=None)
             return False
         if box.object_id != row["active"]:
             raise RuntimeError("conflicting desktop generation")
+        if row.get("checkpoint_pending"):
+            # An interrupted checkpoint is ambiguous; establish readiness
+            # before trying another drain rather than treating it as committed.
+            await self.recover_checkpoint(box, row)
+            return False
         if (await command(box, BUSY, timeout=5)).strip() == "busy":
             return False
         await self.seal(box, row)

@@ -12,7 +12,7 @@ APP = "private-hermes-checkpoint-gateway-canary" if TEST else "isolated-computer
 app = modal.App(APP)
 base = modal.Image.from_registry(reference)
 controller_image = base.env({"COMPUTER_USE_IMAGE": reference, "COMPUTER_USE_AUTH_MODE": MODE, "COMPUTER_USE_CHECKPOINT_TEST": "1" if TEST else "0"}).add_local_python_source("image_spec", "persistent", "checkpoint_gateway", "checkpoint_verify")
-state = modal.Dict.from_name("hermes-checkpoint-gateway-canary-v2" if TEST else "hermes-desktop-checkpoint-v1", create_if_missing=True)
+state = modal.Dict.from_name("hermes-checkpoint-recovery-canary-v1" if TEST else "hermes-desktop-checkpoint-v1", create_if_missing=True)
 owner_digest = modal.Secret.from_name("computer-use-mcp-bearer-digest")
 
 
@@ -32,6 +32,36 @@ class OwnerDesktop:
     async def idle_checkpoint(self):
         return await self.controller.checkpoint_if_idle()
 
+    if TEST:
+        @modal.method()
+        async def verify_snapshot_timeout(self):
+            from modal.exception import ServiceError
+
+            ctl = self.controller
+            before = await ctl.record()
+            assert before["active"] and before["disk"]
+            snapshot = ctl.snapshot
+
+            async def fail(_box):
+                raise ServiceError("canary-injected snapshot timeout")
+
+            ctl.snapshot = fail
+            try:
+                try:
+                    await ctl.checkpoint_if_idle()
+                except ServiceError as exc:
+                    assert str(exc) == "canary-injected snapshot timeout"
+                else:
+                    raise AssertionError("canary did not reach the snapshot stage")
+                after = await ctl.record()
+                assert after["active"] == before["active"]
+                assert after["disk"] == before["disk"]
+                assert not after["checkpoint_pending"]
+                assert not await ctl.checkpoint_if_idle()
+                await ctl.save(after, checkpoint_retry_after=0)
+            finally:
+                ctl.snapshot = snapshot
+
 
 @asynccontextmanager
 async def controller_gateway(_app):
@@ -44,7 +74,7 @@ if TEST:
         from checkpoint_verify import run
         return await run(OwnerDesktop(), controller_gateway)
 else:
-    @app.function(image=controller_image, schedule=modal.Period(minutes=5), timeout=120)
+    @app.function(image=controller_image, schedule=modal.Period(minutes=5), timeout=300)
     def checkpoint_idle_owner_desktop():
         return OwnerDesktop().idle_checkpoint.remote()
 

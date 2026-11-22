@@ -13,6 +13,14 @@ records the image before retiring the old Sandbox. It defers while the exec
 service has running children. Initial rollout is disk-only; real exec after
 RAM restore is not validated.
 
+If drain, snapshot or persistence fails, the controller attempts to restart
+desktop services in the same Sandbox, retains the saved image, and backs off
+for ten minutes. If readiness cannot be verified, the checkpoint stays
+marked pending. The controller does not silently restore an older image if
+that generation subsequently disappears. Diagnose or explicitly accept an
+older restore using the operator's recovery process. Neither the old Sandbox
+nor the saved image is deleted by the failure path.
+
 Disk images may contain browser or CLI credentials. Verify workspace and
 image access before enabling the backend. Disk images expire after 30 days.
 A forced host exit can lose writes since the last completed checkpoint.
